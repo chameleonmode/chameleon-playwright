@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35122.118
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chameleon.app.Playwright", "Chameleon.app.Playwright\Chameleon.app.Playwright.csproj", "{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chameleon.app.Playwright.Tests", "Chameleon.app.Playwright.Tests\Chameleon.app.Playwright.Tests.csproj", "{189C495F-28B7-4926-977C-CA3C3ADA6F36}"
+EndProject
+Global
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {94717E6C-E365-481F-BEA6-E60898846C35}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
