@@ -23,7 +23,6 @@ namespace Chameleon.app.Playwright.Tests
                             "--no-first-run",
                             "--disable-field-trial-config",
                             "--disable-hyperlink-auditing",
-                            "--auto-open-devtools-for-tabs",
                             $"--user-data-dir=\"{cachepath}\"",
                         }),
                 UseShellExecute = true,
