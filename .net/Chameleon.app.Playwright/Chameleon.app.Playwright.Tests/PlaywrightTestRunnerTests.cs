@@ -109,7 +109,7 @@ public class PlaywrightTestRunnerTests : IDisposable {
 	public async Task TestStartProcess() {
 		if (browserProcess != null) {
 
-			_ = browserProcess?.Start();
+			_ = browserProcess.Start();
 			await browserProcess.WaitForExitAsync();
 		}
 	}
