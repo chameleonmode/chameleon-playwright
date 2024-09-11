@@ -1,20 +1,14 @@
 import readline from "readline";
-import { gsiteCase } from "./scripts/gsites.mjs";
 import { config } from "./scripts/base.mjs";
 import playwright from "playwright-core";
+import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// (async () => {
-//   const browser = await playwright.chromium.connectOverCDP(
-//     "http://localhost:9669"
-//   );
-//   const context = browser.contexts()[0];
-//   const page = await context.newPage();
-//   await page.goto("https://example.com");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-//   // Gracefully close up everything
-//   await context.close();
-//   await browser.close();
-// })();
+const scriptsDirectory = path.join(__dirname, 'scripts');
 
 // Set up stdin reader
 const rl = readline.createInterface({
@@ -27,14 +21,14 @@ rl.on("line", (line) => {
   handleCommand(line);
 });
 
-function handleCommand(commandString) {
+async function handleCommand(commandString) {
   try {
     const command = JSON.parse(commandString);
     console.log("Received command:", command);
 
     switch (command.action) {
       case "runTest":
-        runTest(command.name, command.data);
+        await runTest(command.name, command.data);
         break;
       case "setConfig":
         config[command.key] = command.value;
@@ -54,24 +48,41 @@ async function runTest(testName, testData) {
   console.log(`Test data: ${JSON.stringify(testData)}`);
 
   try {
-    await gsiteCase(testData);
-    // await test(testName, async ({ page }) => {
-    //     // Example test using testData
-    //     await page.goto(testData.url);
-    //     await page.screenshot({ path: `${testName}.png` });
-    // });
+    const testScript = await loadTestScript(testName);
+    if (!testScript) {
+      throw new Error(`Test script for "${testName}" not found`);
+    }
+
+    const browser = await playwright.chromium.connectOverCDP(
+      `http://localhost:${config.cdpPort}`
+    );
+    const context = browser.contexts()[0];
+    const page = await context.newPage();
+
+    await testScript(page, testData);
+
     console.log(`Test ${testName} completed successfully`);
+    await browser.close();
   } catch (error) {
     console.error(`Test ${testName} failed: ${error.message}`);
   }
 }
 
+async function loadTestScript(testName) {
+  const scriptPath = path.join(scriptsDirectory, `${testName}.mjs`);
+  try {
+    console.log(`Attempting to load script from: ${scriptPath}`);
+    const module = await import(`file://${scriptPath}`);
+    return module.default || module[testName];
+  } catch (error) {
+    console.error(`Error loading test script: ${error.message}`);
+    return null;
+  }
+}
+
 process.on("SIGTERM", () => {
   console.log("Received SIGTERM. Cleaning up...");
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
+  process.exit(0);
 });
 
 process.on("uncaughtException", (err) => {
