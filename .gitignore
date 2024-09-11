@@ -6,3 +6,4 @@ playwright-report/
 .vs/
 bin/
 obj/
+dist/

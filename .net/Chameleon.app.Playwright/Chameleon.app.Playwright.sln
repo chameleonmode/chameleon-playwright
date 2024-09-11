@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Common", "..\..\..\chameleon-lib\Chameleon.lib\Chameleon.lib.Common\Chameleon.lib.Common.csproj", "{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1EEE051D-8C1A-4441-8721-31493250075F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36} = {1EEE051D-8C1A-4441-8721-31493250075F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {94717E6C-E365-481F-BEA6-E60898846C35}

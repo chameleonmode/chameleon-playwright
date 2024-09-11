@@ -11,5 +11,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Configuration" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageVersion Include="Microsoft.IdentityModel.LoggingExtensions" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.46.0" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.4" />
   </ItemGroup>
 </Project>

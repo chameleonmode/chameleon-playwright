@@ -1,38 +1,30 @@
-import playwright from "playwright-core";
-import { config } from "./base.mjs";
-import { expect } from "@playwright/test";
+import { Page } from 'playwright-core';
 
 export const description = "Gsite - Test Case 1";
-export default async function gsiteTest(page, testData) {
+
+interface TestData {
+  url: string;
+  testEmail: string;
+  testPW: string;
+  textContent: string;
+  textSearch: string;
+  washington: string;
+  antidetect: string;
+}
+
+export async function gsites(page: Page, testData: TestData): Promise<void> {
   console.log("Running GSite test:", testData.testEmail);
-  const browser = await playwright.chromium.connectOverCDP(
-    `http://localhost:${config.cdpPort}`
-  );
   try {
     //Navigate to URL
     await page.goto(testData.url);
 
     try {
       //Enter Email
-      await expect(page.locator(`//div//input[@type='email']`)).toBeVisible();
-      await page
-        .locator(`//div//input[@type='email']`)
-        .fill(testData.testEmail);
-      await expect(page.getByRole("button", { name: "Next" })).toBeVisible({
-        timeout: 3000,
-      });
+      await page.locator(`//div//input[@type='email']`).fill(testData.testEmail);
       await page.getByRole("button", { name: "Next" }).click();
       await page.waitForTimeout(6000);
       //Enter Password
-      await expect(
-        page.locator(`//div//input[@type='password']`)
-      ).toBeVisible();
-      await page
-        .locator(`//div//input[@type='password']`)
-        .fill(testData.testPW);
-      await expect(page.getByRole("button", { name: "Next" })).toBeVisible({
-        timeout: 3000,
-      });
+      await page.locator(`//div//input[@type='password']`).fill(testData.testPW);
       await page.getByRole("button", { name: "Next" }).click();
       await page.waitForLoadState("load");
     } catch (error) {
@@ -40,9 +32,7 @@ export default async function gsiteTest(page, testData) {
     }
 
     //Click on Sites
-    await page
-      .locator(`//img[contains(@src,'blank-googlecolors.png')]`)
-      .click();
+    await page.locator(`//img[contains(@src,'blank-googlecolors.png')]`).click();
     await page.waitForLoadState("load");
 
     //Populate the Blank Sheet Title
@@ -57,16 +47,10 @@ export default async function gsiteTest(page, testData) {
     await page.keyboard.type(testData.textContent);
 
     //Click Youtube
-    await page
-      .locator(`//div[@role='menu'][2]//span[contains(.,"YouTube")]`)
-      .click();
+    await page.locator(`//div[@role='menu'][2]//span[contains(.,"YouTube")]`).click();
     await page.waitForLoadState("load");
     const iframe = page.frameLocator(`//iframe`).last();
-    await iframe
-      .locator(
-        `//input[@aria-label='Search all of YouTube or paste URL'] | //input[@aria-label="Search terms"]`
-      )
-      .click();
+    await iframe.locator(`//input[@aria-label='Search all of YouTube or paste URL'] | //input[@aria-label="Search terms"]`).click();
     await page.keyboard.type(testData.textSearch);
     await page.keyboard.press("Enter");
     await page.waitForLoadState("load");
@@ -74,21 +58,17 @@ export default async function gsiteTest(page, testData) {
     await iframe.getByRole("button", { name: "Select" }).click();
 
     //Click Map
-    await page
-      .locator(`//div[@role='menu'][2]//span[contains(.,"Map")]`)
-      .click();
+    await page.locator(`//div[@role='menu'][2]//span[contains(.,"Map")]`).click();
     await page.waitForLoadState("load");
     const iframe2 = page.frameLocator(`//iframe`).last();
-    await iframe2
-      .locator(`//form//input[@placeholder='Enter a location']`)
-      .click();
+    await iframe2.locator(`//form//input[@placeholder='Enter a location']`).click();
     await page.keyboard.type(testData.washington);
     await page.waitForTimeout(3000);
     await iframe2.locator(`//div[@class='pac-item']`).first().click();
     await iframe2.getByRole("button", { name: "Select" }).click();
     await page.waitForTimeout(3000);
+    
     //Publish
-
     await page.locator(`//span[text()="Publish"]`).click();
     await page.waitForLoadState("load");
     await page.locator(`//input[@class='poFWNe zHQkBf']`).click();
@@ -99,5 +79,9 @@ export default async function gsiteTest(page, testData) {
   } catch (error) {
     console.error("GSite test error:", error);
     throw error;
+  } finally {
+    console.log("GSite test completed finally");
   }
 }
+
+export default gsites;

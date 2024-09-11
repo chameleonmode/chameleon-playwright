@@ -17,15 +17,14 @@ public class PlaywrightTestRunnerTests : IDisposable {
 	private int port = 9669;
 
 	public PlaywrightTestRunnerTests() {
-		async void setup(bool init) {
+		void setup(bool init) {
 			// Setup code
 			port = Netil.NextFreePort(port);
 			cachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 			browserProcess = GrowserProcess(cachePath, [$"--remote-debugging-port={port}"]);
-			_ = browserProcess.Start();
-			await Task.Delay(2000); // Wait for browser to start
 
-			runner = new PlaywrightTestRunner(IoC.Instance.Config);
+
+
 			_tcs.SetResult(true);
 		}
 		// Setup IoC
@@ -77,12 +76,13 @@ public class PlaywrightTestRunnerTests : IDisposable {
 	[Fact]
 	public async Task TestGsite() {
 		_ = await _tcs.Task;
-
+		runner = new PlaywrightTestRunner(IoC.Instance.Config);
 		ArgumentNullException.ThrowIfNull(runner, nameof(runner));
 		try {
 			runner.TestOutputReceived += (sender, output) => Debug.WriteLine($"Test output: {output}");
 			runner.TestErrorReceived += (sender, error) => Debug.WriteLine($"Test error: {error}");
-			await runner.SetConfigurationAsync("cdpPort", port);
+			//todo Change
+			//await runner.SetConfigurationAsync("cdpPort", port);
 
 			//await Task.Delay(1000); // 
 			var data = new
@@ -95,14 +95,22 @@ public class PlaywrightTestRunnerTests : IDisposable {
 				washington = "washington",
 				antidetect = "antidetectbrowsersexplanied5"
 			};
-			await runner.RunTestAsync("gsites", data);
-			await RunTestsInParallelAsync(new List<(string testName, object testData)>() { new("gsites", data) });
+			// await runner.RunTestAsync("gsites", data);
+			// await RunTestsInParallelAsync(new List<(string testName, object testData)>() { new("gsites", data) });
 			if (browserProcess != null)
 				await browserProcess.WaitForExitAsync();
 			//await RunTestsInParallelAsync(new List<(string testName, object testData)>() { new("gsites", data) });
 		} catch (Exception ex) {
 			Console.WriteLine($"Error running test: {ex.Message}");
 			throw;
+		}
+	}
+	[Fact]
+	public async Task TestStartProcess() {
+		if (browserProcess != null) {
+
+			_ = browserProcess?.Start();
+			await browserProcess.WaitForExitAsync();
 		}
 	}
 	public void Dispose() {

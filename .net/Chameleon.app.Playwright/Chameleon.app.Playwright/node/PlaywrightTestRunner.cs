@@ -1,15 +1,9 @@
 ﻿using Chameleon.lib.Common;
 using Chameleon.lib.Common.Interfaces;
 
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
