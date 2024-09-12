@@ -1,14 +1,38 @@
 {
-  "name": "playwright_automation",
+  "name": "playwright-test-runner",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Dynamic Playwright test runner",
+  "main": "dist/script.js",
+  "type": "module",
+  "bin": {
+    "playwright-runner": "./dist/script.js"
+  },
+  "scripts": {
+    "start": "node dist/script.js",
+    "build": "tsc",
+    "package": "npm run build && npm run package:win && npm run package:mac",
+    "package:win": "pkg . --targets node16-win-x64 --output dist/playwright-test-runner-win.exe",
+    "package:mac": "pkg . --targets node16-macos-x64 --output dist/playwright-test-runner-mac"
+  },
+  "dependencies": {
+    "commander": "^9.4.1",
+    "playwright-core": "^1.35.0"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.43.1",
-    "@types/node": "^20.12.7"
+    "@babel/core": "^7.20.12",
+    "@babel/preset-env": "^7.20.2",
+    "@types/node": "^22.5.4",
+    "babel-loader": "^9.1.2",
+    "pkg": "^5.8.1",
+    "typescript": "^5.6.2",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "pkg": {
+    "targets": [
+      "node16-win-x64",
+      "node16-macos-x64"
+    ],
+    "outputPath": "dist"
   }
 }

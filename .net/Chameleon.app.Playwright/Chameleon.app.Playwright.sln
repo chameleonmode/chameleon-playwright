@@ -1,30 +1,81 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
+# 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chameleon.app.Playwright", "Chameleon.app.Playwright\Chameleon.app.Playwright.csproj", "{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.app.Playwright", "Chameleon.app.Playwright\Chameleon.app.Playwright.csproj", "{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chameleon.app.Playwright.Tests", "Chameleon.app.Playwright.Tests\Chameleon.app.Playwright.Tests.csproj", "{189C495F-28B7-4926-977C-CA3C3ADA6F36}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.app.Playwright.Tests", "Chameleon.app.Playwright.Tests\Chameleon.app.Playwright.Tests.csproj", "{189C495F-28B7-4926-977C-CA3C3ADA6F36}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CEF001B3-1176-4ADD-B100-253B6BAB29E2}"
+	ProjectSection(SolutionItems) = preProject
+		..\.editorconfig = ..\.editorconfig
+		..\Directory.Build.props = ..\Directory.Build.props
+		..\Directory.Packages.props = ..\Directory.Packages.props
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Common", "..\..\..\chameleon-lib\Chameleon.lib\Chameleon.lib.Common\Chameleon.lib.Common.csproj", "{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1EEE051D-8C1A-4441-8721-31493250075F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chameleon.lib.Core", "..\..\..\chameleon-lib\Chameleon.lib\Chameleon.lib.Core\Chameleon.lib.Core.csproj", "{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}"
 EndProject
 Global
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {94717E6C-E365-481F-BEA6-E60898846C35}
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+		ReleaseAvalonia|Any CPU = ReleaseAvalonia|Any CPU
+		ReleaseAvaloniaRemoteDebugSupport|Any CPU = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		ReleaseWPF|Any CPU = ReleaseWPF|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseAvalonia|Any CPU.ActiveCfg = ReleaseAvalonia|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseAvalonia|Any CPU.Build.0 = ReleaseAvalonia|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseWPF|Any CPU.ActiveCfg = ReleaseWPF|Any CPU
+		{5674A0CA-C3F5-4A41-BE82-BFC2FD9ECB1E}.ReleaseWPF|Any CPU.Build.0 = ReleaseWPF|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseAvalonia|Any CPU.ActiveCfg = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseAvalonia|Any CPU.Build.0 = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseWPF|Any CPU.ActiveCfg = Release|Any CPU
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36}.ReleaseWPF|Any CPU.Build.0 = Release|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseAvalonia|Any CPU.ActiveCfg = ReleaseAvalonia|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseAvalonia|Any CPU.Build.0 = ReleaseAvalonia|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseWPF|Any CPU.ActiveCfg = ReleaseWPF|Any CPU
+		{8CAA4E55-3FAA-49DF-9C98-D08E136770F1}.ReleaseWPF|Any CPU.Build.0 = ReleaseWPF|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseAvalonia|Any CPU.ActiveCfg = ReleaseAvalonia|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseAvalonia|Any CPU.Build.0 = ReleaseAvalonia|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.ActiveCfg = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseAvaloniaRemoteDebugSupport|Any CPU.Build.0 = ReleaseAvaloniaRemoteDebugSupport|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseWPF|Any CPU.ActiveCfg = ReleaseWPF|Any CPU
+		{B7CFC90A-3ED7-40C9-A42E-DC525749EF6B}.ReleaseWPF|Any CPU.Build.0 = ReleaseWPF|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{189C495F-28B7-4926-977C-CA3C3ADA6F36} = {1EEE051D-8C1A-4441-8721-31493250075F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {94717E6C-E365-481F-BEA6-E60898846C35}
 	EndGlobalSection
 EndGlobal
