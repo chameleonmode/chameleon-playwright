@@ -45,7 +45,7 @@ public class PlaywrightTestRunner : IDisposable {
 	}
 
 	public async Task RunTestAsync(string testName, object testData) {
-		var command = new { action = "runTest", name = testName, data = testData };
+		var command = new { action = "run", name = testName, port = 9669, data = testData };
 		var jsonCommand = JsonSerializer.Serialize(command);
 		await _processInput.WriteLineAsync(jsonCommand);
 	}
@@ -57,8 +57,13 @@ public class PlaywrightTestRunner : IDisposable {
 	}
 
 	public void Dispose() {
-		_nodeProcess?.Kill();
-		_nodeProcess?.Dispose();
-		GC.SuppressFinalize(this);
+		try {
+			_nodeProcess!.Kill();
+			_nodeProcess!.Dispose();
+		} catch (Exception e) {
+			Console.WriteLine(e.Message);
+		} finally {
+			GC.SuppressFinalize(this);
+		}
 	}
 }
