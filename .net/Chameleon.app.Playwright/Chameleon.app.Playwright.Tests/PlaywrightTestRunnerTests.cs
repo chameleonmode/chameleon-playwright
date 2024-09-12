@@ -1,9 +1,14 @@
+using Chameleon.app.Playwright.Interfactes;
 using Chameleon.app.Playwright.node;
+using Chameleon.app.Playwright.Scripts;
+using Chameleon.app.Playwright.Services;
 using Chameleon.lib.Common;
-using Chameleon.lib.Common.Extensions;
 using Chameleon.lib.Common.Util;
+using Chameleon.lib.Core.Automation.Interfaces;
+using Chameleon.lib.Core.Automation.Services;
 
-using System;
+using Microsoft.Extensions.DependencyInjection;
+
 using System.Diagnostics;
 
 namespace Chameleon.app.Playwright.Tests;
@@ -18,6 +23,10 @@ public class PlaywrightTestRunnerTests : IDisposable {
 
 	public PlaywrightTestRunnerTests() {
 		void setup(bool init) {
+			var repo = IoC.GetService<IPlaywrightScriptRepository>();
+			repo!.BundledScripts.Add(new GoogleCTRClickThroughExternalScript());
+			repo!.BundledScripts.Add(new KeepGmailAlive());
+			repo!.BundledScripts.Add(new URLsexplorer());
 			// Setup code
 			port = Netil.NextFreePort(port);
 			cachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -25,6 +34,16 @@ public class PlaywrightTestRunnerTests : IDisposable {
 
 			_tcs.SetResult(true);
 		}
+		IoC.Instance.Configure((services) => {
+			_ = services
+			.AddSingleton<IAutomationScriptApi, AutomationScriptApi>()
+			.AddSingleton<IAutomationScriptRepository, AutomationScriptRepository>()
+			.AddSingleton<IAutomationService, AutomationService>()
+			.AddSingleton<ICompileScriptService, CompileScriptService>()
+			.AddSingleton<IPlaywriteBrowserService, PlaywriteBrowserService>()
+			.AddSingleton<IPlaywrightScriptRepository, PlaywrightScriptRepository>()
+			.AddSingleton<IChromeiumPlaywrightBrowser, ChromeiumPlaywrightBrowser>();
+		});
 		// Setup IoC
 		IoC.Instance.Init(action: setup);
 	}
@@ -40,7 +59,7 @@ public class PlaywrightTestRunnerTests : IDisposable {
 			try {
 				TaskCompletionSource<bool> tcs = new();
 				runner.TestOutputReceived += (sender, output) => {
-					if(output == $"Test {test.testName} completed finally block") {
+					if (output == $"Test {test.testName} completed finally block") {
 						tcs.SetResult(true);
 					}
 				};
@@ -74,7 +93,7 @@ public class PlaywrightTestRunnerTests : IDisposable {
 				antidetect = "antidetectbrowsersexplanied5",
 				gsiteTitle = "GsiteTitle"
 			};
-			await RunTestsInParallelAsync(new List<(string testName,int port, object testData)>() { new("gsites", port, data) });
+			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", port, data) });
 			//DisposeBrowser();
 			//if (browserProcess != null)
 			//	await browserProcess.WaitForExitAsync();

@@ -12,5 +12,5 @@ namespace Chameleon.app.Playwright.Models;
 public class PlaywrightBrowserLaunchOptions
 		: IPlaywrightBrowserLaunchOptions {
 	public IPlaywright? Playwright { get; set; }
-	public IAutomationRunScriptOptions? ScriptOptions { get; set; }
+	public IPlaywriteRunScriptOptions? ScriptOptions { get; set; }
 }

@@ -11,8 +11,8 @@ export interface TestData {
   gsiteTitle: string;
 }
 
-const TIMEOUT = 5000;
-const SHORT_TIMEOUT = 1000;
+const TIMEOUT = 6000;
+const SHORT_TIMEOUT = 3000;
 const BASE_URL = "https://sites.google.com/new";
 const LOGIN_URL = "https://accounts.google.com";
 
@@ -61,7 +61,7 @@ export default class GsitePage {
    */
   async createWebsite(testData: TestData): Promise<void> {
     try {
-      await this.navigateToHomePage();
+      await this.page.goto(testData.url);
       const currentUrl = this.page.url();
       if (currentUrl.startsWith(LOGIN_URL) && currentUrl !== BASE_URL) {
         await this.loginToGsite(testData.testEmail, testData.testPW);
@@ -166,9 +166,10 @@ export default class GsitePage {
         .toString()
         .replace(".", "")}`;
       console.log(uniqueAntiDetectName);
-      await this.page.keyboard.type(antidetect);
+      await this.page.keyboard.type(uniqueAntiDetectName);
       await this.page.waitForLoadState("load");
 
+      await this.delay(SHORT_TIMEOUT);
       if (await publishButton.isEnabled()) {
         break;
       }
@@ -176,7 +177,12 @@ export default class GsitePage {
       await this.page.keyboard.press("Control+A");
       await this.page.keyboard.press("Delete");
     }
-    
+
     await publishButton.click();
+  }
+
+  // Utility function to add a delay
+  delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

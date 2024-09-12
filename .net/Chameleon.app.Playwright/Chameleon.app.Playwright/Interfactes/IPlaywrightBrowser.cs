@@ -10,7 +10,7 @@ using Microsoft.Playwright;
 
 namespace Chameleon.app.Playwright.Interfactes;
 public interface IPlaywrightBrowserLaunchOptions {
-	IAutomationRunScriptOptions? ScriptOptions { get; set; }
+	IPlaywriteRunScriptOptions? ScriptOptions { get; set; }
 	IPlaywright? Playwright { get; }
 }
 

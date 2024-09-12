@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using Chameleon.app.Playwright.Interfactes;
-
 using Microsoft.Playwright;
 
-namespace Chameleon.app.Playwright;
+namespace Chameleon.app.Playwright.Services;
 public class ChromeiumPlaywrightBrowserInstance(IPlaywrightBrowserLaunchOptions options)
 		: IPlaywrightBrowserInstance {
 	private IBrowser? _browser;
@@ -16,9 +14,7 @@ public class ChromeiumPlaywrightBrowserInstance(IPlaywrightBrowserLaunchOptions 
 	public IBrowserContext? BrowserContext => _browser!.Contexts.Count > 0 ? _browser.Contexts[0] : null;
 
 	public async Task Close() {
-		if (BrowserContext != null) {
-			await BrowserContext.CloseAsync();
-		}
+		if (BrowserContext != null) 			await BrowserContext.CloseAsync();
 
 		if (_browser != null) {
 			await _browser.CloseAsync();
@@ -30,6 +26,8 @@ public class ChromeiumPlaywrightBrowserInstance(IPlaywrightBrowserLaunchOptions 
 			=> TryOpenByCDP(0);
 
 	private async Task TryOpenByCDP(int v) {
+		ArgumentNullException.ThrowIfNull(options.Playwright);
+		ArgumentNullException.ThrowIfNull(options.ScriptOptions);
 		try {
 			_browser = await options.Playwright.Chromium.ConnectOverCDPAsync($"http://localhost:{options.ScriptOptions.Port}");
 		} catch {
