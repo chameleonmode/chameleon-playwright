@@ -15,7 +15,8 @@ public abstract class PlaywrightTestsBase {
 	public string? CachePath;
 	public Process? BrowserProcess;
 	public int Port = 9669;
-	public PlaywrightTestsBase() {
+	public PlaywrightTestsBase()
+	{
 		// Setup code
 		Port = Netil.NextFreePort(Port);
 		CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -25,8 +26,7 @@ public abstract class PlaywrightTestsBase {
 	public static Process GrowserProcess(string cachepath, List<string> args) => new() {
 		StartInfo = new ProcessStartInfo {
 			FileName = IoC.GetValue<string>("BrowserPath"),
-			Arguments = string.Join(" ", new List<string>(args)
-		{
+			Arguments = string.Join(" ", new List<string>(args) {
 						"example.com",
 						"--restore-last-session",
 						"--disable-session-crashed-bubble",
@@ -46,12 +46,13 @@ public abstract class PlaywrightTestsBase {
 		EnableRaisingEvents = true,
 	};
 
-	public async Task LaunchBrowser() {
-		_ = await _tcs.Task;
+	public async Task LaunchBrowser()
+	{
 		_ = BrowserProcess!.Start();
 		await Task.Delay(2000);
 	}
-	public async Task DisposeBrowser() {
+	public async Task DisposeBrowser()
+	{
 		if (BrowserProcess != null) {
 			BrowserProcess.Kill();
 			BrowserProcess.Dispose();

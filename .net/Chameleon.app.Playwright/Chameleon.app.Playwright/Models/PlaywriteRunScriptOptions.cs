@@ -11,8 +11,8 @@ using Chameleon.lib.Core.Automation.Interfaces;
 namespace Chameleon.app.Playwright.Models;
 public class PlaywriteRunScriptOptions : IPlaywriteRunScriptOptions {
 	public int Port { get; set; }
-	public bool Record { get; set; }
-	public SystemBrowserType BrowserType { get; set; }
+	public bool Record { get; set; } = false;
+	public SystemBrowserType BrowserType { get; set; } = SystemBrowserType.Chromium;
 	public IAutomationScriptDescription? Script { get; set; }
 	public IBundledScript? BundledScript { get; set; }
 }
