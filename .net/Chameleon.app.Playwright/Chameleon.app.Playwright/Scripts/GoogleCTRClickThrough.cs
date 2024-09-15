@@ -8,7 +8,7 @@ using Chameleon.lib.Core.Automation.Interfaces;
 using Microsoft.Playwright;
 
 namespace Chameleon.app.Playwright.Scripts;
-public class GoogleCTRClickThroughExternalScript : IBundledScript {
+public class GoogleCTRClickThrough : IBundledScript {
 	public async Task Run(IBrowserContext context, IList<IAutomationParameterValue>? pargs = null) {
 		var args = pargs.ParseArguments();
 
@@ -38,7 +38,7 @@ public class GoogleCTRClickThroughExternalScript : IBundledScript {
 
 			// Wait for results to load
 			await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-
+			await Task.Delay(2000);
 			var found = false;
 			for (var i = 0; i < pagesCount && !found; i++) {
 				// Wait for search results
@@ -81,8 +81,7 @@ public class GoogleCTRClickThroughExternalScript : IBundledScript {
 
 			_ = await page.EvaluateAsync($"(() => {{ alert('{ex.Message}'); }})();");
 			await Task.Delay(-1);
+			throw;
 		}
 	}
 }
-
-

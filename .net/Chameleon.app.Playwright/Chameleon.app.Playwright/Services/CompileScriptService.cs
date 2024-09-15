@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Chameleon.app.Playwright.Interfactes;
-using Chameleon.lib.Core.Automation.Interfaces;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

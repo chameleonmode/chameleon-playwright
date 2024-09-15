@@ -1,13 +1,13 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-using Chameleon.app.Playwright.Interfactes;
 using Chameleon.lib.Common.Interfaces;
 
-namespace Chameleon.lib.Core.Automation.Interfaces;
+using Microsoft.Playwright;
+
+namespace Chameleon.app.Playwright.Interfactes;
 public interface IPlaywriteBrowserService
 				: ISingletonDependency {
-	Task RunScript(
-					IPlaywriteRunScriptOptions options,
-					CancellationToken token);
+	IPlaywright? Playwright { get; set; }
+	Task RunScript(IPlaywriteRunScriptOptions options, CancellationToken token);
 }

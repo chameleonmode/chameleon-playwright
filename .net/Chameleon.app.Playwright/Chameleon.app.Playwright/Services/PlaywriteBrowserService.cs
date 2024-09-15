@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,34 +10,14 @@ using Chameleon.lib.Common;
 using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Interfaces;
 using Chameleon.lib.Core.Automation.Interfaces;
-
-using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
 
 namespace Chameleon.app.Playwright.Services;
-public class PlaywriteBrowserService(
-		ICompileScriptService compileScriptService,
-		IAutomationService automationService,
-		IToastNotificationService toastNotificationService)
-		: IPlaywriteBrowserService {
-	public static readonly string recordcontent = @"
-using Microsoft.Playwright;
-using System.Collections.Generic;  // required for ""IDictionary<string, string>""
-using System;
-using System.Threading.Tasks;
-using Chameleon.Interfaces.App.Automation.ExternalScript; // required for ""async Task""
+public class PlaywriteBrowserService(ICompileScriptService compileScriptService, IAutomationService automationService)
+	: IPlaywriteBrowserService {
 
-public class ExternalScript : IExternalScript
-{
-    public async Task Run(IBrowserContext context, IDictionary<string, string> args)
-    {
-        IPage page = await context.NewPageAsync(); 
+	public IPlaywright? Playwright { get; set; }
 
-        // other actions 
-        await page.PauseAsync();
-    }
-}
-";
 	private List<IPlaywrightBrowserInstance> RunningAutomationBrowsers { get; } = [];
 	public static IPlaywrightBrowser? Get(SystemBrowserType browserType) => browserType switch {
 		SystemBrowserType.Chrome or
@@ -49,39 +27,39 @@ public class ExternalScript : IExternalScript
 		_ => throw new NotImplementedException(),
 	};
 
-	public async Task RunScript(
-		IPlaywriteRunScriptOptions options,
-		CancellationToken token) {
+	private async Task<IPlaywrightBrowserInstance> GetBrowserInstance(IPlaywriteRunScriptOptions options) {
+		Playwright ??= await Microsoft.Playwright.Playwright.CreateAsync();
+		var launchOptions = new PlaywrightBrowserLaunchOptions {
+			ScriptOptions = options,
+			Playwright = Playwright
+		};
+		var browser = Get(launchOptions.ScriptOptions?.BrowserType ?? SystemBrowserType.Chrome);
+		ArgumentNullException.ThrowIfNull(browser);
+
+		var browserInstance = await browser.Open(launchOptions);
+		ArgumentNullException.ThrowIfNull(browserInstance);
+		RunningAutomationBrowsers.Add(browserInstance);
+
+		return browserInstance;
+	}
+	public async Task RunScript(IPlaywriteRunScriptOptions options, CancellationToken token) {
 		try {
-			var scripBody = options.Record ? recordcontent : options.Script.Id < 0 ?
-							await automationService.GetScriptBody(options.Script.FilePath ?? throw new ArgumentNullException(nameof(options.Script.FilePath))) :
-							await automationService.GetScriptBody(options.Script.Id);
-
-			var instance = await compileScriptService.CompileScript(scripBody);
-			ArgumentNullException.ThrowIfNull(instance);
-
-			var browser = Get(options.BrowserType);
-			ArgumentNullException.ThrowIfNull(browser);
-
-			//TODO: singleton
-			using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-			var launchOptions = new PlaywrightBrowserLaunchOptions {
-				ScriptOptions = options,
-				Playwright = playwright
-			};
-			var browserInstance = await browser.Open(launchOptions);
+			var browserInstance = await GetBrowserInstance(options);
 			ArgumentNullException.ThrowIfNull(browserInstance.BrowserContext);
 
-			RunningAutomationBrowsers.Add(browserInstance);
-
-			try {
-				if (options.Record)
-					await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token); //await browserInstance.Record().WaitAsync(token);
-				else
+			if (options.Record) {
+				await new ExternalScript().Run(browserInstance.BrowserContext).WaitAsync(token);
+			} else {
+				if (options.BundledScript != null) {
+					await options.BundledScript.Run(browserInstance.BrowserContext, options.Script?.Parameters).WaitAsync(token);
+				} else if (options.BundledScript != null && options.Script?.Id < 0 && options.Script.FilePath != null) {
+					var scripBody = await automationService.GetScriptBody(options.Script.FilePath);
+					var instance = await compileScriptService.CompileScript(scripBody);
+					ArgumentNullException.ThrowIfNull(instance);
 					await instance.Run(browserInstance.BrowserContext, options.Script.Parameters.ParseArguments()).WaitAsync(token);
-			} catch (Exception ex) {
-				// await MesageBoxHelper.ShowErrorAsync("Script error", ex.Message);
-				toastNotificationService.ShowError(ex.Message);
+				}
+				//TODO : else
+				//	var scripBody =  automationService.GetScriptBody(options.Script.Id);
 			}
 
 			//TODO: move to IUserProfileActionsViewModel
@@ -124,8 +102,9 @@ public class ExternalScript : IExternalScript
 			//		break;
 			//	}
 			//}
-		} catch (Exception ex) {
-			toastNotificationService.ShowError(ex.Message);
+		} catch (Exception) {
+			//TODO: toastNotificationService.ShowError(ex.Message);
+			throw;
 		} finally {
 			// RiseFinishScriptExecutionEvent();
 		}

@@ -1,10 +1,13 @@
 using Chameleon.app.Playwright.Interfactes;
+using Chameleon.app.Playwright.Models;
 using Chameleon.app.Playwright.node;
 using Chameleon.app.Playwright.Scripts;
 using Chameleon.app.Playwright.Services;
 using Chameleon.lib.Common;
+using Chameleon.lib.Common.Enums;
 using Chameleon.lib.Common.Util;
 using Chameleon.lib.Core.Automation.Interfaces;
+using Chameleon.lib.Core.Automation.Models;
 using Chameleon.lib.Core.Automation.Services;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -13,37 +16,14 @@ using System.Diagnostics;
 
 namespace Chameleon.app.Playwright.Tests;
 
-public class PlaywrightTestRunnerTests : IDisposable {
-	private readonly TaskCompletionSource<bool> _tcs = new();
-
-	private string? cachePath;
-	private Process? browserProcess;
+public class PlaywrightTestRunnerTests : PlaywrightTestsBase, IDisposable {
 	private PlaywrightTestRunner? runner;
-	private int port = 9669;
 
-	public PlaywrightTestRunnerTests() {
+	public PlaywrightTestRunnerTests() : base() {
 		void setup(bool init) {
-			var repo = IoC.GetService<IPlaywrightScriptRepository>();
-			repo!.BundledScripts.Add(new GoogleCTRClickThroughExternalScript());
-			repo!.BundledScripts.Add(new KeepGmailAlive());
-			repo!.BundledScripts.Add(new URLsexplorer());
-			// Setup code
-			port = Netil.NextFreePort(port);
-			cachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-			browserProcess = GrowserProcess(cachePath, [$"--remote-debugging-port={port}"]);
 
 			_tcs.SetResult(true);
 		}
-		IoC.Instance.Configure((services) => {
-			_ = services
-			.AddSingleton<IAutomationScriptApi, AutomationScriptApi>()
-			.AddSingleton<IAutomationScriptRepository, AutomationScriptRepository>()
-			.AddSingleton<IAutomationService, AutomationService>()
-			.AddSingleton<ICompileScriptService, CompileScriptService>()
-			.AddSingleton<IPlaywriteBrowserService, PlaywriteBrowserService>()
-			.AddSingleton<IPlaywrightScriptRepository, PlaywrightScriptRepository>()
-			.AddSingleton<IChromeiumPlaywrightBrowser, ChromeiumPlaywrightBrowser>();
-		});
 		// Setup IoC
 		IoC.Instance.Init(action: setup);
 	}
@@ -93,10 +73,10 @@ public class PlaywrightTestRunnerTests : IDisposable {
 				antidetect = "antidetectbrowsersexplanied5",
 				gsiteTitle = "GsiteTitle"
 			};
-			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", port, data) });
+			await RunTestsInParallelAsync(new List<(string testName, int port, object testData)>() { new("gsites", Port, data) });
 			//DisposeBrowser();
-			//if (browserProcess != null)
-			//	await browserProcess.WaitForExitAsync();
+			//if (BrowserProcess != null)
+			//	await BrowserProcess.WaitForExitAsync();
 		} catch (Exception ex) {
 			Console.WriteLine($"Error running test: {ex.Message}");
 			throw;
@@ -107,54 +87,15 @@ public class PlaywrightTestRunnerTests : IDisposable {
 
 	[Fact]
 	public async Task TestStartProcess() {
-		if (browserProcess != null) {
+		if (BrowserProcess != null) {
 			await LaunchBrowser();
-			await browserProcess.WaitForExitAsync();
+			await BrowserProcess.WaitForExitAsync();
 		}
 	}
 
-	private static Process GrowserProcess(string cachepath, List<string> args) => new() {
-		StartInfo = new ProcessStartInfo {
-			FileName = IoC.GetValue<string>("BrowserPath"),
-			Arguments = string.Join(" ", new List<string>(args)
-			{
-						"example.com",
-						"--restore-last-session",
-						"--disable-session-crashed-bubble",
-						"--hide-crash-restore-bubble",
-						"--profile-directory=Default",
-						"--disable-domain-reliability",
-						"--no-default-browser-check",
-						"--no-first-run",
-						"--disable-field-trial-config",
-						"--disable-hyperlink-auditing",
-						$"--user-data-dir=\"{cachepath}\"",
-				}),
-			UseShellExecute = true,
-			ErrorDialog = true,
-			CreateNoWindow = true,
-		},
-		EnableRaisingEvents = true,
-	};
-
-	private async Task LaunchBrowser() {
-		_ = await _tcs.Task;
-		_ = browserProcess!.Start();
-		await Task.Delay(2000);
-	}
-	private void DisposeBrowser() {
-		if (browserProcess != null) {
-			browserProcess.Kill();
-			browserProcess.Dispose();
-		}
-	}
 	public async void Dispose() {
-		DisposeBrowser();
 		runner?.Dispose();
-		await Task.Delay(2000);
-		if (Directory.Exists(cachePath)) {
-			Directory.Delete(cachePath, true);
-		}
+		await DisposeBrowser();
 		GC.SuppressFinalize(this);
 	}
 }
