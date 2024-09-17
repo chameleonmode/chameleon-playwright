@@ -55,7 +55,7 @@ public class GoogleCTRClickThrough : IBundledScript {
 					}
 				}
 
-				var nextPage = page.Locator("//*[@id='botstuff']/div/div[4]/div[4]/a[1]");
+				var nextPage = page.Locator("//*[@id='botstuff']/div/div[4]/a[1]");
 				// If not found, go to the next page
 				if (!found && await nextPage.IsVisibleAsync()) {
 					await nextPage.ClickAsync();

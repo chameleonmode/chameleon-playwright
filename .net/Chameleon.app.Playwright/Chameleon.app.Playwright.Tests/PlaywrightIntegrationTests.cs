@@ -17,8 +17,8 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		{
 			var repo = IoC.GetService<IPlaywrightScriptRepository>();
 			repo!.BundledScripts.Add(new GoogleCTRClickThrough());
-			repo!.BundledScripts.Add(new KeepGmailAlive());
-			repo!.BundledScripts.Add(new URLsexplorer());
+			// repo!.BundledScripts.Add(new KeepGmailAlive());
+			// repo!.BundledScripts.Add(new URLsexplorer());
 			// Setup code
 			Port = Netil.NextFreePort(Port);
 			CachePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -62,7 +62,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 								Name = "targetUrl", Value = "youtube.com"
 							},
 							new AutomationParameterValue {
-								Name = "pagescount", Value = "3"
+								Name = "pagescount", Value = "3"	
 							},
 							new AutomationParameterValue {
 								Name = "timeout", Value = "10"
@@ -83,7 +83,7 @@ public class PlaywrightIntegrationTests : PlaywrightTestsBase, IDisposable {
 		await playBrowserService!.RunScript(new PlaywriteRunScriptOptions {
 			Port = Port,
 			Script = new AutomationScriptDescription {
-				FilePath = @"C:\repos\chameleon-playwright\.net\PlaywrightCSTemplate.cs"
+				FilePath = @"C:\Users\LexaNica1915\Documents\C# Chamelion Repo\chameleon-playwright\.net\PlaywrightCSTemplate.cs"
 			}
 		}, CancellationToken.None);
 
