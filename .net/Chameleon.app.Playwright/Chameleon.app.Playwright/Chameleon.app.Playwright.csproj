@@ -10,26 +10,26 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<PackageId>Chameleon.app.Playwright$(PackageSuffix)</PackageId>
-		<Configurations>Debug;Release;ReleaseAvalonia;ReleaseWPF;ReleaseAvaloniaRemoteDebugSupport</Configurations>
+		<Configurations>Debug;Release</Configurations>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 
 	<ItemGroup>
-		    <PackageReference Include="Microsoft.CodeAnalysis.Common" />
-		    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-		    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Common" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="Microsoft.Extensions.Logging" />
-			  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
-			  <PackageReference Include="Microsoft.Extensions.Logging.Console" />
-	  <PackageReference Include="Microsoft.Playwright" />
-	  <PackageReference Include="System.Text.Json" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
+		<PackageReference Include="Microsoft.Playwright" />
+		<PackageReference Include="System.Text.Json" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\chameleon-lib\Chameleon.lib\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
-		<ProjectReference Include="..\..\..\..\chameleon-lib\Chameleon.lib\Chameleon.lib.Core\Chameleon.lib.Core.csproj" />
-	  </ItemGroup>
+		<ProjectReference Include="..\..\..\..\chameleon-lib\Chameleon.lib.Common\Chameleon.lib.Common.csproj" />
+		<ProjectReference Include="..\..\..\..\chameleon-lib\Chameleon.lib.Core\Chameleon.lib.Core.csproj" />
+	</ItemGroup>
 
 </Project>

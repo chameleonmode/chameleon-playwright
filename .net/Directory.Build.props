@@ -11,9 +11,9 @@
 		<Version>2024.0.0.1</Version>
 		<Authors>ezexe</Authors>
 		<Product>Chameleon.app.Playwright</Product>
-		<Copyright>Copyright © Chameleonmode 2023</Copyright>
+		<Copyright>Copyright © Chameleonmode 2024</Copyright>
 		<PackageProjectUrl>https://github.com/chameleonmode/chameleon-playwright</PackageProjectUrl>
-		<PackageOutputPath>C:\repos\nuget</PackageOutputPath>
-		<!--<PackageOutputPath>$(MSBuildProjectDirectory)\..\nuget</PackageOutputPath>-->
+		<!--<PackageOutputPath>C:\repos\nuget</PackageOutputPath>-->
+		<PackageOutputPath>$(MSBuildProjectDirectory)\..\nuget</PackageOutputPath>
 	</PropertyGroup>
 </Project>
