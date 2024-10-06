@@ -1,5 +1,5 @@
 import { Locator, Page } from 'playwright';
-import * as data from  '../../data/data.json'
+import * as data from  '../../data/json/data.json'
 
 export class CommonHelper {
     private page: Page;

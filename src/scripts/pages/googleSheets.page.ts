@@ -1,5 +1,5 @@
 import { Locator, Page } from 'playwright';
-import * as data from  '../../data/gsiteData.json'
+import * as data from  '../../data/json/gsiteData.json'
 
 export class GoogleSheetsPage {
     private page: Page;

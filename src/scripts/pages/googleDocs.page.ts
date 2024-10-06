@@ -1,6 +1,6 @@
 import { Locator, Page } from "playwright";
-import * as data from "../../data/gsiteData.json";
-import * as googleData from "../../data/googleData.json";
+import * as data from "../../data/json/gsiteData.json";
+import * as googleData from "../../data/json/googleData.json";
 import {generateRandomNumber} from '../../utils/utils'
 
 export class GoogleDocsPage {

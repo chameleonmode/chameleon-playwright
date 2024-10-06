@@ -1,5 +1,5 @@
 import { Locator, Page } from 'playwright';
-import * as data from  '../../data/redditData.json'
+import * as data from  '../../data/json/redditData.json'
 
 export default class RedditPage {
     page: Page;
