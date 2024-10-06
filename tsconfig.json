@@ -5,7 +5,7 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
-    "outDir": "./dist",
+    "outDir": "C:\\repos\\Chameleon\\Chameleon.Avalonia\\src\\Chameleon.Avalonia.Desktop\\obj\\outwin\\.playwright\\scripts",
     "rootDir": "./src",
     "sourceMap": false,
     "resolveJsonModule": true,

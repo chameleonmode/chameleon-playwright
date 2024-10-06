@@ -1,89 +1,47 @@
 import { Page } from 'playwright-core';
-import { TestData } from './models/GsitePage.js';
-import gsitesPage from './models/GsitePage.js';
+import GSiteData  from '../data/GSiteData.js';
+import GsitePage from './pages/gsite.page';
 
 export const description = "Gsite - Test Case 1";
 
-export async function gsites(page: Page, testData: TestData): Promise<void> {
-  console.log("Running GSite test:", testData);
+export async function gsites(page: Page, data: GSiteData): Promise<void> {
+  console.log("Running GSite test:", data);
   try {
-    const gsitePage = new gsitesPage(page);
-    await gsitePage.createWebsite(testData);
+    const gsitePage = new GsitePage(page);
+    //Step 1 - Launch Gsite Application
+    await gsitePage.goToGsite()
+    //Step 2 - Log in using valid credentials
+    await gsitePage.loginToGsite(data.email, data.password )
+    //Step 3 - Click on Got It Button if displayed (for newly created account)
+    await gsitePage.clickOnGotItButton()
+    //Step 4 - Add Blank Site
+    await gsitePage.addBlankSite()
+    //Step 5 - Click on Skip this Tour button if displayed (for newly created account)
+    await gsitePage.clickOnSkipThisTourButton()
+    //Step 6 - Update Site Name
+    await gsitePage.updateSiteName(data.gsiteTitle)
+    //Step 7 - Populate the Blank Sheet Title
+    //const gsitePageTitle = data.postTitle // + await gsitePage.randomIntFromInterval(1, 300)//to generate random number between two numbers
+    await gsitePage.changePageTitle(data.postTitle)
+    //optional step if securityu pop-up is displayed.
+    await gsitePage.closeFloatingDialog()
+    //Step 8 - Click Text and Populate it
+    if(data.textWithLink != null && data.link != null)
+      await gsitePage.addTextElementWithHyperLinks(data.textContent, data.textWithLink, data.link)
+    else
+    await gsitePage.addTextElement(data.textContent)
+    //Step 9 - Add Youtube
+    await gsitePage.addYouTube(data.textSearch)
+    //Step 10 - Add Map
+    await gsitePage.addLocation(data.location)
+    //Step 11 - Publish
+    await gsitePage.publishSite(data.publishTitle)
   } catch (error) {
     console.error("GSite test error:", error);
     throw error;
   } finally {
     console.log("GSite test completed finally");
   }
-
-  // try {
-  //   //Navigate to URL
-  //   await page.goto(testData.url);
-
-  //   try {
-  //     //Enter Email
-  //     await page.locator(`//div//input[@type='email']`).fill(testData.testEmail);
-  //     await page.getByRole("button", { name: "Next" }).click();
-  //     await page.waitForTimeout(6000);
-  //     //Enter Password
-  //     await page.locator(`//div//input[@type='password']`).fill(testData.testPW);
-  //     await page.getByRole("button", { name: "Next" }).click();
-  //     await page.waitForLoadState("load");
-  //   } catch (error) {
-  //     console.error("gsiteCase Error:", error);
-  //   }
-
-  //   //Click on Sites
-  //   await page.locator(`//img[contains(@src,'blank-googlecolors.png')]`).click();
-  //   await page.waitForLoadState("load");
-
-  //   //Populate the Blank Sheet Title
-  //   await page.locator(`//div[@role='textbox']`).click();
-  //   await page.keyboard.press("Control+A");
-  //   await page.keyboard.press("Delete");
-  //   await page.keyboard.type("Anti Detect Browser");
-
-  //   //Click Text and Populate it
-  //   await page.locator(`//div[@aria-label='Text box']`).click();
-  //   await page.locator(`//div[@role='textbox']//p`).click();
-  //   await page.keyboard.type(testData.textContent);
-
-  //   //Click Youtube
-  //   await page.locator(`//div[@role='menu'][2]//span[contains(.,"YouTube")]`).click();
-  //   await page.waitForLoadState("load");
-  //   const iframe = page.frameLocator(`//iframe`).last();
-  //   await iframe.locator(`//input[@aria-label='Search all of YouTube or paste URL'] | //input[@aria-label="Search terms"]`).click();
-  //   await page.keyboard.type(testData.gsiteTitle);
-  //   await page.keyboard.press("Enter");
-  //   await page.waitForLoadState("load");
-  //   await iframe.locator(`//div[@role='option'][1]`).click();
-  //   await iframe.getByRole("button", { name: "Select" }).click();
-
-  //   //Click Map
-  //   await page.locator(`//div[@role='menu'][2]//span[contains(.,"Map")]`).click();
-  //   await page.waitForLoadState("load");
-  //   const iframe2 = page.frameLocator(`//iframe`).last();
-  //   await iframe2.locator(`//form//input[@placeholder='Enter a location']`).click();
-  //   await page.keyboard.type(testData.washington);
-  //   await page.waitForTimeout(3000);
-  //   await iframe2.locator(`//div[@class='pac-item']`).first().click();
-  //   await iframe2.getByRole("button", { name: "Select" }).click();
-  //   await page.waitForTimeout(3000);
-    
-  //   //Publish
-  //   await page.locator(`//span[text()="Publish"]`).click();
-  //   await page.waitForLoadState("load");
-  //   await page.locator(`//input[@class='poFWNe zHQkBf']`).click();
-  //   await page.keyboard.type(testData.antidetect);
-  //   await page.waitForLoadState("load");
-  //   await page.getByRole("button", { name: "Publish" }).last().click();
-  //   console.log("GSite test completed successfully");
-  // } catch (error) {
-  //   console.error("GSite test error:", error);
-  //   throw error;
-  // } finally {
-  //   console.log("GSite test completed finally");
-  // }
 }
 
 export default gsites;
