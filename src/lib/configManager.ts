@@ -1,9 +1,19 @@
 import fs from 'fs/promises';
-import { Config, IConsoleCommand } from './types';
+
+export interface Config {
+  [key: string]: string;
+}
+
+export interface IConsoleCommand {
+  name: string;
+  port: number;
+  data: any;
+  [action: string]: string | number | any; // Adjusted index signature
+}
 
 const CONFIG_FILE = 'config.json';
 
-export async function loadConfig(): Promise<Config> {
+export async function loadConfig(): Promise<Config | undefined> {
   try {
     const data = await fs.readFile(CONFIG_FILE, 'utf8');
     return JSON.parse(data) as Config;
@@ -11,18 +21,16 @@ export async function loadConfig(): Promise<Config> {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       console.error(`Error loading config: ${(error as Error).message}`);
     }
-    return {} as Config;
   }
 }
 
-export async function loadCommandJson(json: string): Promise<IConsoleCommand> {
+export async function loadCommandJson(json: string): Promise<IConsoleCommand | undefined> {
   try {
     return JSON.parse(json) as IConsoleCommand;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       console.error(`Error loading config: ${(error as Error).message}`);
     }
-    return {} as IConsoleCommand;
   }
 }
 

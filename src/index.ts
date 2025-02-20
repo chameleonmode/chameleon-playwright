@@ -2,9 +2,8 @@
 
 import readline from 'readline';
 import fs from 'fs/promises';
-import { loadConfig, saveConfig, loadCommandJson } from "./lib/configManager.js";
+import { loadConfig, saveConfig, loadCommandJson, Config } from "./lib/configManager.js";
 import { runTest } from "./lib/playwrightRunner.js";
-import { Config } from "./lib/types.js";
 
 async function handleCommand(line: string) {
   let args: string[];
@@ -14,7 +13,11 @@ async function handleCommand(line: string) {
     console.log(('JsonCommand data:'), line);
     const jsonCommand =  await loadCommandJson(line);
     console.log(('JsonCommand data:'), jsonCommand);
-    args = [jsonCommand.name, "-p", jsonCommand.port.toString(), "-d", JSON.stringify(jsonCommand.data)]
+    if (!jsonCommand) {
+      console.error("Invalid JSON command");
+      return;
+    }
+    args = [jsonCommand.name, "-p", jsonCommand.port?.toString(), "-d", JSON.stringify(jsonCommand.data)]
     command = jsonCommand["action"];
   } else {
     args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
@@ -107,13 +110,12 @@ async function handleRunCommand(args: string[]) {
 
 async function handleConfigCommand(args: string[]) {
   const config = await loadConfig();
-  const [key, value] = args;
-
-  if (!key) {
-    console.log(('Config key is required.'));
+  if (!config) {
+    console.error("Failed to load configuration.");
     return;
   }
-
+  
+  const [key, value] = args;
   if (value === undefined) {
     // Get configuration value
     const configValue = config[key as keyof Config];

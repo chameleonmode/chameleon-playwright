@@ -1,4 +1,6 @@
-import { FrameLocator, Locator, Page } from "playwright";
+import { FrameLocator, Locator, Page, expect } from "@playwright/test";
+import { random, sleep } from "../../lib/utils.js";
+import BasePage from "./base.page.js";
 
 const BASE_URL = "https://sites.google.com/";
 const LOGIN_URL = "https://accounts.google.com";
@@ -20,10 +22,9 @@ export interface Options {
   location: string;
   email: string;
   password: string;
-}  
+}
 
-export default class GsitePage {
-  page: Page;
+export default class GsitePage extends BasePage {
   // LOCATORS
   readonly homeButton: Locator;
   readonly emailTextBox: Locator;
@@ -35,8 +36,6 @@ export default class GsitePage {
   readonly siteTitle: Locator;
   readonly siteHeader: Locator;
   readonly textIcon: Locator;
-  readonly textArea: Locator;
-  readonly enteredTextOnTextArea: Locator;
   readonly youTubeIcon: Locator;
   readonly youtubeModalSearchTextBox: Locator;
   readonly youTubeModalInsertButton: Locator;
@@ -63,8 +62,9 @@ export default class GsitePage {
     applyButton: Locator;
   };
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(readonly page: Page) {
+    super(page);
+
     this.page.setDefaultTimeout(defaultLoadTimeout);
     this.homeButton = page.locator(`//button[@aria-label='Sites home']`);
     this.emailTextBox = page.locator(`//div//input[@type='email']`);
@@ -78,8 +78,6 @@ export default class GsitePage {
     this.siteTitle = page.locator(`label[for='i5']`);
     this.siteHeader = page.locator(`//div[@role='textbox']`);
     this.textIcon = page.locator(`//div[@aria-label='Text box']`);
-    this.textArea = page.locator(`//div[@role='textbox']//p`);
-    this.enteredTextOnTextArea = this.textArea.locator(`//span`);
     this.youTubeIcon = page.locator(`//div[@role='menu'][2]//span[contains(.,"YouTube")]`);
     this.youtubeModalSearchTextBox = page.locator(
       `//input[@aria-label='Search all of YouTube or paste URL'] | //input[@aria-label="Search terms"]`
@@ -122,64 +120,37 @@ export default class GsitePage {
   }
   async clickOnHomeButton() {
     await this.homeButton.click();
-    await this.page.waitForTimeout(longPauseTime);
+    await sleep(longPauseTime);
   }
 
   async closeFloatingDialog() {
-    await this.page.waitForTimeout(longPauseTime);
+    await sleep(longPauseTime);
     if (await this.xButton.isVisible()) {
       await this.xButton.click();
     }
-    await this.page.waitForTimeout(longPauseTime);
+    await sleep(longPauseTime);
   }
 
   async clickOnGotItButton() {
-    await this.page.waitForTimeout(megaLongPauseTime);
+    await sleep(megaLongPauseTime);
     if (await this.gotItButton.isVisible()) {
       await this.gotItButton.click();
     }
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
   }
 
   async clickOnSkipThisTourButton() {
-    await this.page.waitForTimeout(megaLongPauseTime);
+    await sleep(megaLongPauseTime);
     if ((await this.skipThisTourButton.count()) > 1) {
       await this.skipThisTourButton.click();
     }
-    await this.page.waitForTimeout(shortPauseTime);
-  }
-
-  async insertHyperLinkOnText(text: string, hyperlink: string) {
-    await this.page.waitForTimeout(shortPauseTime);
-    await this.toolBar.hyperLinkButton.waitFor({
-      state: "visible",
-      timeout: shortPauseTime,
-    });
-    await this.toolBar.hyperLinkButton.click();
-    await this.toolBar.textToHighLight.waitFor({
-      state: "visible",
-      timeout: shortPauseTime,
-    });
-    await this.toolBar.textToHighLight.click();
-    await this.toolBar.textToHighLight.fill(text);
-    await this.toolBar.linkTextBox.click();
-    await this.toolBar.linkTextBox.fill(hyperlink);
-    await this.page.waitForTimeout(shortPauseTime);
-    while (!this.toolBar.applyButton.isEnabled()) {
-      await this.page.waitForTimeout(shortPauseTime);
-    }
-    await this.toolBar.applyButton.click();
-    await this.page.waitForTimeout(mediumPauseTime);
-  }
-
-  async randomIntFromInterval(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
+    await sleep(shortPauseTime);
   }
 
   async goToGsite(): Promise<boolean> {
     await this.page.goto(BASE_URL);
     await this.page.waitForLoadState("load");
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
     const currentUrl = this.page.url();
     return currentUrl.startsWith(LOGIN_URL) && currentUrl !== BASE_URL;
   }
@@ -192,20 +163,20 @@ export default class GsitePage {
     await this.nextButton.click();
 
     await this.page.waitForLoadState("load");
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
 
     //Enter Password
     await this.passwordTextBox.waitFor({ state: "visible" });
     await this.passwordTextBox.fill(password);
     await this.nextButton.waitFor({ state: "visible" });
     await this.nextButton.click();
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
   }
 
   async addBlankSite() {
     await this.sites.waitFor({ state: "visible" });
     await this.sites.click();
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
   }
 
   async updateSiteName(siteName: string) {
@@ -217,7 +188,8 @@ export default class GsitePage {
     //Populate the Blank Sheet Title
     await this.siteHeader.waitFor({ state: "visible" });
     await this.siteHeader.click();
-    await this.page.keyboard.press("Control+A");
+
+    await this.selectAll();
     await this.page.keyboard.press("Delete");
     await this.page.keyboard.type(pageTitle);
   }
@@ -225,59 +197,55 @@ export default class GsitePage {
   async addTextElement(text: string) {
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
-    await this.textArea.waitFor({ state: "visible" });
-    await this.textArea.click();
+
+    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(0); // Gets first element
+    await textArea.waitFor({ state: "visible" });
+    await textArea.click();
+
     await this.page.keyboard.type(text);
   }
 
-  async addTextElementWithHyperLinks(origText: string, text: string, tlink: string) {
-    const originalTextLength = origText.length;
-    let textwithLink = text;
-    let textinkLength = textwithLink.length;
-    let textLinkPosition = origText.search(textwithLink);
-    let secondTextStart = textLinkPosition + textinkLength;
-    let secondTextEnd = originalTextLength;
-    let firstText = origText.substring(0, textLinkPosition);
-    let secondText = origText.substring(secondTextStart, secondTextEnd);
-
-    //Enter Add Text Icon
+  async insertHyperLinkOnText(text: string, hyperlink: string) {
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
-    await this.textArea.waitFor({ state: "visible" });
-    await this.textArea.click();
 
-    if (textLinkPosition > 0) {
-      //If text link is in the middle of sentence
-      await this.insertHyperLinkOnText(text, tlink);
-      await this.textArea.click();
-      await this.page.keyboard.press("Home");
-      await this.page.keyboard.type(firstText);
-      await this.page.keyboard.press("End");
-      await this.page.keyboard.type(secondText);
-    } else if (textLinkPosition === 0) {
-      //if text link is in 1st index
-      await this.insertHyperLinkOnText(text, tlink);
-      await this.textArea.click();
-      await this.page.keyboard.press("End");
-      await this.page.keyboard.type(secondText);
-    }
+    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(1); // Gets first element
+    await textArea.waitFor({ state: "visible" });
+    await textArea.click();
+
+    await sleep(shortPauseTime);
+    await this.toolBar.hyperLinkButton.waitFor({ state: "visible" });
+    await this.toolBar.hyperLinkButton.click();
+    //
+    await this.toolBar.textToHighLight.waitFor({ state: "visible" });
+    await this.toolBar.textToHighLight.click();
+    await this.toolBar.textToHighLight.fill(text);
+    //
+    await this.toolBar.linkTextBox.click();
+    await this.toolBar.linkTextBox.fill(hyperlink);
+    await sleep(shortPauseTime);
+    
+    await expect(this.toolBar.applyButton).toBeEnabled({timeout: shortPauseTime});
+
+    await this.toolBar.applyButton.click();
+    await sleep(mediumPauseTime);
   }
 
   async addYouTube(textToSearch: string) {
     await this.youTubeIcon.click();
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
     const iframe = this.iFrame;
     //Do Until there's a search result
     while (await iframe.locator(this.youTubeSearchResults).first().isHidden()) {
       await iframe.locator(this.youtubeModalSearchTextBox).click();
       await this.page.keyboard.type(textToSearch);
-      await this.page.waitForTimeout(shortPauseTime);
+      await sleep(shortPauseTime);
       await this.page.keyboard.press("Enter");
-      await this.page.waitForTimeout(mediumPauseTime);
+      await sleep(mediumPauseTime);
       if ((await iframe.locator(this.youTubeSearchResults).count()) > 0) {
-        await this.page.keyboard.press("Control+A");
+        await this.selectAll();
         await this.page.keyboard.press("Delete");
-        await this.page.waitForTimeout(mediumPauseTime);
+        await sleep(mediumPauseTime);
       }
     }
     let resultsCount = await iframe.locator(this.youTubeSearchResults).count();
@@ -294,21 +262,21 @@ export default class GsitePage {
     await iframe2.locator(this.mapModalSearchTextBox).click();
 
     await this.page.keyboard.type(location);
-    await this.page.waitForTimeout(longPauseTime);
+    await sleep(longPauseTime);
     // await this.page.keyboard.press("Enter");
 
     await iframe2.locator(this.mapModalSearchResult).first().waitFor({ state: "visible" });
     // while ((await iframe2.locator(this.mapModalSearchResult).count()) <= 0) {
-    //   await this.page.waitForTimeout(longPauseTime);
+    //   await sleep(longPauseTime);
     // }
-    // await this.page.waitForTimeout(mediumPauseTime);
+    // await sleep(mediumPauseTime);
     await iframe2.locator(this.mapModalSearchResult).first().click();
-    await this.page.waitForTimeout(longPauseTime);
+    await sleep(longPauseTime);
     await iframe2.locator(this.mapModalSelectButton).click();
   }
 
   async publishSite(siteName: string) {
-    await this.page.waitForTimeout(mediumPauseTime);
+    await sleep(mediumPauseTime);
     await this.publishButton.click();
     await this.page.waitForLoadState("load");
     await this.publishModalWebAddressTextBox.waitFor({ state: "visible" });
@@ -316,16 +284,14 @@ export default class GsitePage {
     await this.page.keyboard.type(siteName);
     //To Append random numbers from sitename(to make it unique)
     while (await this.publishModalPublishButton.last().isDisabled()) {
-      await this.page.waitForTimeout(mediumPauseTime);
+      await sleep(mediumPauseTime);
       if (await this.publishModalPublishButton.last().isEnabled()) {
         break;
       }
       await this.publishModalWebAddressTextBox.click();
-      await this.page.keyboard.press("Control+A");
+      await this.selectAll();
       await this.page.keyboard.press("Delete");
-      await this.page.keyboard.type(
-        (siteName + (await this.randomIntFromInterval(1, 69))).replace(".", "")
-      );
+      await this.page.keyboard.type((siteName + (await random(1, 69))).replace(".", ""));
     }
 
     await this.publishModalPublishButton.last().click();
@@ -341,7 +307,7 @@ export default class GsitePage {
       await this.ellipsisMenuRemoveButton.click();
       await this.confirmDeleteDialog.waitFor({ state: "visible" });
       await this.moveToTrashButton.click();
-      await this.page.waitForTimeout(mediumPauseTime);
+      await sleep(mediumPauseTime);
     }
   }
 }

@@ -1,4 +1,6 @@
-import { Locator, Page } from "playwright";
+import { Page, Locator } from "@playwright/test";
+import { random } from "../../lib/utils.js";
+import BasePage from "./base.page.js";
 
 const data = {
   shortPauseTime: 750,
@@ -6,20 +8,21 @@ const data = {
   longPauseTime: 3000,
   megaLongPauseTime: 6000,
   defaultLoadTimeout: 1000 * 60,
-  redditUrl: "https://www.reddit.com/",
 };
 
-export interface Options {
-  textToSearch: string;
-  commenttoMainthread: string;
-  commenttoMainthread2: string;
-  replToComment: string;
-  reddit_username: string;
-  test_password: string;
-}  
+const URL = "https://www.reddit.com/";
+const SLEEP_RANDOM = 256;
 
-export default class RedditPage {
-  page: Page;
+export interface Options {
+  search: string;
+  comment1: string;
+  comment2: string;
+  reply_comment2: string;
+  username: string;
+  password: string;
+}
+
+export default class RedditPage extends BasePage {
   // LOCATORS
   readonly loginButton: Locator;
   readonly loginButtonOnModal: Locator;
@@ -31,7 +34,6 @@ export default class RedditPage {
   readonly loginModal: Locator;
   readonly avatarIcon: Locator;
   readonly searchTextBox: Locator;
-  readonly searchResults: Locator;
   readonly existingComments: Locator;
   readonly upVoteButton: Locator;
   readonly downVoteButton: Locator;
@@ -45,13 +47,11 @@ export default class RedditPage {
   readonly actionToComment: (comment: string) => Locator;
   readonly actionBar: Locator;
   readonly actionBarNumberOfVotes: Locator;
-  readonly currentUserName: Locator;
-  readonly mainThreadHeader: Locator;
   readonly replyTextBox: Locator;
   readonly replyCommentButton: Locator;
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(readonly page: Page) {
+    super(page);
     this.page.setDefaultTimeout(data.defaultLoadTimeout);
     //Login Page Locators
     this.loginButton = page.locator(`//a[@id='login-button']`);
@@ -67,69 +67,31 @@ export default class RedditPage {
     this.loginModal = page.locator(`#login`);
     //Home Page Locator
     this.avatarIcon = page.locator(`//button[@id='expand-user-drawer-button']`);
-    // this.searchTextBox = page.locator(`//input[@placeholder='Search Reddit']`)
-    this.searchTextBox = page
-      .locator(`faceplate-search-input`)
-      .getByRole("textbox");
-    // this.searchTextBox = page.getByRole('textbox', {name: "Search Reddit"})
-    this.searchResults = page.locator(`(//post-consume-tracker)`);
-    //a[@data-testid="post-title"]
-    this.addCommentButton = page.locator(
-      `//faceplate-tracker[@noun='add_comment_button']`
-    );
-    this.commentButton = page.locator(
-      `//button//span[@class='block relative']`
-    );
+    this.searchTextBox = page.locator(`faceplate-search-input`).getByRole("textbox");
+    this.addCommentButton = page.locator(`//faceplate-tracker[@noun='add_comment_button']`);
+    this.commentButton = page.locator(`//button//span[@class='block relative']`);
     this.commentTextBox = page.locator(`//div[@name='body']`);
     this.existingComments = page.locator(`//shreddit-comment`);
     this.upVoteButton = this.page.getByRole("button", { name: "Upvote" });
     this.downVoteButton = this.page.getByRole("button", { name: "Downvote" });
     this.replyButton = this.page.getByRole("button", { name: "Reply" });
     this.commentsData = page.locator(`//div[@slot="comment"]`);
+    //
     this.specificComment = (actualComment: string) =>
       this.commentsData.locator(`//p[contains(text(),'${actualComment}' )]`);
-    this.userCommentSection = (author: string) =>
-      page.locator(`//shreddit-comment[@author='${author}']`);
+    this.userCommentSection = (author: string) => page.locator(`//shreddit-comment[@author='${author}']`);
     this.actionToComment = (comment: string) =>
-      page.locator(
-        `//text()[contains(.,'${comment}')]/ancestor::*[self::shreddit-comment]`
-      ); // To Search for Parent with child text Note: child->parent->child
+      page.locator(`//text()[contains(.,'${comment}')]/ancestor::*[self::shreddit-comment]`); // To Search for Parent with child text Note: child->parent->child
+    //
     this.actionBar = page.locator(`//shreddit-comment-action-row`);
-    this.actionBarNumberOfVotes = page.locator(
-      `shreddit-comment-action-row>>faceplate-number`
-    ); //To by pass shadow dom
-    this.currentUserName = page.locator(
-      `faceplate-loader>>toaster-lite>>faceplate-toast`
-    ); //To by pass shadow dom
-    this.mainThreadHeader = page.locator(`//h1[@slot="title"]`);
-    this.replyTextBox = page.locator(
-      `//div[@role="textbox"][contains(@aria-placeholder, 'Reply to u')]`
-    );
-    this.replyCommentButton = page.locator(
-      `//button//span[@class='block relative']`
-    );
-
-    //span[@slot='content'][normalize-space()='Comment']
-  }
-
-  async searchAndOpenFirstTopic(searchText: string) {
-    await this.loginModal.waitFor({ state: "hidden" }); //wait for log in popup to close
-    await this.page.waitForTimeout(data.longPauseTime);
-    await this.searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
-    await this.searchTextBox.click();
-    await this.searchTextBox.fill(searchText);
-    await this.searchTextBox.press("Enter");
-    await this.page.waitForTimeout(data.mediumPauseTime);
-    await this.searchResults.first().click(); //Select 1st Record
-    await this.page.waitForLoadState(`domcontentloaded`);
-    await this.page.waitForTimeout(data.mediumPauseTime);
-    //open first record
-    await this.mainThreadHeader.waitFor({ state: "visible" });
+    this.actionBarNumberOfVotes = page.locator(`shreddit-comment-action-row>>faceplate-number`); //To by pass shadow dom
+    this.replyTextBox = page.locator(`//div[@role="textbox"][contains(@aria-placeholder, 'Reply to u')]`);
+    this.replyCommentButton = page.locator(`//button//span[@class='block relative']`);
   }
 
   async goToRedditSite() {
     let maxIteration = 0;
-    await this.page.goto(data.redditUrl);
+    await this.page.goto(URL);
     await this.page.waitForLoadState("domcontentloaded");
     while ((await this.userAgreement.count()) === 0 && maxIteration < 5) {
       await this.page.waitForTimeout(data.mediumPauseTime);
@@ -170,42 +132,77 @@ export default class RedditPage {
     }
   }
 
-  async getCurrentUser() {
-    await this.currentUserName.first().waitFor({ state: "visible" });
-    const loggedIn = await this.currentUserName.textContent();
-    return loggedIn;
-  }
+  async searchAndOpenFirstTopic(searchText: string) {
+    await this.loginModal.waitFor({ state: "hidden" }); //wait for log in popup to close
+    //
+    await this.searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
+    await this.searchTextBox.click();
+    await this.searchTextBox.fill(searchText);
+    await this.searchTextBox.press("Enter");
+    await this.page.waitForLoadState(`domcontentloaded`);
+    await this.page.getByRole("button", { name: "Posts" }).click();
+    await this.page.waitForLoadState(`domcontentloaded`);
+    //
+    // Randomly choose between tab navigation and direct link selection
+    //
+    const useTabNavigation = Math.random() < 0.5;
+    if (useTabNavigation) {
+      await this.page.getByRole("button", { name: "Posts" }).press("Tab");
+      await this.page.getByRole("button", { name: "Relevance" }).press("Tab");
+      await this.page.getByRole("button", { name: "All time" }).press("Tab");
+      await this.page.getByRole("link", { name: "Skip to Navigation" }).press("Tab");
+      await this.page.getByRole("link", { name: "Skip to Right Sidebar" }).press("Tab");
+      // Original tab-based navigation
+      const maxIteration = await random(1, 7 * 5);
+      for (let i = 0; i < maxIteration; i++) {
+        await this.page.waitForTimeout((await random(1, 5)) * SLEEP_RANDOM);
+        await this.page.keyboard.press("Tab");
+      }
+      await this.page.keyboard.press("Enter");
+    } else {
+      // Direct link selection
+      const searchResults = await this.page.getByRole("link").all();
+      for (const result of searchResults) {
+        const ariaLabel = await result.getAttribute("aria-label");
+        if (ariaLabel && !ariaLabel.includes("icon r/")) {
+          if (ariaLabel.includes("thumbnail") || ariaLabel.includes("title")) {
+            await this.page.waitForTimeout((await random(1, 5)) * SLEEP_RANDOM);
+            await result.click();
+            break;
+          }
+        }
+      }
+    }
 
-  async getMainThreadHeaderName() {
-    await this.mainThreadHeader.waitFor();
-    const mainThreadHeader = await this.mainThreadHeader.textContent();
-    return mainThreadHeader;
+    await this.page.waitForLoadState(`domcontentloaded`);
   }
 
   async addCommentToMainThread(comment: string) {
-    await this.page.waitForTimeout(data.longPauseTime);
-    await this.addCommentButton.waitFor({ state: "visible" });
-    await this.addCommentButton.click();
-    await this.commentButton.waitFor({ state: "visible" });
-    await this.commentTextBox.fill(comment);
-    await this.page.waitForTimeout(data.mediumPauseTime);
-    await this.commentButton.click();
-    await this.specificComment(comment).waitFor({ state: "visible" });
+    await this.page.waitForLoadState(`domcontentloaded`);
 
-    //For Handling Banner Message for frequent commenting
-    while (await this.xButton.isVisible()) {
-      await this.xButton.waitFor({ state: "visible" });
-      await this.commentButton.click();
-      await this.commentButton.click();
-    }
-    // await this.specificComment(comment).waitFor({state:'visible'})
+    // Wait for and locate the comment button
+    const commentButton = this.page.getByRole("button", { name: "Add a comment" });
+
+    // Wait for button to be visible and enabled
+    await commentButton.waitFor({ state: "visible" });
+    await commentButton.isEnabled(); // Wait until button is enabled
+    await commentButton.click();
+
+    // Continue with comment input
+    const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
+    await textbox.waitFor({ state: "visible" });
+    await textbox.click();
+    await textbox.fill(comment);
+
+    // Submit comment
+    const submitButton = this.page.getByRole("button", { name: "Comment", exact: true });
+    await submitButton.waitFor({ state: "visible" });
+    await submitButton.click();
   }
 
   async upVoteComment(commentToUpvote: string) {
     var toBeAdded: number;
-    await this.actionToComment(commentToUpvote)
-      .locator(this.upVoteButton)
-      .waitFor({ state: "visible" });
+    await this.actionToComment(commentToUpvote).locator(this.upVoteButton).waitFor({ state: "visible" });
     //To check if Upvote is already pressed
     const upVotesIsPressed = await this.actionToComment(commentToUpvote)
       .locator(this.upVoteButton)
@@ -216,9 +213,7 @@ export default class RedditPage {
       .getAttribute("aria-pressed");
     // To Get Current Number of Comment Votes
     var currentNumberOfVotes = Number(
-      await this.actionToComment(commentToUpvote)
-        .locator(this.actionBarNumberOfVotes)
-        .textContent()
+      await this.actionToComment(commentToUpvote).locator(this.actionBarNumberOfVotes).textContent()
     );
 
     if (downVotesIsPressed === "true") {
@@ -228,9 +223,7 @@ export default class RedditPage {
     }
     //Perform the below codes if Upvote is not yet pressed
     if (upVotesIsPressed === "false") {
-      await this.actionToComment(commentToUpvote)
-        .locator(this.upVoteButton)
-        .click();
+      await this.actionToComment(commentToUpvote).locator(this.upVoteButton).click();
       const newNumberOfVotes = currentNumberOfVotes + toBeAdded;
       //expect(newNumberOfVotes).toBeGreaterThan(currentNumberOfVotes) // Verify the count after upvote
       if (newNumberOfVotes < currentNumberOfVotes) {
@@ -241,9 +234,7 @@ export default class RedditPage {
 
   async downVoteComment(commentToUpvote: string) {
     var toBeSubtracted: number;
-    await this.actionToComment(commentToUpvote)
-      .locator(this.downVoteButton)
-      .waitFor({ state: "visible" });
+    await this.actionToComment(commentToUpvote).locator(this.downVoteButton).waitFor({ state: "visible" });
     //To check if Upvote is already pressed
     const upVotesIsPressed = await this.actionToComment(commentToUpvote)
       .locator(this.upVoteButton)
@@ -254,9 +245,7 @@ export default class RedditPage {
       .getAttribute("aria-pressed");
     // To Get Current Number of Comment Votes
     var currentNumberOfVotes = Number(
-      await this.actionToComment(commentToUpvote)
-        .locator(this.actionBarNumberOfVotes)
-        .textContent()
+      await this.actionToComment(commentToUpvote).locator(this.actionBarNumberOfVotes).textContent()
     );
     if (upVotesIsPressed === "true") {
       toBeSubtracted = 2;
@@ -265,9 +254,7 @@ export default class RedditPage {
     }
     //Perform the below codes if Upvote is not yet pressed
     if (downVotesIsPressed === "false") {
-      await this.actionToComment(commentToUpvote)
-        .locator(this.downVoteButton)
-        .click();
+      await this.actionToComment(commentToUpvote).locator(this.downVoteButton).click();
       const newNumberOfVotes = currentNumberOfVotes - toBeSubtracted;
       // expect(newNumberOfVotes).toBeLessThan(currentNumberOfVotes) // Verify the count of after downvote
       if (newNumberOfVotes > currentNumberOfVotes) {
@@ -277,13 +264,9 @@ export default class RedditPage {
   }
 
   async replyToComment(commentToReplyOn: string, reply: string) {
-    await this.actionToComment(commentToReplyOn)
-      .locator(this.replyButton)
-      .waitFor({ state: "visible" });
+    await this.actionToComment(commentToReplyOn).locator(this.replyButton).waitFor({ state: "visible" });
     //To Click on reply button
-    await this.actionToComment(commentToReplyOn)
-      .locator(this.replyButton)
-      .click();
+    await this.actionToComment(commentToReplyOn).locator(this.replyButton).click();
     await this.replyTextBox.waitFor({ state: "visible" });
     await this.replyTextBox.fill(reply);
     await this.page.waitForTimeout(data.mediumPauseTime);

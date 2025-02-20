@@ -1,5 +1,5 @@
 {
-  "name": "playwright-test-runner",
+  "name": "chameleon-playwright",
   "version": "1.0.0",
   "description": "Dynamic Playwright test runner",
   "type": "module",
@@ -8,8 +8,8 @@
     "build": "tsc"
   },
   "dependencies": {
-    "commander": "9.5.0",
-    "playwright": "1.47.0"
+    "@playwright/test": "^1.50.1",
+    "commander": "9.5.0"
   },
   "devDependencies": {
     "@types/node": "22.5.4",

@@ -1,4 +1,5 @@
-import { Page } from 'playwright-core';
+
+import { Page } from '@playwright/test';
 import SitePage, { Options } from './pages/gsite.page.js';
 
 export default async function (page: Page, opts: Options): Promise<void> {
@@ -23,11 +24,9 @@ export default async function (page: Page, opts: Options): Promise<void> {
     //optional step if securityu pop-up is displayed.
     await gsitePage.closeFloatingDialog()
     //Step 8 - Click Text and Populate it
-    if(opts.link && opts.textWithLink) {
-      await gsitePage.addTextElementWithHyperLinks(opts.textContent, opts.textWithLink, opts.link)
-    } else {
-      await gsitePage.addTextElement(opts.textContent)
-    }
+    await gsitePage.addTextElement(opts.textContent)
+    //Step 9 - Click Text and Populate it with Hyperlink
+    await gsitePage.insertHyperLinkOnText(opts.textWithLink, opts.link)
     //Step 9 - Add Youtube
     await gsitePage.addYouTube(opts.textSearch)
     //Step 10 - Add Map
