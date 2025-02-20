@@ -26,6 +26,8 @@ export async function gsites(page: Page, data: GSiteData): Promise<void> {
     //Step 8 - Click Text and Populate it
     if(data.link && data.textWithLink) {
       await gsitePage.addTextElementWithHyperLinks(data.textContent, data.textWithLink, data.link)
+    } else {
+      await gsitePage.addTextElement(data.textContent)
     }
     //Step 9 - Add Youtube
     await gsitePage.addYouTube(data.textSearch)

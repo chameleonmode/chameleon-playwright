@@ -157,49 +157,6 @@ export default class GsitePage {
     await this.page.waitForTimeout(shortPauseTime);
   }
 
-  async addTextElementWithLink(text: string) {
-    await this.textIcon.click();
-    await this.textArea.click();
-    await this.page.keyboard.type(text);
-  }
-
-  async addTextElementWithHyperLinks(
-    origText: string,
-    text: string,
-    tlink: string
-  ) {
-    const originalTextLength = origText.length;
-    let textwithLink = text;
-    let textinkLength = textwithLink.length;
-    let textLinkPosition = origText.search(textwithLink);
-    let secondTextStart = textLinkPosition + textinkLength;
-    let secondTextEnd = originalTextLength;
-    let firstText = origText.substring(0, textLinkPosition);
-    let secondText = origText.substring(secondTextStart, secondTextEnd);
-
-    //Enter Add Text Icon
-    await this.textIcon.waitFor({ state: "visible" });
-    await this.textIcon.click();
-    await this.textArea.waitFor({ state: "visible" });
-    await this.textArea.click();
-
-    if (textLinkPosition > 0) {
-      //If text link is in the middle of sentence
-      await this.insertHyperLinkOnText(text, tlink);
-      await this.textArea.click();
-      await this.page.keyboard.press("Home");
-      await this.page.keyboard.type(firstText);
-      await this.page.keyboard.press("End");
-      await this.page.keyboard.type(secondText);
-    } else if (textLinkPosition === 0) {
-      //if text link is in 1st index
-      await this.insertHyperLinkOnText(text, tlink);
-      await this.textArea.click();
-      await this.page.keyboard.press("End");
-      await this.page.keyboard.type(secondText);
-    }
-  }
-
   async insertHyperLinkOnText(text: string, hyperlink: string) {
     await this.page.waitForTimeout(shortPauseTime);
     await this.toolBar.hyperLinkButton.waitFor({
@@ -274,9 +231,48 @@ export default class GsitePage {
   }
 
   async addTextElement(text: string) {
+    await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
+    await this.textArea.waitFor({ state: "visible" });
     await this.textArea.click();
     await this.page.keyboard.type(text);
+  }
+
+  async addTextElementWithHyperLinks(
+    origText: string,
+    text: string,
+    tlink: string
+  ) {
+    const originalTextLength = origText.length;
+    let textwithLink = text;
+    let textinkLength = textwithLink.length;
+    let textLinkPosition = origText.search(textwithLink);
+    let secondTextStart = textLinkPosition + textinkLength;
+    let secondTextEnd = originalTextLength;
+    let firstText = origText.substring(0, textLinkPosition);
+    let secondText = origText.substring(secondTextStart, secondTextEnd);
+
+    //Enter Add Text Icon
+    await this.textIcon.waitFor({ state: "visible" });
+    await this.textIcon.click();
+    await this.textArea.waitFor({ state: "visible" });
+    await this.textArea.click();
+
+    if (textLinkPosition > 0) {
+      //If text link is in the middle of sentence
+      await this.insertHyperLinkOnText(text, tlink);
+      await this.textArea.click();
+      await this.page.keyboard.press("Home");
+      await this.page.keyboard.type(firstText);
+      await this.page.keyboard.press("End");
+      await this.page.keyboard.type(secondText);
+    } else if (textLinkPosition === 0) {
+      //if text link is in 1st index
+      await this.insertHyperLinkOnText(text, tlink);
+      await this.textArea.click();
+      await this.page.keyboard.press("End");
+      await this.page.keyboard.type(secondText);
+    }
   }
 
   async addYouTube(textToSearch: string) {
