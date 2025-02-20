@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 
 import readline from 'readline';
-import chalk from "chalk";
 import fs from 'fs/promises';
 import { loadConfig, saveConfig, loadCommandJson } from "./lib/configManager.js";
 import { runTest } from "./lib/playwrightRunner.js";
-import { Config, IConsoleCommand } from "./lib/types.js";
+import { Config } from "./lib/types.js";
 
 async function handleCommand(line: string) {
   let args: string[];
   let command: string | undefined;
 
   if (line.startsWith('{') && line.endsWith('}')) {
-    console.log(chalk.yellow('JsonCommand data:'), line);
+    console.log(('JsonCommand data:'), line);
     const jsonCommand =  await loadCommandJson(line);
-    console.log(chalk.blue('JsonCommand data:'), jsonCommand);
+    console.log(('JsonCommand data:'), jsonCommand);
     args = [jsonCommand.name, "-p", jsonCommand.port.toString(), "-d", JSON.stringify(jsonCommand.data)]
     command = jsonCommand["action"];
   } else {
@@ -33,18 +32,18 @@ async function handleCommand(line: string) {
       handleListCommand();
       break;
     case 'exit':
-      console.log(chalk.blue('Exiting...'));
+      console.log(('Exiting...'));
       process.exit(0);
     default:
-      console.log(chalk.red(`Unknown command: ${command}`));
-      console.log(chalk.yellow('Available commands: run, config, list, exit'));
+      console.log((`Unknown command: ${command}`));
+      console.log(('Available commands: run, config, list, exit'));
   }
 }
 
 async function handleRunCommand(args: string[]) {
   const testName = args[0];
   if (!testName) {
-    console.log(chalk.red('Test name is required.'));
+    console.log(('Test name is required.'));
     return;
   }
 
@@ -74,7 +73,7 @@ async function handleRunCommand(args: string[]) {
   }
   
   if (!port) {
-    console.log(chalk.red('CDP port number is required. Use the -p or --port option to specify it.'));
+    console.log(('CDP port number is required. Use the -p or --port option to specify it.'));
     return;
   }
 
@@ -85,22 +84,22 @@ async function handleRunCommand(args: string[]) {
       const fileContent = await fs.readFile(file, 'utf-8');
       testData = JSON.parse(fileContent);
     } catch (error) {
-      console.error(chalk.red(`Error reading file: ${(error as Error).message}`));
+      console.error((`Error reading file: ${(error as Error).message}`));
       return;
     }
   } else if (data) {
     try {
       testData = JSON.parse(data);
     } catch (error) {
-      console.error(chalk.red(`Error parsing test data: ${(error as Error).message}`));
-      console.log(chalk.yellow('Received data:'), data);
+      console.error((`Error parsing test data: ${(error as Error).message}`));
+      console.log(('Received data:'), data);
       return;
     }
   }
 
-  console.log(chalk.blue(`Running test: ${testName}`));
-  console.log(chalk.blue('Test data:'), testData);
-  console.log(chalk.blue(`Using CDP port: ${port}`));
+  console.log((`Running test: ${testName}`));
+  console.log(('Test data:'), testData);
+  console.log((`Using CDP port: ${port}`));
 
   // Run the test
   await runTest(testName, testData, port);
@@ -111,7 +110,7 @@ async function handleConfigCommand(args: string[]) {
   const [key, value] = args;
 
   if (!key) {
-    console.log(chalk.red('Config key is required.'));
+    console.log(('Config key is required.'));
     return;
   }
 
@@ -119,20 +118,20 @@ async function handleConfigCommand(args: string[]) {
     // Get configuration value
     const configValue = config[key as keyof Config];
     if (configValue === undefined) {
-      console.log(chalk.yellow(`Configuration key "${key}" not found.`));
+      console.log((`Configuration key "${key}" not found.`));
     } else {
-      console.log(chalk.green(`${key}: ${configValue}`));
+      console.log((`${key}: ${configValue}`));
     }
   } else {
     // Set configuration value
     config[key as keyof Config] = value;
     await saveConfig(config);
-    console.log(chalk.green(`Configuration updated: ${key} = ${value}`));
+    console.log((`Configuration updated: ${key} = ${value}`));
   }
 }
 
 function handleListCommand() {
-  console.log(chalk.blue("Available tests:"));
+  console.log(("Available tests:"));
   // You'll need to implement a way to discover available tests
   // This is just a placeholder
   console.log("  - gsites");
@@ -145,8 +144,8 @@ const rl = readline.createInterface({
   terminal: false
 });
 
-console.log(chalk.green('Playwright Test Runner'));
-console.log(chalk.yellow('Type a command (run, config, list, exit):'));
+console.log(('Playwright Test Runner'));
+console.log(('Type a command (run, config, list, exit):'));
 
 rl.on('line', (line) => {
   handleCommand(line);
@@ -154,7 +153,7 @@ rl.on('line', (line) => {
 
 process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
   console.error(
-    chalk.red(`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`)
+    (`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`)
   );
   process.exit(1);
 });
