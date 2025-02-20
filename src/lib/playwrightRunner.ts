@@ -1,4 +1,4 @@
-import playwright from 'playwright-core';
+import { chromium } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 
@@ -17,7 +17,7 @@ export async function runTest(testName: string, testData: any, cdpPort: number):
       throw new Error(`Test script for "${testName}" not found`);
     }
 
-    const browser = await playwright.chromium.connectOverCDP(`http://localhost:${cdpPort}`);
+    const browser = await chromium.connectOverCDP(`http://localhost:${cdpPort}`);
     const context = browser.contexts()[0];
     const page = await context.newPage();
 
