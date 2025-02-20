@@ -1,5 +1,3 @@
-import { Page } from "playwright-core";
-
 export interface Config {
   [key: string]: string;
 }

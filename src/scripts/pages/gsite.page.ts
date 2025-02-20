@@ -1,4 +1,5 @@
 import { FrameLocator, Locator, Page } from "playwright";
+
 const BASE_URL = "https://sites.google.com/";
 const LOGIN_URL = "https://accounts.google.com";
 
@@ -7,6 +8,19 @@ let mediumPauseTime: number = 1500;
 let longPauseTime: number = 3000;
 let megaLongPauseTime: number = 6000;
 let defaultLoadTimeout: number = 1000 * 60;
+
+export interface Options {
+  gsiteTitle: string;
+  publishTitle: string;
+  postTitle: string;
+  textContent: string;
+  link: string;
+  textWithLink: string;
+  textSearch: string;
+  location: string;
+  email: string;
+  password: string;
+}  
 
 export default class GsitePage {
   page: Page;
@@ -56,9 +70,7 @@ export default class GsitePage {
     this.emailTextBox = page.locator(`//div//input[@type='email']`);
     this.passwordTextBox = page.locator(`//div//input[@type='password']`);
     this.nextButton = page.getByRole("button", { name: "Next" });
-    this.gotItButton = page.locator(
-      `//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`
-    );
+    this.gotItButton = page.locator(`//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`);
     this.skipThisTourButton = page.locator(
       `//a[@class='iph-dialog-dismiss'][@href="#__dismiss__"][@aria-label="Close"]`
     );
@@ -68,61 +80,41 @@ export default class GsitePage {
     this.textIcon = page.locator(`//div[@aria-label='Text box']`);
     this.textArea = page.locator(`//div[@role='textbox']//p`);
     this.enteredTextOnTextArea = this.textArea.locator(`//span`);
-    this.youTubeIcon = page.locator(
-      `//div[@role='menu'][2]//span[contains(.,"YouTube")]`
-    );
+    this.youTubeIcon = page.locator(`//div[@role='menu'][2]//span[contains(.,"YouTube")]`);
     this.youtubeModalSearchTextBox = page.locator(
       `//input[@aria-label='Search all of YouTube or paste URL'] | //input[@aria-label="Search terms"]`
     );
     this.youTubeModalInsertButton = page.getByRole("button", {
       name: "Insert",
     });
-    this.youTubeSearchResults = page.locator(
-      `//div[@role='option']//div[@class="fPu5nc Fv4UIc"]`
-    );
+    this.youTubeSearchResults = page.locator(`//div[@role='option']//div[@class="fPu5nc Fv4UIc"]`);
     this.iFrame = page.frameLocator(`//iframe`).last();
-    this.mapIcon = page.locator(
-      `//div[@role='menu'][2]//span[contains(.,"Map")]`
-    );
-    this.mapModalSearchTextBox = page.locator(
-      `//form//input[@placeholder='Enter a location']`
-    );
+    this.mapIcon = page.locator(`//div[@role='menu'][2]//span[contains(.,"Map")]`);
+    this.mapModalSearchTextBox = page.locator(`//form//input[@placeholder='Enter a location']`);
     this.mapModalSearchResult = page.locator(`//div[@class='pac-item']`);
     this.mapModalSelectButton = page.getByRole("button", { name: "Select" });
     this.publishButton = page.locator(`//span[text()="Publish"]`);
-    this.publishModalWebAddressTextBox = page.locator(
-      `//input[@class='poFWNe zHQkBf']`
-    );
+    this.publishModalWebAddressTextBox = page.locator(`//input[@class='poFWNe zHQkBf']`);
     this.publishModalPublishButton = page.getByRole("button", {
       name: "Publish",
     });
     this.ellipsisButton = page.locator(
       `//div[@class='docs-homescreen-item-overflow']//div[contains(@class, 'docs-homescreen-icon')]`
     );
-    this.ellipsisDropdown = page.locator(
-      `//div[contains(@class,'docs-homescreen-iconmenu')]`
-    );
+    this.ellipsisDropdown = page.locator(`//div[contains(@class,'docs-homescreen-iconmenu')]`);
     this.ellipsisMenuRemoveButton = page.locator(
       `//div[contains(@class,'docs-homescreen-iconmenu')]//div[text()='Remove']`
     );
     this.confirmDeleteDialog = page.locator(`//div[@role='dialog']`);
-    this.moveToTrashButton = page.locator(
-      `//button[normalize-space()='Move to trash']`
-    );
-    this.hyperLinkModal = page.locator(
-      `//div[@role='dialog'][@aria-label="Insert link"]`
-    );
+    this.moveToTrashButton = page.locator(`//button[normalize-space()='Move to trash']`);
+    this.hyperLinkModal = page.locator(`//div[@role='dialog'][@aria-label="Insert link"]`);
     this.xButton = page.locator(`//button[@aria-label="Close menu"]`);
     this.toolBar = {
       hyperLinkButton: page.locator(
         `//div[@aria-label='Tile']//div[@data-action-id="docs-insert-link-dialog"]`
       ),
-      textToHighLight: page.locator(
-        `//div[@aria-label="Insert link"]//input[@aria-label="Text"]`
-      ),
-      linkTextBox: page.locator(
-        `//div[@aria-label="Insert link"]//input[@aria-label="Link"]`
-      ),
+      textToHighLight: page.locator(`//div[@aria-label="Insert link"]//input[@aria-label="Text"]`),
+      linkTextBox: page.locator(`//div[@aria-label="Insert link"]//input[@aria-label="Link"]`),
       applyButton: page.locator(
         `//div[@aria-label="Insert link"]//div[@role='button'][@aria-label="Apply"]`
       ),
@@ -238,11 +230,7 @@ export default class GsitePage {
     await this.page.keyboard.type(text);
   }
 
-  async addTextElementWithHyperLinks(
-    origText: string,
-    text: string,
-    tlink: string
-  ) {
+  async addTextElementWithHyperLinks(origText: string, text: string, tlink: string) {
     const originalTextLength = origText.length;
     let textwithLink = text;
     let textinkLength = textwithLink.length;
@@ -302,21 +290,14 @@ export default class GsitePage {
     await this.mapIcon.click();
     //Do Until there's a search result
     const iframe2 = this.iFrame;
-    await iframe2
-      .locator(this.mapModalSearchTextBox)
-      .waitFor({ state: "visible" });
-    await iframe2
-      .locator(this.mapModalSearchTextBox)
-      .click();
+    await iframe2.locator(this.mapModalSearchTextBox).waitFor({ state: "visible" });
+    await iframe2.locator(this.mapModalSearchTextBox).click();
 
     await this.page.keyboard.type(location);
     await this.page.waitForTimeout(longPauseTime);
     // await this.page.keyboard.press("Enter");
 
-    await iframe2
-      .locator(this.mapModalSearchResult)
-      .first()
-      .waitFor({ state: "visible" });
+    await iframe2.locator(this.mapModalSearchResult).first().waitFor({ state: "visible" });
     // while ((await iframe2.locator(this.mapModalSearchResult).count()) <= 0) {
     //   await this.page.waitForTimeout(longPauseTime);
     // }
@@ -342,9 +323,11 @@ export default class GsitePage {
       await this.publishModalWebAddressTextBox.click();
       await this.page.keyboard.press("Control+A");
       await this.page.keyboard.press("Delete");
-      await this.page.keyboard.type((siteName + (await this.randomIntFromInterval(1, 69))).replace(".", ""));
+      await this.page.keyboard.type(
+        (siteName + (await this.randomIntFromInterval(1, 69))).replace(".", "")
+      );
     }
-    
+
     await this.publishModalPublishButton.last().click();
   }
 

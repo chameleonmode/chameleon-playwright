@@ -9,6 +9,15 @@ const data = {
   redditUrl: "https://www.reddit.com/",
 };
 
+export interface Options {
+  textToSearch: string;
+  commenttoMainthread: string;
+  commenttoMainthread2: string;
+  replToComment: string;
+  reddit_username: string;
+  test_password: string;
+}  
+
 export default class RedditPage {
   page: Page;
   // LOCATORS

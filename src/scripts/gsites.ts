@@ -1,15 +1,14 @@
 import { Page } from 'playwright-core';
-import GSiteData  from '../data/interfaces/GSiteData';
-import GsitePage from './pages/gsite.page.js';
+import SitePage, { Options } from './pages/gsite.page.js';
 
-export async function gsites(page: Page, data: GSiteData): Promise<void> {
-  console.log("Running GSite test:", data);
+export default async function (page: Page, opts: Options): Promise<void> {
+  console.log("Running GSite test:", opts);
   try {
-    const gsitePage = new GsitePage(page);
+    const gsitePage = new SitePage(page);
     //Step 1 - Launch Gsite Application
     if(await gsitePage.goToGsite()) {
       //Step 2 - Log in using valid credentials
-      await gsitePage.loginToGsite(data.email, data.password )
+      await gsitePage.loginToGsite(opts.email, opts.password )
     }
     //Step 3 - Click on Got It Button if displayed (for newly created account)
     await gsitePage.clickOnGotItButton()
@@ -18,28 +17,26 @@ export async function gsites(page: Page, data: GSiteData): Promise<void> {
     //Step 5 - Click on Skip this Tour button if displayed (for newly created account)
     await gsitePage.clickOnSkipThisTourButton()
     //Step 6 - Update Site Name
-    await gsitePage.updateSiteName(data.gsiteTitle)
+    await gsitePage.updateSiteName(opts.gsiteTitle)
     //Step 7 - Populate the Blank Sheet Title
-    await gsitePage.changePageTitle(data.postTitle)
+    await gsitePage.changePageTitle(opts.postTitle)
     //optional step if securityu pop-up is displayed.
     await gsitePage.closeFloatingDialog()
     //Step 8 - Click Text and Populate it
-    if(data.link && data.textWithLink) {
-      await gsitePage.addTextElementWithHyperLinks(data.textContent, data.textWithLink, data.link)
+    if(opts.link && opts.textWithLink) {
+      await gsitePage.addTextElementWithHyperLinks(opts.textContent, opts.textWithLink, opts.link)
     } else {
-      await gsitePage.addTextElement(data.textContent)
+      await gsitePage.addTextElement(opts.textContent)
     }
     //Step 9 - Add Youtube
-    await gsitePage.addYouTube(data.textSearch)
+    await gsitePage.addYouTube(opts.textSearch)
     //Step 10 - Add Map
-    await gsitePage.addLocation(data.location)
+    await gsitePage.addLocation(opts.location)
     //Step 11 -Publish
-    await gsitePage.publishSite(data.publishTitle)
+    await gsitePage.publishSite(opts.publishTitle)
   } catch (error) {
     console.error("GSite test error:", error);
   } finally {
     console.log("GSite test completed finally");
   }
 }
-
-export default gsites;
