@@ -2,9 +2,10 @@
 // Page Object for Reddit
 import { Page, Locator } from "@playwright/test";
 import { random } from "../../lib/utils.js";
-import BasePage from "./base.page.js";
+import Base from "./base.page.js";
 
-export default class RedditPage extends BasePage {
+export default class RedditPage extends Base {
+  private readonly searchTextBox: Locator;
   private readonly threadLocator: Locator;
   private readonly commentButton: Locator;
 
@@ -14,10 +15,7 @@ export default class RedditPage extends BasePage {
     this.page.setDefaultTimeout(1000 * 60 * 5);
 
     // Create reusable locators
-    // this.threadLocator = page.locator("a[aria-label]").filter({
-    //   has: page.locator('[aria-label*="thumbnail"], [aria-label*="title"]'),
-    //   hasNot: page.locator('[aria-label*="icon r/"]'),
-    // });
+    this.searchTextBox = this.page.locator(`faceplate-search-input`).getByRole("textbox");
     this.threadLocator = page.locator("a[aria-label]").filter({
       hasNot: page.locator('[aria-label*="icon r/"]'),
     });
@@ -33,11 +31,10 @@ export default class RedditPage extends BasePage {
   async search(text: string) {
     await this.waitForNavigation();
 
-    const searchTextBox = this.page.locator(`faceplate-search-input`).getByRole("textbox");
-    await searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
-    await searchTextBox.click();
-    await searchTextBox.fill(text);
-    await searchTextBox.press("Enter");
+    await this.searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
+    await this.searchTextBox.click();
+    await this.searchTextBox.fill(text);
+    await this.searchTextBox.press("Enter");
   }
 
   private async findByTabNavigation(threadElement: Locator) {
@@ -85,8 +82,6 @@ export default class RedditPage extends BasePage {
     await threadElement.scrollIntoViewIfNeeded();
     await this.sleepRandom({});
     await threadElement.click({ force: true });
-    await this.waitForNavigation();
-    await this.sleepRandom({});
   }
 
   async findRandomThread(tabbed = Math.random() < 0.5): Promise<boolean> {
@@ -121,24 +116,25 @@ export default class RedditPage extends BasePage {
         } else {
           await this.findByIndices(threadElement);
         }
+        await this.waitForNavigation();
 
         // wait for the main post to load and check its comment count.
-        const post = this.page.locator("shreddit-post[comment-count]").first();
+        const post = this.page.locator("shreddit-post").first();
         await post.waitFor({ state: "visible" });
-        const commentCountStr = await post.getAttribute("comment-count");
-        const commentCount = commentCountStr ? parseInt(commentCountStr) : 0;
-        if (commentCount > 0) {
-          console.info("Thread with open comments found.");
+
+        const archived = await post.locator("slot[name='post-archived-banner']").first().isVisible();
+        const removed = await post.locator("slot[name='post-removed-banner']").first().isVisible();
+        if (!archived && !removed) {
           return true;
         }
-
-        console.log("Comments are closed for this thread. Trying another result.");
-        await this.sleepRandom({ multiplier: 2 });
-        await this.page.goBack();
-        await this.waitForNavigation();
+        throw new Error("Post is archived or removed.");
       } catch (error) {
         console.warn(`Attempt ${attempts + 1} failed:`, error);
       }
+
+      await this.sleepRandom({ multiplier: 2 });
+      await this.page.goBack();
+      await this.waitForNavigation();
       attempts++;
     }
 

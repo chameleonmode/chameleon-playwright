@@ -1,5 +1,7 @@
-import { Page } from '@playwright/test';
+import { Browser } from "@playwright/test";
 
-export default async function(page: Page, args: any): Promise<void> {
-    await page.pause();
+export default async function (browser: Browser): Promise<void> {
+  const context = browser.contexts()[0];
+  const page = await context.newPage();
+  await page.pause();
 }

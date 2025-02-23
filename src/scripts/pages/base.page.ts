@@ -10,14 +10,6 @@ export default class BasePage {
   }
 
   async waitForNavigation(): Promise<void> {
-    // try {
-    //   await Promise.all([
-    //     this.page.waitForLoadState('domcontentloaded'),
-    //     this.page.waitForLoadState('networkidle')
-    //   ]);
-    // } catch (error) {
-    //   console.warn('Navigation wait failed:', error);
-    // Fall back to just domcontentloaded if both promises fail
     await this.page.waitForLoadState("domcontentloaded");
   }
 
@@ -37,7 +29,7 @@ export default class BasePage {
     await this.page.keyboard.press(`${modifierKey}+A`);
   }
 
-  async sleepRandom({minMs = 256, maxMs = 512, multiplier = 1}): Promise<void> {
+  async sleepRandom({ minMs = 256, maxMs = 512, multiplier = 1 }): Promise<void> {
     const delay = await random(minMs, maxMs);
     await this.page.waitForTimeout(delay * multiplier);
   }

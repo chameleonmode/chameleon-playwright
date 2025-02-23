@@ -5,3 +5,4 @@ export async function random(min: number, max: number) {
 export const sleep = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
+

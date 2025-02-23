@@ -1,6 +1,6 @@
 import { FrameLocator, Locator, Page, expect } from "@playwright/test";
 import { random, sleep } from "../../lib/utils.js";
-import BasePage from "./base.page.js";
+import Base from "./base.page.js";
 
 const BASE_URL = "https://sites.google.com/";
 const LOGIN_URL = "https://accounts.google.com";
@@ -24,7 +24,7 @@ export interface Options {
   password: string;
 }
 
-export default class GsitePage extends BasePage {
+export default class GsitePage extends Base {
   // LOCATORS
   readonly homeButton: Locator;
   readonly emailTextBox: Locator;

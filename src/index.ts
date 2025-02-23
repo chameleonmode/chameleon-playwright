@@ -44,12 +44,6 @@ async function handleCommand(line: string) {
 }
 
 async function handleRunCommand(args: string[]) {
-  const testName = args[0];
-  if (!testName) {
-    console.log(('Test name is required.'));
-    return;
-  }
-
   let port: number | undefined;
   let data: string | undefined;
   let file: string | undefined;
@@ -81,7 +75,6 @@ async function handleRunCommand(args: string[]) {
   }
 
   let testData: any = {};
-
   if (file) {
     try {
       const fileContent = await fs.readFile(file, 'utf-8');
@@ -100,12 +93,8 @@ async function handleRunCommand(args: string[]) {
     }
   }
 
-  console.log((`Running test: ${testName}`));
-  console.log(('Test data:'), testData);
-  console.log((`Using CDP port: ${port}`));
-
   // Run the test
-  await runTest(testName, testData, port);
+  await runTest(args[0], testData, port);
 }
 
 async function handleConfigCommand(args: string[]) {
