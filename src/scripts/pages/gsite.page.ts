@@ -63,7 +63,7 @@ export default class GsitePage extends BasePage {
   };
 
   constructor(readonly page: Page) {
-    super(page);
+    super(page, "https://sites.google.com/");
 
     this.page.setDefaultTimeout(defaultLoadTimeout);
     this.homeButton = page.locator(`//button[@aria-label='Sites home']`);

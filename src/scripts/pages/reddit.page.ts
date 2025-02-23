@@ -1,192 +1,157 @@
+// src/scripts/pages/reddit.page.ts
+// Page Object for Reddit
 import { Page, Locator } from "@playwright/test";
 import { random } from "../../lib/utils.js";
 import BasePage from "./base.page.js";
 
-const data = {
-  shortPauseTime: 750,
-  mediumPauseTime: 1500,
-  longPauseTime: 3000,
-  megaLongPauseTime: 6000,
-  defaultLoadTimeout: 1000 * 60,
-};
-
-const URL = "https://www.reddit.com/";
-const SLEEP_RANDOM = 256;
-
-export interface Options {
-  search: string;
-  comment1: string;
-  comment2: string;
-  reply_comment2: string;
-  username: string;
-  password: string;
-}
-
 export default class RedditPage extends BasePage {
-  // LOCATORS
-  readonly loginButton: Locator;
-  readonly loginButtonOnModal: Locator;
-  readonly commentAlertBanner: Locator;
-  readonly xButton: Locator;
-  readonly emailOrUsernameTextBox: Locator;
-  readonly passwordTextBox: Locator;
-  readonly userAgreement: Locator;
-  readonly loginModal: Locator;
-  readonly avatarIcon: Locator;
-  readonly searchTextBox: Locator;
-  readonly existingComments: Locator;
-  readonly upVoteButton: Locator;
-  readonly downVoteButton: Locator;
-  readonly replyButton: Locator;
-  readonly addCommentButton: Locator;
-  readonly commentButton: Locator;
-  readonly commentTextBox: Locator;
-  readonly commentsData: Locator;
-  readonly specificComment: (actualComment: string) => Locator;
-  readonly userCommentSection: (author: string) => Locator;
-  readonly actionToComment: (comment: string) => Locator;
-  readonly actionBar: Locator;
-  readonly actionBarNumberOfVotes: Locator;
-  readonly replyTextBox: Locator;
-  readonly replyCommentButton: Locator;
+  private readonly threadLocator: Locator;
+  private readonly commentButton: Locator;
 
   constructor(readonly page: Page) {
-    super(page);
-    this.page.setDefaultTimeout(data.defaultLoadTimeout);
-    //Login Page Locators
-    this.loginButton = page.locator(`//a[@id='login-button']`);
-    this.emailOrUsernameTextBox = page.locator(`//input[@id="login-username"]`);
-    this.passwordTextBox = page.locator(`//input[@id="login-password"]`);
-    this.avatarIcon = page.locator(`//button[@id='expand-user-drawer-button']`);
-    this.loginButtonOnModal = page.getByRole("button", { name: "Log In" });
-    this.commentAlertBanner = page.getByRole("banner", {
-      name: "Take a break for 5 seconds before trying again.",
+    super(page, "https://www.reddit.com/");
+    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
+    this.page.setDefaultTimeout(1000 * 60 * 5);
+
+    // Create reusable locators
+    // this.threadLocator = page.locator("a[aria-label]").filter({
+    //   has: page.locator('[aria-label*="thumbnail"], [aria-label*="title"]'),
+    //   hasNot: page.locator('[aria-label*="icon r/"]'),
+    // });
+    this.threadLocator = page.locator("a[aria-label]").filter({
+      hasNot: page.locator('[aria-label*="icon r/"]'),
     });
-    this.xButton = page.getByRole("button", { name: "close error button" });
-    this.userAgreement = page.locator(`//a[contains(@href, 'user-agreement')]`);
-    this.loginModal = page.locator(`#login`);
-    //Home Page Locator
-    this.avatarIcon = page.locator(`//button[@id='expand-user-drawer-button']`);
-    this.searchTextBox = page.locator(`faceplate-search-input`).getByRole("textbox");
-    this.addCommentButton = page.locator(`//faceplate-tracker[@noun='add_comment_button']`);
-    this.commentButton = page.locator(`//button//span[@class='block relative']`);
-    this.commentTextBox = page.locator(`//div[@name='body']`);
-    this.existingComments = page.locator(`//shreddit-comment`);
-    this.upVoteButton = this.page.getByRole("button", { name: "Upvote" });
-    this.downVoteButton = this.page.getByRole("button", { name: "Downvote" });
-    this.replyButton = this.page.getByRole("button", { name: "Reply" });
-    this.commentsData = page.locator(`//div[@slot="comment"]`);
-    //
-    this.specificComment = (actualComment: string) =>
-      this.commentsData.locator(`//p[contains(text(),'${actualComment}' )]`);
-    this.userCommentSection = (author: string) => page.locator(`//shreddit-comment[@author='${author}']`);
-    this.actionToComment = (comment: string) =>
-      page.locator(`//text()[contains(.,'${comment}')]/ancestor::*[self::shreddit-comment]`); // To Search for Parent with child text Note: child->parent->child
-    //
-    this.actionBar = page.locator(`//shreddit-comment-action-row`);
-    this.actionBarNumberOfVotes = page.locator(`shreddit-comment-action-row>>faceplate-number`); //To by pass shadow dom
-    this.replyTextBox = page.locator(`//div[@role="textbox"][contains(@aria-placeholder, 'Reply to u')]`);
-    this.replyCommentButton = page.locator(`//button//span[@class='block relative']`);
+
+    this.commentButton = this.page.getByRole("button", { name: "Add a comment" });
   }
 
-  async goToRedditSite() {
-    let maxIteration = 0;
-    await this.page.goto(URL);
-    await this.page.waitForLoadState("domcontentloaded");
-    while ((await this.userAgreement.count()) === 0 && maxIteration < 5) {
-      await this.page.waitForTimeout(data.mediumPauseTime);
-      maxIteration++;
-    }
+  /**
+   * Search for a topic in the search box then select the "@param name" tab
+   * @param text - The text to search for
+   * @param name - The name of the tab to select
+   */
+  async search(text: string) {
+    await this.waitForNavigation();
+
+    const searchTextBox = this.page.locator(`faceplate-search-input`).getByRole("textbox");
+    await searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
+    await searchTextBox.click();
+    await searchTextBox.fill(text);
+    await searchTextBox.press("Enter");
   }
 
-  async loginToReddit(email: string, password: string) {
-    if (await this.loginButton.isVisible()) {
-      let maxIteration = 0,
-        maxIteration2 = 0;
+  private async findByTabNavigation(threadElement: Locator) {
+    // Click the "Posts" button and wait for navigation.
+    await this.page.getByRole("button", { name: "Posts" }).click();
+    await this.waitForNavigation();
 
-      //Initial Login Button
-      await this.loginButton.click();
-      await this.page.waitForTimeout(data.longPauseTime);
+    // Helper function that retrieves comparable properties from threadElement.
+    const getThreadProps = async () => {
+      return threadElement.evaluate((el) => ({
+        tagName: el.tagName,
+        ariaLabel: el.getAttribute("aria-label"),
+      }));
+    };
 
-      //Enter Email
-      await this.emailOrUsernameTextBox.waitFor({ state: "visible" });
-      await this.emailOrUsernameTextBox.fill(email);
-      //Enter Password
-      await this.passwordTextBox.waitFor({ state: "visible" });
-      await this.passwordTextBox.fill(password);
+    // Check whether the currently focused element matches the threadElement.
+    const focusedIsThread = async (): Promise<boolean> => {
+      // Get the properties of the focused element.
+      const focusedProps = await this.getFocusedElement(); // { tagName, ariaLabel }
+      // Get the properties of our target thread.
+      const threadProps = await getThreadProps();
+      // Compare the aria-labels (and ensure they meet our criteria).
+      return (
+        focusedProps.ariaLabel !== null &&
+        focusedProps.ariaLabel === threadProps.ariaLabel &&
+        !focusedProps.ariaLabel.includes("icon r/") &&
+        (focusedProps.ariaLabel.includes("thumbnail") || focusedProps.ariaLabel.includes("title"))
+      );
+    };
+    let maxIteration = await random(7, 50); // Number of tab presses to try
+    // Loop until a thread element is focused or we've exhausted our tab presses
+    while (maxIteration > 0) {
       await this.page.keyboard.press("Tab");
-
-      //Click on login button
-      while ((await this.loginButtonOnModal.isEnabled()) && maxIteration < 5) {
-        await this.page.waitForTimeout(data.mediumPauseTime);
+      await this.sleepRandom({}); // Wait a random amount of time
+      if (maxIteration-- === 0 && !focusedIsThread()) {
         maxIteration++;
       }
-      await this.loginButtonOnModal.isEnabled();
-      await this.loginButtonOnModal.click();
-      await this.page.waitForTimeout(data.longPauseTime);
-      while ((await this.loginModal.isVisible()) && maxIteration2 < 5) {
-        this.page.waitForTimeout(data.mediumPauseTime);
-        maxIteration2++;
-      }
-      await this.page.waitForTimeout(5000);
     }
+
+    await this.page.keyboard.press("Enter");
   }
 
-  async searchAndOpenFirstTopic(searchText: string) {
-    await this.loginModal.waitFor({ state: "hidden" }); //wait for log in popup to close
-    //
-    await this.searchTextBox.waitFor({ state: "visible" }); //wait for textbox to display
-    await this.searchTextBox.click();
-    await this.searchTextBox.fill(searchText);
-    await this.searchTextBox.press("Enter");
-    await this.page.waitForLoadState(`domcontentloaded`);
-    await this.page.getByRole("button", { name: "Posts" }).click();
-    await this.page.waitForLoadState(`domcontentloaded`);
-    //
-    // Randomly choose between tab navigation and direct link selection
-    //
-    const useTabNavigation = Math.random() < 0.5;
-    if (useTabNavigation) {
-      await this.page.getByRole("button", { name: "Posts" }).press("Tab");
-      await this.page.getByRole("button", { name: "Relevance" }).press("Tab");
-      await this.page.getByRole("button", { name: "All time" }).press("Tab");
-      await this.page.getByRole("link", { name: "Skip to Navigation" }).press("Tab");
-      await this.page.getByRole("link", { name: "Skip to Right Sidebar" }).press("Tab");
-      // Original tab-based navigation
-      const maxIteration = await random(1, 7 * 5);
-      for (let i = 0; i < maxIteration; i++) {
-        await this.page.waitForTimeout((await random(1, 5)) * SLEEP_RANDOM);
-        await this.page.keyboard.press("Tab");
+  private async findByIndices(threadElement: Locator) {
+    await threadElement.waitFor({ state: "visible", timeout: 5000 });
+    await threadElement.scrollIntoViewIfNeeded();
+    await this.sleepRandom({});
+    await threadElement.click({ force: true });
+    await this.waitForNavigation();
+    await this.sleepRandom({});
+  }
+
+  async findRandomThread(tabbed = Math.random() < 0.5): Promise<boolean> {
+    await this.waitForNavigation();
+
+    let attempts = 0;
+    const maxAttempts = 18;
+    const triedIndices: number[] = [];
+
+    while (attempts < maxAttempts) {
+      console.debug(`Attempts remaining: ${maxAttempts - attempts}`);
+
+      // Wait for thread elements to be available
+      const count = await this.threadLocator.count();
+      if (count === 0) {
+        throw new Error("No eligible threads found");
       }
-      await this.page.keyboard.press("Enter");
-    } else {
-      // Direct link selection
-      const searchResults = await this.page.getByRole("link").all();
-      for (const result of searchResults) {
-        const ariaLabel = await result.getAttribute("aria-label");
-        if (ariaLabel && !ariaLabel.includes("icon r/")) {
-          if (ariaLabel.includes("thumbnail") || ariaLabel.includes("title")) {
-            await this.page.waitForTimeout((await random(1, 5)) * SLEEP_RANDOM);
-            await result.click();
-            break;
-          }
+
+      // Build a list of indices that haven't been tried
+      const availableIndices = [...Array(count).keys()].filter((i) => !triedIndices.includes(i));
+      if (!availableIndices.length) {
+        throw new Error("All threads have been attempted.");
+      }
+
+      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      const threadElement = this.threadLocator.nth(randomIndex);
+      triedIndices.push(randomIndex);
+      try {
+        // Choose the navigation method based on useTabbed
+        if(tabbed) {
+          await this.findByTabNavigation(threadElement);
+        } else {
+          await this.findByIndices(threadElement);
         }
+
+        // wait for the main post to load and check its comment count.
+        const post = this.page.locator("shreddit-post[comment-count]").first();
+        await post.waitFor({ state: "visible", timeout: 5000 });
+        const commentCountStr = await post.getAttribute("comment-count");
+        const commentCount = commentCountStr ? parseInt(commentCountStr) : 0;
+        if (commentCount > 0) {
+          console.info("Thread with open comments found.");
+          return true;
+        }
+
+        console.log("Comments are closed for this thread. Trying another result.");
+        await this.sleepRandom({ multiplier: 2 });
+        await this.page.goBack();
+        await this.waitForNavigation();
+      } catch (error) {
+        console.warn(`Attempt ${attempts + 1} failed:`, error);
       }
+      attempts++;
     }
 
-    await this.page.waitForLoadState(`domcontentloaded`);
+    throw new Error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
   }
 
-  async addCommentToMainThread(comment: string) {
+  async addCommentToThread(comment: string) {
     await this.page.waitForLoadState(`domcontentloaded`);
-
-    // Wait for and locate the comment button
-    const commentButton = this.page.getByRole("button", { name: "Add a comment" });
 
     // Wait for button to be visible and enabled
-    await commentButton.waitFor({ state: "visible" });
-    await commentButton.isEnabled(); // Wait until button is enabled
-    await commentButton.click();
+    await this.commentButton.waitFor({ state: "visible" });
+    await this.commentButton.isEnabled(); // Wait until button is enabled
+    await this.commentButton.click();
 
     // Continue with comment input
     const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
@@ -199,91 +164,4 @@ export default class RedditPage extends BasePage {
     await submitButton.waitFor({ state: "visible" });
     await submitButton.click();
   }
-
-  async upVoteComment(commentToUpvote: string) {
-    var toBeAdded: number;
-    await this.actionToComment(commentToUpvote).locator(this.upVoteButton).waitFor({ state: "visible" });
-    //To check if Upvote is already pressed
-    const upVotesIsPressed = await this.actionToComment(commentToUpvote)
-      .locator(this.upVoteButton)
-      .getAttribute("aria-pressed");
-    //To check if Downvote is already pressed
-    const downVotesIsPressed = await this.actionToComment(commentToUpvote)
-      .locator(this.downVoteButton)
-      .getAttribute("aria-pressed");
-    // To Get Current Number of Comment Votes
-    var currentNumberOfVotes = Number(
-      await this.actionToComment(commentToUpvote).locator(this.actionBarNumberOfVotes).textContent()
-    );
-
-    if (downVotesIsPressed === "true") {
-      toBeAdded = 2;
-    } else {
-      toBeAdded = 1;
-    }
-    //Perform the below codes if Upvote is not yet pressed
-    if (upVotesIsPressed === "false") {
-      await this.actionToComment(commentToUpvote).locator(this.upVoteButton).click();
-      const newNumberOfVotes = currentNumberOfVotes + toBeAdded;
-      //expect(newNumberOfVotes).toBeGreaterThan(currentNumberOfVotes) // Verify the count after upvote
-      if (newNumberOfVotes < currentNumberOfVotes) {
-        console.log("Upvote is not working");
-      }
-    }
-  }
-
-  async downVoteComment(commentToUpvote: string) {
-    var toBeSubtracted: number;
-    await this.actionToComment(commentToUpvote).locator(this.downVoteButton).waitFor({ state: "visible" });
-    //To check if Upvote is already pressed
-    const upVotesIsPressed = await this.actionToComment(commentToUpvote)
-      .locator(this.upVoteButton)
-      .getAttribute("aria-pressed");
-    //To check if Downvote is already pressed
-    const downVotesIsPressed = await this.actionToComment(commentToUpvote)
-      .locator(this.downVoteButton)
-      .getAttribute("aria-pressed");
-    // To Get Current Number of Comment Votes
-    var currentNumberOfVotes = Number(
-      await this.actionToComment(commentToUpvote).locator(this.actionBarNumberOfVotes).textContent()
-    );
-    if (upVotesIsPressed === "true") {
-      toBeSubtracted = 2;
-    } else {
-      toBeSubtracted = 1;
-    }
-    //Perform the below codes if Upvote is not yet pressed
-    if (downVotesIsPressed === "false") {
-      await this.actionToComment(commentToUpvote).locator(this.downVoteButton).click();
-      const newNumberOfVotes = currentNumberOfVotes - toBeSubtracted;
-      // expect(newNumberOfVotes).toBeLessThan(currentNumberOfVotes) // Verify the count of after downvote
-      if (newNumberOfVotes > currentNumberOfVotes) {
-        console.log("Down vote is not working");
-      }
-    }
-  }
-
-  async replyToComment(commentToReplyOn: string, reply: string) {
-    await this.actionToComment(commentToReplyOn).locator(this.replyButton).waitFor({ state: "visible" });
-    //To Click on reply button
-    await this.actionToComment(commentToReplyOn).locator(this.replyButton).click();
-    await this.replyTextBox.waitFor({ state: "visible" });
-    await this.replyTextBox.fill(reply);
-    await this.page.waitForTimeout(data.mediumPauseTime);
-    await this.replyCommentButton.last().click();
-    await this.specificComment(reply).waitFor({ state: "visible" });
-    // await expect(this.specificComment(reply)).toBeVisible()
-    await this.page.waitForTimeout(data.mediumPauseTime);
-  }
-  // Test Case flow
-  // login to reddit
-  // search for specific topic
-  // open first topic
-  // add a comment
-  // add a second comment
-  // upvote 1st comment
-  // verifying the count of votes
-  // downvote 2nd comment
-  // verifying the count of votes
-  //reply to 2nd comment
 }

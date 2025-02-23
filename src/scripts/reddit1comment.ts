@@ -1,26 +1,25 @@
+// src/scripts/reddit1comment.ts
 import { Page } from "@playwright/test";
-import SitePage, { Options } from "./pages/reddit.page.js";
+import SitePage from "./pages/reddit.page.js";
 
-export default async function (page: Page, opts: Options): Promise<void> {
-  console.log("Running redditCommentVote:", opts);
+export default async function (
+  page: Page,
+  args: {
+    search: string;
+    comment: string;
+  }
+): Promise<void> {
   try {
-    const redditPage = new SitePage(page);
-    //Step 1 - Launch Reddit
-    await redditPage.goToRedditSite();
-    //Step 2 - Login
-    await redditPage.loginToReddit(opts.username, opts.password);
-    //Step 3 - Search for topic and click on 1st test result
-    await redditPage.searchAndOpenFirstTopic(opts.search);
-    //Step 4 - 1st Comment on main thread
-    await redditPage.addCommentToMainThread(opts.comment1);
-    //Step 5 - 2nd Comment on main thread
-    // await redditPage.addCommentToMainThread(opts.comment2);
-    //Step 6 - Click on upvote on specific comment
-    // await redditPage.upVoteComment(opts.comment2);
-    //Step 7 - Click downvote on specific comment
-    // await redditPage.downVoteComment(opts.comment1);
-    //Step 8 - Reply to comment
-    // await redditPage.replyToComment(opts.comment2, opts.reply_comment2);
+    const sitePage = new SitePage(page);
+    // Step 1 - Launch Reddit
+    await sitePage.goToStartPage();
+    // Step 2 - Search for topic and click on 1st test result
+    await sitePage.waitForNavigation();
+    await sitePage.sleepRandom({multiplier: 2});
+    await sitePage.search(args.search);
+    await sitePage.findRandomThread();
+    // Step 3 - 1st Comment on main thread
+    await sitePage.addCommentToThread(args.comment);
   } catch (error) {
     console.error("redditCommentVote test error:", error);
   } finally {
