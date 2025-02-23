@@ -81,7 +81,7 @@ export default class RedditPage extends BasePage {
   }
 
   private async findByIndices(threadElement: Locator) {
-    await threadElement.waitFor({ state: "visible", timeout: 5000 });
+    await threadElement.waitFor({ state: "visible" });
     await threadElement.scrollIntoViewIfNeeded();
     await this.sleepRandom({});
     await threadElement.click({ force: true });
@@ -124,7 +124,7 @@ export default class RedditPage extends BasePage {
 
         // wait for the main post to load and check its comment count.
         const post = this.page.locator("shreddit-post[comment-count]").first();
-        await post.waitFor({ state: "visible", timeout: 5000 });
+        await post.waitFor({ state: "visible" });
         const commentCountStr = await post.getAttribute("comment-count");
         const commentCount = commentCountStr ? parseInt(commentCountStr) : 0;
         if (commentCount > 0) {
