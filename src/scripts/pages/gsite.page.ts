@@ -4,10 +4,6 @@ import Base from "./base.page.js";
 
 export default class GsitePage extends Base {
   // LOCATORS
-  readonly homeButton: Locator;
-  readonly emailTextBox: Locator;
-  readonly passwordTextBox: Locator;
-  readonly nextButton: Locator;
   readonly gotItButton: Locator;
   readonly skipThisTourButton: Locator;
   readonly sites: Locator;
@@ -26,12 +22,6 @@ export default class GsitePage extends Base {
   readonly publishButton: Locator;
   readonly publishModalWebAddressTextBox: Locator;
   readonly publishModalPublishButton: Locator;
-  readonly ellipsisButton: Locator;
-  readonly ellipsisDropdown: Locator;
-  readonly ellipsisMenuRemoveButton: Locator;
-  readonly confirmDeleteDialog: Locator;
-  readonly moveToTrashButton: Locator;
-  readonly hyperLinkModal: Locator;
   readonly xButton: Locator;
   readonly toolBar: {
     hyperLinkButton: Locator;
@@ -43,10 +33,6 @@ export default class GsitePage extends Base {
   constructor(readonly page: Page) {
     super(page, "https://sites.google.com/");
 
-    this.homeButton = page.locator(`//button[@aria-label='Sites home']`);
-    this.emailTextBox = page.locator(`//div//input[@type='email']`);
-    this.passwordTextBox = page.locator(`//div//input[@type='password']`);
-    this.nextButton = page.getByRole("button", { name: "Next" });
     this.gotItButton = page.locator(`//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`);
     this.skipThisTourButton = page.locator(
       `//a[@class='iph-dialog-dismiss'][@href="#__dismiss__"][@aria-label="Close"]`
@@ -73,16 +59,6 @@ export default class GsitePage extends Base {
     this.publishModalPublishButton = page.getByRole("button", {
       name: "Publish",
     });
-    this.ellipsisButton = page.locator(
-      `//div[@class='docs-homescreen-item-overflow']//div[contains(@class, 'docs-homescreen-icon')]`
-    );
-    this.ellipsisDropdown = page.locator(`//div[contains(@class,'docs-homescreen-iconmenu')]`);
-    this.ellipsisMenuRemoveButton = page.locator(
-      `//div[contains(@class,'docs-homescreen-iconmenu')]//div[text()='Remove']`
-    );
-    this.confirmDeleteDialog = page.locator(`//div[@role='dialog']`);
-    this.moveToTrashButton = page.locator(`//button[normalize-space()='Move to trash']`);
-    this.hyperLinkModal = page.locator(`//div[@role='dialog'][@aria-label="Insert link"]`);
     this.xButton = page.locator(`//button[@aria-label="Close menu"]`);
     this.toolBar = {
       hyperLinkButton: page.locator(
@@ -102,6 +78,7 @@ export default class GsitePage extends Base {
       await this.gotItButton.click();
     }
   }
+
   async addBlankSite() {
     await this.sleepRandom({ multiplier: 2 });
     await this.sites.waitFor({ state: "visible" });
@@ -143,7 +120,7 @@ export default class GsitePage extends Base {
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
-    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(0); // Gets first element
+    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(0);
     await textArea.waitFor({ state: "visible" });
     await textArea.click();
 
@@ -155,22 +132,22 @@ export default class GsitePage extends Base {
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
-    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(1); // Gets first element
+    const textArea = this.page.locator(`//div[@role='textbox']//p`).nth(1);
     await textArea.waitFor({ state: "visible" });
     await textArea.click();
 
     await this.sleepRandom({ multiplier: 2 });
     await this.toolBar.hyperLinkButton.waitFor({ state: "visible" });
     await this.toolBar.hyperLinkButton.click();
-    //
+
     await this.toolBar.textToHighLight.waitFor({ state: "visible" });
     await this.toolBar.textToHighLight.click();
     await this.toolBar.textToHighLight.fill(linkText);
-    //
+
     await this.toolBar.linkTextBox.click();
     await this.toolBar.linkTextBox.fill(link);
     await this.sleepRandom({ multiplier: 2 });
-    
+
     await expect(this.toolBar.applyButton).toBeEnabled();
 
     await this.toolBar.applyButton.click();
@@ -182,7 +159,6 @@ export default class GsitePage extends Base {
     await this.youTubeIcon.click();
     await this.sleepRandom({ multiplier: 3 });
     const iframe = this.iFrame;
-    //Do Until there's a search result
     while (await iframe.locator(this.youTubeSearchResults).first().isHidden()) {
       await iframe.locator(this.youtubeModalSearchTextBox).click();
       await this.page.keyboard.type(textToSearch);
@@ -204,7 +180,6 @@ export default class GsitePage extends Base {
   async addLocation(location: string) {
     await this.sleepRandom({ multiplier: 2 });
     await this.mapIcon.click();
-    // Do Until there's a search result
     const iframe2 = this.iFrame;
     await iframe2.locator(this.mapModalSearchTextBox).waitFor({ state: "visible" });
     await iframe2.locator(this.mapModalSearchTextBox).click();
@@ -225,7 +200,6 @@ export default class GsitePage extends Base {
     await this.publishModalWebAddressTextBox.waitFor({ state: "visible" });
     await this.publishModalWebAddressTextBox.click();
     await this.page.keyboard.type(siteName);
-    //To Append random numbers from sitename(to make it unique)
     while (await this.publishModalPublishButton.last().isDisabled()) {
       await this.sleepRandom({ multiplier: 3 });
       if (await this.publishModalPublishButton.last().isEnabled()) {
@@ -236,7 +210,6 @@ export default class GsitePage extends Base {
       await this.page.keyboard.press("Delete");
       await this.page.keyboard.type((siteName + (await random(1, 69))).replace(".", ""));
     }
-
     await this.publishModalPublishButton.last().click();
   }
 }
