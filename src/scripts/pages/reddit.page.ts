@@ -11,8 +11,6 @@ export default class RedditPage extends Base {
 
   constructor(readonly page: Page) {
     super(page, "https://www.reddit.com/");
-    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
-    this.page.setDefaultTimeout(1000 * 60 * 5);
 
     // Create reusable locators
     this.searchTextBox = this.page.locator(`faceplate-search-input`).getByRole("textbox");

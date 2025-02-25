@@ -3,7 +3,10 @@ import { Page } from "@playwright/test";
 import { random } from "../../lib/utils.js";
 
 export default class BasePage {
-  constructor(readonly page: Page, readonly START_URL: string) {}
+  constructor(readonly page: Page, readonly START_URL: string) {
+    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
+    this.page.setDefaultTimeout(1000 * 60 * 5);
+  }
 
   async goToStartPage() {
     await this.page.goto(this.START_URL);

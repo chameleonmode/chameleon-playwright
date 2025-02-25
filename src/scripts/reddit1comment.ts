@@ -10,16 +10,14 @@ export default async function (
   }
 ): Promise<void> {
   const context = browser.contexts()[0];
-  const page = await context.newPage();
-  
-  const sitePage = new Page(page);
+  const page = new Page(await context.newPage());
   // Step 1 - Launch Reddit
-  await sitePage.goToStartPage();
+  await page.goToStartPage();
   // Step 2 - Search for topic and click on 1st test result
-  await sitePage.waitForNavigation();
-  await sitePage.sleepRandom({ multiplier: 2 });
-  await sitePage.search(args.search);
-  await sitePage.findRandomThread();
+  await page.waitForNavigation();
+  await page.sleepRandom({ multiplier: 2 });
+  await page.search(args.search);
+  await page.findRandomThread();
   // Step 3 - 1st Comment on main thread
-  await sitePage.addCommentToThread(args.comment);
+  await page.addCommentToThread(args.comment);
 }

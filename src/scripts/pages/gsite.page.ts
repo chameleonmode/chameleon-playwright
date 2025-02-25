@@ -1,28 +1,6 @@
 import { FrameLocator, Locator, Page, expect } from "@playwright/test";
-import { random, sleep } from "../../lib/utils.js";
+import { random } from "../../lib/utils.js";
 import Base from "./base.page.js";
-
-const BASE_URL = "https://sites.google.com/";
-const LOGIN_URL = "https://accounts.google.com";
-
-let shortPauseTime: number = 750;
-let mediumPauseTime: number = 1500;
-let longPauseTime: number = 3000;
-let megaLongPauseTime: number = 6000;
-let defaultLoadTimeout: number = 1000 * 60;
-
-export interface Options {
-  gsiteTitle: string;
-  publishTitle: string;
-  postTitle: string;
-  textContent: string;
-  link: string;
-  textWithLink: string;
-  textSearch: string;
-  location: string;
-  email: string;
-  password: string;
-}
 
 export default class GsitePage extends Base {
   // LOCATORS
@@ -65,7 +43,6 @@ export default class GsitePage extends Base {
   constructor(readonly page: Page) {
     super(page, "https://sites.google.com/");
 
-    this.page.setDefaultTimeout(defaultLoadTimeout);
     this.homeButton = page.locator(`//button[@aria-label='Sites home']`);
     this.emailTextBox = page.locator(`//div//input[@type='email']`);
     this.passwordTextBox = page.locator(`//div//input[@type='password']`);
@@ -118,74 +95,41 @@ export default class GsitePage extends Base {
       ),
     };
   }
-  async clickOnHomeButton() {
-    await this.homeButton.click();
-    await sleep(longPauseTime);
-  }
-
-  async closeFloatingDialog() {
-    await sleep(longPauseTime);
-    if (await this.xButton.isVisible()) {
-      await this.xButton.click();
-    }
-    await sleep(longPauseTime);
-  }
 
   async clickOnGotItButton() {
-    await sleep(megaLongPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
     if (await this.gotItButton.isVisible()) {
       await this.gotItButton.click();
     }
-    await sleep(mediumPauseTime);
+  }
+  async addBlankSite() {
+    await this.sleepRandom({ multiplier: 2 });
+    await this.sites.waitFor({ state: "visible" });
+    await this.sites.click();
+  }
+
+  async closeFloatingDialog() {
+    await this.sleepRandom({ multiplier: 2 });
+    if (await this.xButton.isVisible()) {
+      await this.xButton.click();
+    }
   }
 
   async clickOnSkipThisTourButton() {
-    await sleep(megaLongPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
     if ((await this.skipThisTourButton.count()) > 1) {
       await this.skipThisTourButton.click();
     }
-    await sleep(shortPauseTime);
-  }
-
-  async goToGsite(): Promise<boolean> {
-    await this.page.goto(BASE_URL);
-    await this.page.waitForLoadState("load");
-    await sleep(mediumPauseTime);
-    const currentUrl = this.page.url();
-    return currentUrl.startsWith(LOGIN_URL) && currentUrl !== BASE_URL;
-  }
-
-  async loginToGsite(email: string, password: string) {
-    //Enter Email
-    await this.emailTextBox.waitFor({ state: "visible" });
-    await this.emailTextBox.fill(email);
-    await this.nextButton.waitFor({ state: "visible" });
-    await this.nextButton.click();
-
-    await this.page.waitForLoadState("load");
-    await sleep(mediumPauseTime);
-
-    //Enter Password
-    await this.passwordTextBox.waitFor({ state: "visible" });
-    await this.passwordTextBox.fill(password);
-    await this.nextButton.waitFor({ state: "visible" });
-    await this.nextButton.click();
-    await sleep(mediumPauseTime);
-  }
-
-  async addBlankSite() {
-    await this.sites.waitFor({ state: "visible" });
-    await this.sites.click();
-    await sleep(mediumPauseTime);
   }
 
   async updateSiteName(siteName: string) {
+    await this.sleepRandom({ multiplier: 2 });
     await this.siteTitle.waitFor({ state: "visible" });
     await this.siteTitle.fill(siteName);
   }
 
   async changePageTitle(pageTitle: string) {
-    //Populate the Blank Sheet Title
+    await this.sleepRandom({ multiplier: 2 });
     await this.siteHeader.waitFor({ state: "visible" });
     await this.siteHeader.click();
 
@@ -195,6 +139,7 @@ export default class GsitePage extends Base {
   }
 
   async addTextElement(text: string) {
+    await this.sleepRandom({ multiplier: 2 });
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
@@ -205,7 +150,8 @@ export default class GsitePage extends Base {
     await this.page.keyboard.type(text);
   }
 
-  async insertHyperLinkOnText(text: string, hyperlink: string) {
+  async insertHyperLinkOnText(link: string, linkText: string) {
+    await this.sleepRandom({ multiplier: 2 });
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
@@ -213,39 +159,40 @@ export default class GsitePage extends Base {
     await textArea.waitFor({ state: "visible" });
     await textArea.click();
 
-    await sleep(shortPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
     await this.toolBar.hyperLinkButton.waitFor({ state: "visible" });
     await this.toolBar.hyperLinkButton.click();
     //
     await this.toolBar.textToHighLight.waitFor({ state: "visible" });
     await this.toolBar.textToHighLight.click();
-    await this.toolBar.textToHighLight.fill(text);
+    await this.toolBar.textToHighLight.fill(linkText);
     //
     await this.toolBar.linkTextBox.click();
-    await this.toolBar.linkTextBox.fill(hyperlink);
-    await sleep(shortPauseTime);
+    await this.toolBar.linkTextBox.fill(link);
+    await this.sleepRandom({ multiplier: 2 });
     
-    await expect(this.toolBar.applyButton).toBeEnabled({timeout: shortPauseTime});
+    await expect(this.toolBar.applyButton).toBeEnabled();
 
     await this.toolBar.applyButton.click();
-    await sleep(mediumPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
   }
 
   async addYouTube(textToSearch: string) {
+    await this.sleepRandom({ multiplier: 2 });
     await this.youTubeIcon.click();
-    await sleep(mediumPauseTime);
+    await this.sleepRandom({ multiplier: 3 });
     const iframe = this.iFrame;
     //Do Until there's a search result
     while (await iframe.locator(this.youTubeSearchResults).first().isHidden()) {
       await iframe.locator(this.youtubeModalSearchTextBox).click();
       await this.page.keyboard.type(textToSearch);
-      await sleep(shortPauseTime);
+      await this.sleepRandom({ multiplier: 3 });
       await this.page.keyboard.press("Enter");
-      await sleep(mediumPauseTime);
+      await this.sleepRandom({ multiplier: 3 });
       if ((await iframe.locator(this.youTubeSearchResults).count()) > 0) {
         await this.selectAll();
         await this.page.keyboard.press("Delete");
-        await sleep(mediumPauseTime);
+        await this.sleepRandom({ multiplier: 2 });
       }
     }
     let resultsCount = await iframe.locator(this.youTubeSearchResults).count();
@@ -255,28 +202,24 @@ export default class GsitePage extends Base {
   }
 
   async addLocation(location: string) {
+    await this.sleepRandom({ multiplier: 2 });
     await this.mapIcon.click();
-    //Do Until there's a search result
+    // Do Until there's a search result
     const iframe2 = this.iFrame;
     await iframe2.locator(this.mapModalSearchTextBox).waitFor({ state: "visible" });
     await iframe2.locator(this.mapModalSearchTextBox).click();
 
     await this.page.keyboard.type(location);
-    await sleep(longPauseTime);
-    // await this.page.keyboard.press("Enter");
+    await this.sleepRandom({ multiplier: 4 });
 
     await iframe2.locator(this.mapModalSearchResult).first().waitFor({ state: "visible" });
-    // while ((await iframe2.locator(this.mapModalSearchResult).count()) <= 0) {
-    //   await sleep(longPauseTime);
-    // }
-    // await sleep(mediumPauseTime);
     await iframe2.locator(this.mapModalSearchResult).first().click();
-    await sleep(longPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
     await iframe2.locator(this.mapModalSelectButton).click();
   }
 
   async publishSite(siteName: string) {
-    await sleep(mediumPauseTime);
+    await this.sleepRandom({ multiplier: 2 });
     await this.publishButton.click();
     await this.page.waitForLoadState("load");
     await this.publishModalWebAddressTextBox.waitFor({ state: "visible" });
@@ -284,7 +227,7 @@ export default class GsitePage extends Base {
     await this.page.keyboard.type(siteName);
     //To Append random numbers from sitename(to make it unique)
     while (await this.publishModalPublishButton.last().isDisabled()) {
-      await sleep(mediumPauseTime);
+      await this.sleepRandom({ multiplier: 3 });
       if (await this.publishModalPublishButton.last().isEnabled()) {
         break;
       }
@@ -295,19 +238,5 @@ export default class GsitePage extends Base {
     }
 
     await this.publishModalPublishButton.last().click();
-  }
-
-  async siteDeletor() {
-    //To Delete All Existing Site !!
-    await this.ellipsisButton.first().waitFor({ state: "visible" });
-    const siteCount = await this.ellipsisButton.count();
-    for (let x = 0; x < siteCount; x++) {
-      await this.ellipsisButton.nth(x).click();
-      await this.ellipsisMenuRemoveButton.waitFor({ state: "visible" });
-      await this.ellipsisMenuRemoveButton.click();
-      await this.confirmDeleteDialog.waitFor({ state: "visible" });
-      await this.moveToTrashButton.click();
-      await sleep(mediumPauseTime);
-    }
   }
 }

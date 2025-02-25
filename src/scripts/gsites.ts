@@ -1,36 +1,40 @@
 import { Browser } from "@playwright/test";
-import Page, { Options } from "./pages/gsite.page.js";
+import Page from "./pages/gsite.page.js";
 
-export default async function (browser: Browser, opts: Options): Promise<void> {
+export default async function (browser: Browser, args: {
+  name: string;
+  title: string;
+  content: string;
+  link: string;
+  linkText: string;
+  youtubeSearch: string;
+  locationSearch: string;
+}): Promise<void> {
   const context = browser.contexts()[0];
-  const page = await context.newPage();
-
-  const gsitePage = new Page(page);
-  //Step 1 - Launch Gsite Application
-  if (await gsitePage.goToGsite()) {
-    //Step 2 - Log in using valid credentials
-    await gsitePage.loginToGsite(opts.email, opts.password);
-  }
-  //Step 3 - Click on Got It Button if displayed (for newly created account)
-  await gsitePage.clickOnGotItButton();
-  //Step 4 - Add Blank Site
-  await gsitePage.addBlankSite();
-  //Step 5 - Click on Skip this Tour button if displayed (for newly created account)
-  await gsitePage.clickOnSkipThisTourButton();
-  //Step 6 - Update Site Name
-  await gsitePage.updateSiteName(opts.gsiteTitle);
+  const page = new Page(await context.newPage());
+  // Step 1 - Launch Google Sites
+  await page.goToStartPage();
+  await page.waitForNavigation();
+  //optional - Click on Got It Button if displayed (for newly created account)
+  await page.clickOnGotItButton();
+  //Step 2 - Add Blank Site
+  await page.addBlankSite();
+  //optional - Click on Skip this Tour button if displayed (for newly created account)
+  await page.clickOnSkipThisTourButton();
+  //Step 3 - Update Site Name
+  await page.updateSiteName(args.name);
   //Step 7 - Populate the Blank Sheet Title
-  await gsitePage.changePageTitle(opts.postTitle);
+  await page.changePageTitle(args.title);
   //optional step if securityu pop-up is displayed.
-  await gsitePage.closeFloatingDialog();
+  await page.closeFloatingDialog();
   //Step 8 - Click Text and Populate it
-  await gsitePage.addTextElement(opts.textContent);
+  await page.addTextElement(args.content);
   //Step 9 - Click Text and Populate it with Hyperlink
-  await gsitePage.insertHyperLinkOnText(opts.textWithLink, opts.link);
+  await page.insertHyperLinkOnText(args.link, args.linkText);
   //Step 9 - Add Youtube
-  await gsitePage.addYouTube(opts.textSearch);
+  await page.addYouTube(args.youtubeSearch);
   //Step 10 - Add Map
-  await gsitePage.addLocation(opts.location);
+  await page.addLocation(args.locationSearch);
   //Step 11 -Publish
-  await gsitePage.publishSite(opts.publishTitle);
+  await page.publishSite(args.title);
 }
