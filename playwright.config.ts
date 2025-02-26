@@ -1,4 +1,5 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
+import path from "path";
 
 const config: PlaywrightTestConfig = {
   testDir: "./tests",
@@ -15,49 +16,17 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: "chromium",
-      use: {
-        browserName: "chromium",
-      },
-    },
-    {
-      name: "chrome",
-      use: {
-        browserName: "chromium",
-        channel: "chrome",
-        viewport: { width: 1280, height: 720 },
-        launchOptions: {
-          executablePath:
-            process.platform === "darwin"
-              ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-              : undefined,
-          
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
-            "--disable-gpu",
-            "--window-size=1280,720",
-          ],
-        },
-      },
-    },
-    {
-      name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
     {
-      name: 'firefox',
+      name: "firefox",
       use: { ...devices['Desktop Firefox'] },
     },
-
     {
-      name: 'webkit',
+      name: "webkit",
       use: { ...devices['Desktop Safari'] },
     },
-
-    /* Test against mobile viewports. */
+    // Mobile viewports
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
@@ -66,8 +35,7 @@ const config: PlaywrightTestConfig = {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
     },
-
-    /* Test against branded browsers. */
+    // Branded browsers
     {
       name: 'Microsoft Edge',
       use: {
@@ -79,7 +47,29 @@ const config: PlaywrightTestConfig = {
       name: 'Google Chrome',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome'
+        channel: 'chrome',
+        launchOptions: {
+          executablePath: process.platform === "darwin"
+            ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            : undefined,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-gpu",
+            "--window-size=1280,720"
+          ],
+        },
+      },
+    },
+    {
+      name: "chrome-persistent",
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: "chrome",
+        viewport: { width: 1280, height: 720 },
+        // We don't need launchOptions here because we're using launchPersistentContext in the tests
       },
     },
   ],
