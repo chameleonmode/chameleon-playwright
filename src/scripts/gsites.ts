@@ -1,15 +1,18 @@
 import { Browser } from "@playwright/test";
 import Page from "./pages/gsite.page.js";
 
-export default async function (browser: Browser, args: {
-  name: string;
-  title: string;
-  content: string;
-  link: string;
-  linkText: string;
-  youtubeSearch: string;
-  locationSearch: string;
-}): Promise<void> {
+export default async function (
+  browser: Browser,
+  args: {
+    name: string;
+    title: string;
+    content: string;
+    link: string;
+    linkText: string;
+    youtubeSearch: string;
+    locationSearch: string;
+  }
+) {
   const context = browser.contexts()[0];
   const page = new Page(await context.newPage());
   // Step 1 - Launch Google Sites

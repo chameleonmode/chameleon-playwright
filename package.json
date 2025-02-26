@@ -4,15 +4,16 @@
   "description": "Dynamic Playwright test runner",
   "type": "module",
   "scripts": {
-    "start": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "playwright test"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1",
+    "@types/node": "22.5.4",
     "commander": "9.5.0"
   },
   "devDependencies": {
-    "@types/node": "22.5.4",
     "typescript": "5.6.2"
   }
 }

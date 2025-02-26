@@ -1,7 +1,6 @@
 // src/scripts/pages/reddit.page.ts
-// Page Object for Reddit
 import { Page, Locator } from "@playwright/test";
-import { random } from "../../lib/utils.js";
+import { random, sleepRandom } from "../../lib/utils.js";
 import Base from "./base.page.js";
 
 export default class RedditPage extends Base {
@@ -36,8 +35,6 @@ export default class RedditPage extends Base {
   }
 
   private async findByTabNavigation(threadElement: Locator) {
-    // Click the "Posts" button and wait for navigation.
-    await this.page.getByRole("button", { name: "Posts" }).click();
     await this.waitForNavigation();
 
     // Helper function that retrieves comparable properties from threadElement.
@@ -66,7 +63,7 @@ export default class RedditPage extends Base {
     // Loop until a thread element is focused or we've exhausted our tab presses
     while (maxIteration > 0) {
       await this.page.keyboard.press("Tab");
-      await this.sleepRandom({}); // Wait a random amount of time
+      await sleepRandom({}); // Wait a random amount of time
       if (maxIteration-- === 0 && !focusedIsThread()) {
         maxIteration++;
       }
@@ -78,12 +75,11 @@ export default class RedditPage extends Base {
   private async findByIndices(threadElement: Locator) {
     await threadElement.waitFor({ state: "visible" });
     await threadElement.scrollIntoViewIfNeeded();
-    await this.sleepRandom({});
+    await sleepRandom({multiplier: 2});
     await threadElement.click({ force: true });
   }
 
   async findRandomThread(tabbed = Math.random() < 0.5): Promise<boolean> {
-    await this.waitForNavigation();
 
     let attempts = 0;
     const maxAttempts = 18;
@@ -91,6 +87,8 @@ export default class RedditPage extends Base {
 
     while (attempts < maxAttempts) {
       console.debug(`Attempts remaining: ${maxAttempts - attempts}`);
+      await this.waitForNavigation();
+      await sleepRandom({ multiplier: 3 });
 
       // Wait for thread elements to be available
       const count = await this.threadLocator.count();
@@ -108,6 +106,10 @@ export default class RedditPage extends Base {
       const threadElement = this.threadLocator.nth(randomIndex);
       triedIndices.push(randomIndex);
       try {
+        // Click the "Posts" button and wait for navigation.
+        await this.page.getByRole("button", { name: "Posts" }).click();
+        await sleepRandom({ multiplier: 2 });
+
         // Choose the navigation method based on useTabbed
         if(tabbed) {
           await this.findByTabNavigation(threadElement);
@@ -115,13 +117,9 @@ export default class RedditPage extends Base {
           await this.findByIndices(threadElement);
         }
         await this.waitForNavigation();
-
         // wait for the main post to load and check its comment count.
-        const post = this.page.locator("shreddit-post").first();
-        await post.waitFor({ state: "visible" });
-
-        const archived = await post.locator("slot[name='post-archived-banner']").first().isVisible();
-        const removed = await post.locator("slot[name='post-removed-banner']").first().isVisible();
+        const archived = await this.page.locator("div[slot='post-archived-banner']").isVisible();
+        const removed = await this.page.locator("div[slot='post-removed-banner']").isVisible();
         if (!archived && !removed) {
           return true;
         }
@@ -130,7 +128,6 @@ export default class RedditPage extends Base {
         console.warn(`Attempt ${attempts + 1} failed:`, error);
       }
 
-      await this.sleepRandom({ multiplier: 2 });
       await this.page.goBack();
       await this.waitForNavigation();
       attempts++;

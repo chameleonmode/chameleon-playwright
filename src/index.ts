@@ -1,150 +1,39 @@
-#!/usr/bin/env node
+import readline from "readline";
+import run from "./lib/playwrightRunner.js";
 
-import readline from 'readline';
-import fs from 'fs/promises';
-import { loadConfig, saveConfig, loadCommandJson, Config } from "./lib/configManager.js";
-import { runTest } from "./lib/playwrightRunner.js";
 
-async function handleCommand(line: string) {
-  let args: string[];
-  let command: string | undefined;
-
-  if (line.startsWith('{') && line.endsWith('}')) {
-    console.log(('JsonCommand data:'), line);
-    const jsonCommand =  await loadCommandJson(line);
-    console.log(('JsonCommand data:'), jsonCommand);
-    if (!jsonCommand) {
-      console.error("Invalid JSON command");
-      return;
-    }
-    args = [jsonCommand.name, "-p", jsonCommand.port?.toString(), "-d", JSON.stringify(jsonCommand.data)]
-    command = jsonCommand["action"];
-  } else {
-    args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-    command = args.shift();
-  }
-
-  switch (command) {
-    case 'run':
-      await handleRunCommand(args);
-      break;
-    case 'config':
-      await handleConfigCommand(args);
-      break;
-    case 'list':
-      handleListCommand();
-      break;
-    case 'exit':
-      console.log(('Exiting...'));
-      process.exit(0);
-    default:
-      console.log((`Unknown command: ${command}`));
-      console.log(('Available commands: run, config, list, exit'));
-  }
-}
-
-async function handleRunCommand(args: string[]) {
-  let port: number | undefined;
-  let data: string | undefined;
-  let file: string | undefined;
-
-  for (let i = 1; i < args.length; i += 2) {
-    switch (args[i]) {
-      case '-p':
-      case '--port':
-        port = parseInt(args[i + 1], 10);
-        break;
-      case '-d':
-      case '--data':
-        data = args[i + 1];
-        // Remove surrounding quotes if present
-        if (data.startsWith("'") && data.endsWith("'")) {
-          data = data.slice(1, -1);
-        }
-        break;
-      case '-f':
-      case '--file':
-        file = args[i + 1];
-        break;
-    }
-  }
-  
-  if (!port) {
-    console.log(('CDP port number is required. Use the -p or --port option to specify it.'));
-    return;
-  }
-
-  let testData: any = {};
-  if (file) {
-    try {
-      const fileContent = await fs.readFile(file, 'utf-8');
-      testData = JSON.parse(fileContent);
-    } catch (error) {
-      console.error((`Error reading file: ${(error as Error).message}`));
-      return;
-    }
-  } else if (data) {
-    try {
-      testData = JSON.parse(data);
-    } catch (error) {
-      console.error((`Error parsing test data: ${(error as Error).message}`));
-      console.log(('Received data:'), data);
-      return;
-    }
-  }
-
-  // Run the test
-  await runTest(args[0], testData, port);
-}
-
-async function handleConfigCommand(args: string[]) {
-  const config = await loadConfig();
-  if (!config) {
-    console.error("Failed to load configuration.");
-    return;
-  }
-  
-  const [key, value] = args;
-  if (value === undefined) {
-    // Get configuration value
-    const configValue = config[key as keyof Config];
-    if (configValue === undefined) {
-      console.log((`Configuration key "${key}" not found.`));
+readline
+  .createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false,
+  })
+  .on("line", async (line) => {
+    if (line.startsWith("{")) {
+      const jsonCommand = JSON.parse(line);
+      const args = {
+        file: jsonCommand.name,
+        port: parseInt(jsonCommand.port, 10),
+        data: JSON.stringify(jsonCommand.data),
+      };
+      await run(args);
     } else {
-      console.log((`${key}: ${configValue}`));
+      const args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+      const command = args.shift();
+      switch (command) {
+        case "exit":
+          console.log("Exiting...");
+          process.exit(0);
+        default:
+          console.log(`Unknown command: ${command}`);
+          console.log("Available commands: run, config, list, exit");
+      }
     }
-  } else {
-    // Set configuration value
-    config[key as keyof Config] = value;
-    await saveConfig(config);
-    console.log((`Configuration updated: ${key} = ${value}`));
-  }
-}
-
-function handleListCommand() {
-  console.log(("Available tests:"));
-  // You'll need to implement a way to discover available tests
-  // This is just a placeholder
-  console.log("  - gsites");
-  console.log("  - example");
-}
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: false
-});
-
-console.log(('Playwright Test Runner'));
-console.log(('Type a command (run, config, list, exit):'));
-
-rl.on('line', (line) => {
-  handleCommand(line);
-});
+  });
 
 process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
-  console.error(
-    (`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`)
-  );
+  console.error(`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`);
   process.exit(1);
 });
+
+console.log("command (run, exit):");
