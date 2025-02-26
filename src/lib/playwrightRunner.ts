@@ -1,5 +1,5 @@
 import { chromium } from "@playwright/test";
-import loader  from "./loader";
+import loader  from "./loader.js";
 
 export default async function ({ file, port, data }: { file: string; port: number; data: any; }) {
   try {

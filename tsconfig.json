@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2024",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "target": "es2023",
+    "module": "ESNext",           // Changed from NodeNext to ESNext
+    "moduleResolution": "Bundler", // Now compatible with ESNext
     "esModuleInterop": true,
     "strict": true,
     "outDir": "./dist",
@@ -11,10 +11,13 @@
     "allowJs": true,
     "checkJs": true,
     "declaration": false,
-    "declarationMap": false,
-    "sourceMap": false,
+    "sourceMap": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

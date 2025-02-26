@@ -1,5 +1,5 @@
 import { FrameLocator, Locator, Page, expect } from "@playwright/test";
-import { random } from "../../lib/utils.js";
+import { random, sleepRandom } from "../../lib/utils.js";
 import Base from "./base.page.js";
 
 export default class GsitePage extends Base {
@@ -73,40 +73,40 @@ export default class GsitePage extends Base {
   }
 
   async clickOnGotItButton() {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     if (await this.gotItButton.isVisible()) {
       await this.gotItButton.click();
     }
   }
 
   async addBlankSite() {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.sites.waitFor({ state: "visible" });
     await this.sites.click();
   }
 
   async closeFloatingDialog() {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     if (await this.xButton.isVisible()) {
       await this.xButton.click();
     }
   }
 
   async clickOnSkipThisTourButton() {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     if ((await this.skipThisTourButton.count()) > 1) {
       await this.skipThisTourButton.click();
     }
   }
 
   async updateSiteName(siteName: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.siteTitle.waitFor({ state: "visible" });
     await this.siteTitle.fill(siteName);
   }
 
   async changePageTitle(pageTitle: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.siteHeader.waitFor({ state: "visible" });
     await this.siteHeader.click();
 
@@ -116,7 +116,7 @@ export default class GsitePage extends Base {
   }
 
   async addTextElement(text: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
@@ -128,7 +128,7 @@ export default class GsitePage extends Base {
   }
 
   async insertHyperLinkOnText(link: string, linkText: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.textIcon.waitFor({ state: "visible" });
     await this.textIcon.click();
 
@@ -136,7 +136,7 @@ export default class GsitePage extends Base {
     await textArea.waitFor({ state: "visible" });
     await textArea.click();
 
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.toolBar.hyperLinkButton.waitFor({ state: "visible" });
     await this.toolBar.hyperLinkButton.click();
 
@@ -146,29 +146,29 @@ export default class GsitePage extends Base {
 
     await this.toolBar.linkTextBox.click();
     await this.toolBar.linkTextBox.fill(link);
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
 
     await expect(this.toolBar.applyButton).toBeEnabled();
 
     await this.toolBar.applyButton.click();
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
   }
 
   async addYouTube(textToSearch: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.youTubeIcon.click();
-    await this.sleepRandom({ multiplier: 3 });
+    await sleepRandom({ multiplier: 3 });
     const iframe = this.iFrame;
     while (await iframe.locator(this.youTubeSearchResults).first().isHidden()) {
       await iframe.locator(this.youtubeModalSearchTextBox).click();
       await this.page.keyboard.type(textToSearch);
-      await this.sleepRandom({ multiplier: 3 });
+      await sleepRandom({ multiplier: 3 });
       await this.page.keyboard.press("Enter");
-      await this.sleepRandom({ multiplier: 3 });
+      await sleepRandom({ multiplier: 3 });
       if ((await iframe.locator(this.youTubeSearchResults).count()) > 0) {
         await this.selectAll();
         await this.page.keyboard.press("Delete");
-        await this.sleepRandom({ multiplier: 2 });
+        await sleepRandom({ multiplier: 2 });
       }
     }
     let resultsCount = await iframe.locator(this.youTubeSearchResults).count();
@@ -178,30 +178,30 @@ export default class GsitePage extends Base {
   }
 
   async addLocation(location: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.mapIcon.click();
     const iframe2 = this.iFrame;
     await iframe2.locator(this.mapModalSearchTextBox).waitFor({ state: "visible" });
     await iframe2.locator(this.mapModalSearchTextBox).click();
 
     await this.page.keyboard.type(location);
-    await this.sleepRandom({ multiplier: 4 });
+    await sleepRandom({ multiplier: 4 });
 
     await iframe2.locator(this.mapModalSearchResult).first().waitFor({ state: "visible" });
     await iframe2.locator(this.mapModalSearchResult).first().click();
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await iframe2.locator(this.mapModalSelectButton).click();
   }
 
   async publishSite(siteName: string) {
-    await this.sleepRandom({ multiplier: 2 });
+    await sleepRandom({ multiplier: 2 });
     await this.publishButton.click();
     await this.page.waitForLoadState("load");
     await this.publishModalWebAddressTextBox.waitFor({ state: "visible" });
     await this.publishModalWebAddressTextBox.click();
     await this.page.keyboard.type(siteName);
     while (await this.publishModalPublishButton.last().isDisabled()) {
-      await this.sleepRandom({ multiplier: 3 });
+      await sleepRandom({ multiplier: 3 });
       if (await this.publishModalPublishButton.last().isEnabled()) {
         break;
       }

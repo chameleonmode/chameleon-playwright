@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
+    "removeComments": true,
+    "inlineSources": false,
+    "importHelpers": true,     // Use shared runtime helpers
+    "noEmitHelpers": true,     // Don't emit helper functions in every file
+    "stripInternal": true      // Strip @internal comments
+  }
+}

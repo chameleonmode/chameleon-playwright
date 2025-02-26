@@ -5,15 +5,19 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "build:watch": "tsc --watch",
-    "test": "playwright test"
+    "build:prod": "tsc -p tsconfig.prod.json && npm run copy-assets",
+    "copy-assets": "cp package.json dist/ && cd dist && npm install --omit=dev --no-package-lock",
+    "dev": "node --loader ts-node/esm src/index.ts",
+    "dev:watch": "nodemon --watch 'src/**/*.ts' --exec 'node --loader ts-node/esm' src/index.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1",
-    "@types/node": "22.5.4",
     "commander": "9.5.0"
   },
   "devDependencies": {
+    "@types/node": "22.5.4",
+    "esbuild": "^0.25.0",
+    "ts-node": "^10.9.2",
     "typescript": "5.6.2"
   }
 }
