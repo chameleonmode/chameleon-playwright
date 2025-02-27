@@ -103,7 +103,7 @@ export class RedditPage extends Base {
     const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
     await expect(commentComposer).toBeVisible();
     await commentComposer.click();
-    await commentComposer.pressSequentially(comment, { delay: random(128, 256) });
+    await commentComposer.pressSequentially(comment, { delay: random(56, 128) });
 
     // Submit comment
     // vanilla

@@ -14,12 +14,12 @@ readline
     output: process.stdout,
     terminal: false,
   })
-  .on("line", async (line) => {
+  .on("line", (line) => {
     if (line.startsWith("{")) {
       const jsonLine = JSON.parse(line);
       switch (jsonLine.arg) {
         case "run":
-          await run({
+          run({
             file: jsonLine.file,
             port: jsonLine.port,
             options: jsonLine.options,
@@ -30,6 +30,7 @@ readline
           console.log("Available commands: run, exit");
       }
     } else {
+      console.log(`Received: ${line}`);
       const args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
       const command = args.shift();
       switch (command) {
