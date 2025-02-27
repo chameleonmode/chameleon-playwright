@@ -9,7 +9,7 @@ type BddFixtures = {
 // Extend basic test fixtures with BDD fixtures
 export const test = base.extend<BddFixtures>({
   examplePage: async ({ page }, use) => {
-    // Create a LoginPage instance
+    // Create a Page instance
     const examplePage = new ExamplePage(page);
 
     // Use the fixture in the test

@@ -2,7 +2,7 @@
 import { Page } from "@playwright/test";
 import { random } from "../../lib/utils.js";
 
-export default class BasePage {
+export class Base {
   constructor(readonly page: Page, readonly START_URL: string) {
     this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
     this.page.setDefaultTimeout(1000 * 60 * 5);

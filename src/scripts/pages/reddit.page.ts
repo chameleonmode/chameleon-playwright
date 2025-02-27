@@ -1,9 +1,9 @@
 // src/scripts/pages/reddit.page.ts
 import { Page, Locator } from "@playwright/test";
 import { random, sleepRandom } from "../../lib/utils.js";
-import Base from "./base.page.js";
+import { Base } from "./base.page.js";
 
-export default class RedditPage extends Base {
+export class RedditPage extends Base {
   private readonly searchTextBox: Locator;
   private readonly threadLocator: Locator;
   private readonly commentButton: Locator;
