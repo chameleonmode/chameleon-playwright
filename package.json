@@ -10,12 +10,12 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "build": "tsc",
-    "build:stage": "tsc -p tsconfig.prod.json && npm run copy-assets",
+    "build:stage": "npm run clean && tsc -p tsconfig.prod.json",
     "copy-assets": "cp package.json dist/ && cd dist && npm install --omit=dev --no-package-lock && rm -rf node_modules/.bin",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
     "bundle": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bundle.js --external:@playwright/* --external:playwright* --external:chromium-bidi/* --external:*.node",
-    "prepare-dist": "cp package.json dist/ && cd dist && npm install --omit=dev --no-package-lock"
+    "prepare-dist": "cp package.json dist/ && cd dist && npm install --omit=dev --no-package-lock --no-bin-links"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1",
@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "@types/node": "22.5.4",
-    "esbuild": "^0.25.0",
     "ts-node": "^10.9.2",
     "typescript": "5.6.2"
   }

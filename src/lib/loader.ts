@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export default async function (file: string): Promise<any> {
   console.log(`Attempting to load script from: ${file}`);
-  const scriptPath = file.endsWith("js") ? file : path.join(__dirname, "..", "/scripts", `${file}.js`);
+  const scriptPath = file.endsWith("js") ? file : path.join(__dirname, "scripts", `${file}.js`);
   const scriptUrl = pathToFileURL(scriptPath).href;
   const module = await import(scriptUrl);
   return module.default || module[file];

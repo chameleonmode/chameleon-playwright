@@ -1,6 +1,12 @@
 import readline from "readline";
-import run from "./lib/playwrightRunner.js";
+import run from "./lib/runner.js";
 
+console.log("Starting...");
+
+process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+  console.error(`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`);
+  process.exit(1);
+});
 
 readline
   .createInterface({
@@ -10,13 +16,19 @@ readline
   })
   .on("line", async (line) => {
     if (line.startsWith("{")) {
-      const jsonCommand = JSON.parse(line);
-      const args = {
-        file: jsonCommand.name,
-        port: parseInt(jsonCommand.port, 10),
-        data: JSON.stringify(jsonCommand.data),
-      };
-      await run(args);
+      const jsonLine = JSON.parse(line);
+      switch (jsonLine.arg) {
+        case "run":
+          await run({
+            file: jsonLine.file,
+            port: jsonLine.port,
+            options: jsonLine.options,
+          });
+          break;
+        default:
+          console.log(`Unknown command: ${jsonLine.arg}`);
+          console.log("Available commands: run, exit");
+      }
     } else {
       const args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
       const command = args.shift();
@@ -26,14 +38,9 @@ readline
           process.exit(0);
         default:
           console.log(`Unknown command: ${command}`);
-          console.log("Available commands: run, config, list, exit");
+          console.log("Available commands: run, exit");
       }
     }
   });
-
-process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
-  console.error(`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`);
-  process.exit(1);
-});
 
 console.log("command (run, exit):");
