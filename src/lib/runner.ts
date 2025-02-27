@@ -7,10 +7,10 @@ export default async function ({ file, port, options }: { file: string; port: nu
     const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
     const script = await loader(file);
     await script(browser, options);
-    console.log(`Try ${file} success`);
+    console.log(`Try: ${file} success`);
   } catch (error) {
-    console.error(`Catch: ${(error as Error).message}`);
+    console.error(`Catch: ${file} ${(error as Error).message}`);
   } finally {
-    console.log(`Finally ${file} completed finally block`);
+    console.log(`Finally: ${file} completed finally block`);
   }
 }

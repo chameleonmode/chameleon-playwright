@@ -32,7 +32,7 @@ export class RedditPage extends Base {
   async search(text: string) {
     await this.searchTextBox().waitFor(); //wait for textbox to display
     await this.searchTextBox().click();
-    await this.searchTextBox().pressSequentially(text, { delay: random(256, 100) });
+    await this.searchTextBox().pressSequentially(text, { delay: random(128, 256) });
     await this.searchTextBox().press("Enter");
   }
 
@@ -75,12 +75,7 @@ export class RedditPage extends Base {
       const threadElement = this.threadLocator().nth(randomIndex);
       triedIndices.push(randomIndex);
 
-      // Choose the navigation method based on useTabbed
-      if (tabbed) {
-        await this.findByTabNavigation(threadElement);
-      } else {
-        await this.findByIndices(threadElement);
-      }
+      await this.findByIndices(threadElement);
       await this.waitForNavigation();
       await sleepRandom({ multiplier: 3 });
       try {
@@ -108,7 +103,7 @@ export class RedditPage extends Base {
     const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
     await expect(commentComposer).toBeVisible();
     await commentComposer.click();
-    await commentComposer.pressSequentially(comment, { delay: random(256, 512) });
+    await commentComposer.pressSequentially(comment, { delay: random(128, 256) });
 
     // Submit comment
     // vanilla

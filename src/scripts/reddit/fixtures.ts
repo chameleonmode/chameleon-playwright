@@ -1,5 +1,5 @@
 import { test as base } from "@playwright/test";
-import { RedditPage } from "../pages/reddit.page.js";
+import { RedditPage } from "./page.js";
 
 // Declare the types of your fixtures
 type Fixtures = {
