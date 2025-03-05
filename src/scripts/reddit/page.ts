@@ -99,17 +99,18 @@ export class RedditPage extends Base {
     // Wait for comment input to be visible
     await this.page.waitForSelector('comment-composer-host[slot="ready"]');
     const commentComposer = this.page.locator('comment-composer-host');
+    await expect(commentComposer).toBeVisible();
     // Continue with comment input
     const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
-    await expect(commentComposer).toBeVisible();
-    await commentComposer.click();
-    await commentComposer.pressSequentially(comment, { delay: random(56, 128) });
+    await expect(textbox).toBeVisible();
+    await textbox.click();
+    await textbox.pressSequentially(comment, { delay: random(56, 128) });
 
     // Submit comment
     // vanilla
-    const submitButton = this.page.getByRole("button", { name: "Comment", exact: true });
+    //const submitButton = this.page.getByRole("button", { name: "Comment", exact: true });
     // By text and slot attribute
-    const commentSubmitButton = this.page.locator('button[slot="submit-button"]:has(:text("Comment"))');
+    //const commentSubmitButton = this.page.locator('button[slot="submit-button"]:has(:text("Comment"))');
     // More specific with additional classes
     const commentSubmitButtonDetailed = this.page.locator('button.button-primary[slot="submit-button"]');
 
