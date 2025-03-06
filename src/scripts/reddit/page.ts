@@ -28,6 +28,16 @@ export class RedditPage extends Base {
   firstPost = () => this.page.locator("shreddit-post").first();
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
   addCommentButton = () => this.page.getByTestId("trigger-button");
+  PosttitleText = async() => {
+    const selector = 'h1[id^="post-title-"][slot="title"]';
+    await expect(this.page.locator(selector)).toBeVisible();
+    
+    // Use evaluate with a more sophisticated text extraction
+    return await this.page.locator(selector).evaluate(el => {
+      // Get the text directly, trim whitespace, and normalize spaces
+      return el.textContent?.replace(/\s+/g, ' ').trim();
+    });
+  }
 
   async search(text: string) {
     await this.searchTextBox().waitFor(); //wait for textbox to display
@@ -62,9 +72,8 @@ export class RedditPage extends Base {
     const maxAttempts = 18;
     const triedIndices: number[] = [];
 
-    let attempts = 0;
     for (let i = 0; i < maxAttempts; i++) {
-      console.debug(`Attempts remaining: ${maxAttempts - attempts}`);
+      console.debug(`Attempts remaining: ${maxAttempts - i}`);
       await this.waitForNavigation();
       await sleepRandom({ multiplier: 3 });
 

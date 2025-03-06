@@ -23,6 +23,23 @@ readline
             file: jsonLine.file,
             port: jsonLine.port,
             options: jsonLine.options,
+            ask: async (input: string) => {
+              console.log(`Asking: ${input}`);
+              
+              // Create a new readline interface for this specific prompt
+              const rl = readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+              });
+              
+              // Return a promise that resolves when the user enters a response
+              return new Promise<string>((resolve) => {
+                rl.question('> ', (answer) => {
+                  rl.close();
+                  resolve(answer);
+                });
+              });
+            },
           });
           break;
         default:
@@ -37,6 +54,9 @@ readline
         case "exit":
           console.log("Exiting...");
           process.exit(0);
+        case "response":
+            console.log("Exiting...");
+            process.exit(0);
         default:
           console.log(`Unknown command: ${command}`);
           console.log("Available commands: run, exit");

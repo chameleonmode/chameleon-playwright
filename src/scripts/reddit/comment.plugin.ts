@@ -5,8 +5,8 @@ export default async function (
   browser: Browser,
   options: {
     search: string;
-    comment: string;
-  }
+  },
+  air: (input: string | undefined) => Promise<string>,
 ) {
   const page = new RedditPage(await browser.contexts()[0].newPage());
   // Step 1 - Launch Reddit
@@ -15,6 +15,7 @@ export default async function (
   await page.waitForNavigation();
   await page.search(options.search);
   await page.findRandomThread();
+
   // Step 3 - 1st Comment on main thread
-  await page.addCommentToThread(options.comment);
+  await page.addCommentToThread(await air(await page.PosttitleText()));
 }
