@@ -24,19 +24,21 @@ readline
             port: jsonLine.port,
             options: jsonLine.options,
             ask: async (input: string) => {
-              console.log(`Asking: ${input}`);
-              
+              console.log(`Ask:${input}`);
+
               // Create a new readline interface for this specific prompt
               const rl = readline.createInterface({
                 input: process.stdin,
-                output: process.stdout
+                output: process.stdout,
               });
-              
+
               // Return a promise that resolves when the user enters a response
               return new Promise<string>((resolve) => {
-                rl.question('> ', (answer) => {
+                rl.question("> ", (answer) => {
+                  if (!answer.startsWith("Answer:")) return;
+                  
                   rl.close();
-                  resolve(answer);
+                  resolve(answer.slice(7));
                 });
               });
             },
@@ -48,6 +50,7 @@ readline
       }
     } else {
       console.log(`Received: ${line}`);
+      if (line.startsWith("Answer:")) return;
       const args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
       const command = args.shift();
       switch (command) {
@@ -55,8 +58,8 @@ readline
           console.log("Exiting...");
           process.exit(0);
         case "response":
-            console.log("Exiting...");
-            process.exit(0);
+          console.log("Exiting...");
+          process.exit(0);
         default:
           console.log(`Unknown command: ${command}`);
           console.log("Available commands: run, exit");
