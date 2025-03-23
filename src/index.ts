@@ -1,4 +1,4 @@
-import readline from "readline";
+import readline from "node:readline";
 import run from "./lib/runner.js";
 
 console.log("Starting...");
@@ -22,26 +22,7 @@ readline
           run({
             file: jsonLine.file,
             port: jsonLine.port,
-            options: jsonLine.options,
-            ask: async (input: string) => {
-              console.log(`Ask:${input}`);
-
-              // Create a new readline interface for this specific prompt
-              const rl = readline.createInterface({
-                input: process.stdin,
-                output: process.stdout,
-              });
-
-              // Return a promise that resolves when the user enters a response
-              return new Promise<string>((resolve) => {
-                rl.question("> ", (answer) => {
-                  if (!answer.startsWith("Answer:")) return;
-                  
-                  rl.close();
-                  resolve(answer.slice(7));
-                });
-              });
-            },
+            options: jsonLine.options
           });
           break;
         default:

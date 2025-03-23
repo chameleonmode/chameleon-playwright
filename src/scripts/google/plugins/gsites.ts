@@ -1,5 +1,5 @@
 import { Browser } from "@playwright/test";
-import Page from "./pages/gsite.page.js";
+import Page from "../page.js";
 
 export default async function (
   browser: Browser,
@@ -7,10 +7,10 @@ export default async function (
     name: string;
     title: string;
     content: string;
-    link: string;
-    linkText: string;
-    youtubeSearch: string;
-    locationSearch: string;
+    youtube: string;
+    // link: string;
+    // linkText: string;
+    // locationSearch: string;
   }
 ) {
   const context = browser.contexts()[0];
@@ -33,11 +33,11 @@ export default async function (
   //Step 8 - Click Text and Populate it
   await page.addTextElement(args.content);
   //Step 9 - Click Text and Populate it with Hyperlink
-  await page.insertHyperLinkOnText(args.link, args.linkText);
+  //await page.insertHyperLinkOnText(args.link, args.linkText);
   //Step 9 - Add Youtube
-  await page.addYouTube(args.youtubeSearch);
+  await page.addYouTube(args.youtube);
   //Step 10 - Add Map
-  await page.addLocation(args.locationSearch);
+  //await page.addLocation(args.locationSearch);
   //Step 11 -Publish
   await page.publishSite(args.title);
 }

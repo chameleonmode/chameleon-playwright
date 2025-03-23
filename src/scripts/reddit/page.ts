@@ -1,6 +1,6 @@
 import { Page, Locator, expect } from "@playwright/test";
 import { random, sleepRandom } from "../../lib/utils.js";
-import { Base } from "../pages/base.page.js";
+import Base from "../../lib/page.js";
 
 export class RedditPage extends Base {
   constructor(readonly page: Page) {
@@ -33,10 +33,13 @@ export class RedditPage extends Base {
     await expect(this.page.locator(selector)).toBeVisible();
     
     // Use evaluate with a more sophisticated text extraction
-    return await this.page.locator(selector).evaluate(el => {
+    const title = await this.page.locator(selector).evaluate(el => {
       // Get the text directly, trim whitespace, and normalize spaces
       return el.textContent?.replace(/\s+/g, ' ').trim();
     });
+    if(!title) 
+      throw new Error("Post title not found");
+    return title;
   }
 
   async search(text: string) {

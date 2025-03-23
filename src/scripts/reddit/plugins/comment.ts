@@ -1,12 +1,12 @@
 import { Browser } from "@playwright/test";
-import { RedditPage } from "./page.js";
+import { RedditPage } from "../page.js";
+import ask from "../../../lib/ask.js";
 
 export default async function (
   browser: Browser,
   options: {
     search: string;
-  },
-  air: (input: string | undefined) => Promise<string>,
+  }
 ) {
   const page = new RedditPage(await browser.contexts()[0].newPage());
   // Step 1 - Launch Reddit
@@ -17,5 +17,6 @@ export default async function (
   await page.findRandomThread();
 
   // Step 3 - 1st Comment on main thread
-  await page.addCommentToThread(await air(await page.PosttitleText()));
+  const input = await page.PosttitleText();
+  await page.addCommentToThread(await ask(input));
 }

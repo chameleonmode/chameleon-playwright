@@ -1,12 +1,24 @@
-import { chromium } from "@playwright/test";
-import loader  from "./loader.js";
+import path from "path";
+import { fileURLToPath, pathToFileURL } from "url";
 
-export default async function ({ file, port, options, ask }: { file: string; port: number; options: unknown; ask: (input: string) => Promise<string> }) {
+export async function loader(file: string): Promise<any> {
+  // Recreate dirname for ES module
+  const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+  // Attempting to load script from the specified file
+  const scriptPath = file.endsWith("js") ? file : path.join(dirname, "scripts", `${file}.js`);
+  const module = await import(pathToFileURL(scriptPath).href);
+  return module.default || module[file];
+}
+
+export default async function run({ file, port, options }: { file: string; port: number; options: unknown }) {
   try {
     console.log(`Try: ${file} Port: ${port}`);
-    const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
     const script = await loader(file);
-    await script(browser, options, ask);
+    const browser = await (
+      await import("@playwright/test")
+    ).chromium.connectOverCDP(`http://localhost:${port}`);
+    await script(browser, options);
     console.log(`Try: ${file} success`);
   } catch (error) {
     console.error(`Catch: ${file} ${(error as Error).message}`);
