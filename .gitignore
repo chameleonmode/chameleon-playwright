@@ -5,3 +5,4 @@ tmp
 test-*
 *-report
 .DS_Store
+.cache

@@ -1,13 +1,6 @@
 import readline from "node:readline";
 import run from "./lib/runner.js";
 
-console.log("Starting...");
-
-process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
-  console.error(`Unhandled Rejection at:, ${promise}, 'reason:', ${reason}`);
-  process.exit(1);
-});
-
 readline
   .createInterface({
     input: process.stdin,

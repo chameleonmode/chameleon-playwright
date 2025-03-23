@@ -1,8 +1,8 @@
-import { Browser } from "@playwright/test";
+import { BrowserContext } from "@playwright/test";
 import Page from "../page.js";
 
 export default async function (
-  browser: Browser,
+  context: BrowserContext,
   args: {
     name: string;
     title: string;
@@ -13,7 +13,6 @@ export default async function (
     // locationSearch: string;
   }
 ) {
-  const context = browser.contexts()[0];
   const page = new Page(await context.newPage());
   // Step 1 - Launch Google Sites
   await page.goToStartPage();

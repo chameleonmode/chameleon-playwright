@@ -10,6 +10,7 @@ class Base {
 
   async goToStartPage() {
     await this.page.goto(this.START_URL, { waitUntil: "load" });
+    await this.waitForNavigation();
   }
 
   async waitForNavigation() {

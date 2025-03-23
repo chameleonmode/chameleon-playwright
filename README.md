@@ -1,6 +1,10 @@
 # Chameleon Playwright JS Scripts and Plugins Runner 
 
 ## src
+ - index.ts for running via cli
+    - npm run dev:*
+ - local.ts for running directly
+    - npm run local:*
  - /lib
     - library/utility/inherited funtionality for the rest of the project functions 
  - /scripts
