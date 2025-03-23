@@ -1,9 +1,8 @@
-import { Browser } from "@playwright/test";
 import { RedditPage } from "../page.js";
 import ask from "../../../lib/ask.js";
 
 export default async function (
-  browser: Browser,
+  browser: import('@playwright/test').Browser,
   options: {
     search: string;
   }
