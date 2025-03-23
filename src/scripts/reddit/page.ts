@@ -2,7 +2,7 @@ import { Page, Locator, expect } from "@playwright/test";
 import { random, sleepRandom } from "../../lib/utils.js";
 import Base from "../../lib/page.js";
 
-export class RedditPage extends Base {
+class Reddit extends Base {
   constructor(readonly page: Page) {
     super(page, "https://www.reddit.com");
   }
@@ -130,3 +130,5 @@ export class RedditPage extends Base {
     await commentSubmitButtonDetailed.click();
   }
 }
+
+export default Reddit;
