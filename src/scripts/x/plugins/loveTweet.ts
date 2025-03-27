@@ -9,8 +9,12 @@ export default async function (
     const page = new X(await context.newPage());
     // Step 1 - Launch X
     await page.goToStartPage();
+
     // Step 2 - Search for topic...
-    // await page.search(opts.search);
+    await page.search(opts.search);
+
+    // Step 3 - Open the first profile matching with the keyword.
+    await page.openFirstProfile(opts.search);
 
     await page.page.waitForTimeout(2000)
 
