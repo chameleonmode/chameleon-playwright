@@ -7,7 +7,7 @@ class X extends Base {
     super(page, "https://x.com");
   }
 
-
+  retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
   tweetBox = () => this.page.locator(`div[data-testid=tweetTextarea_0RichTextInputContainer]`);
   tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
   locator = (selector: string) => {
@@ -138,6 +138,49 @@ class X extends Base {
     await this.tweetBox().click();
     await this.tweetBox().pressSequentially(tweet, { delay: random(128, 256) });
     await this.tweetButton().first().click();
+  }
+
+  // Search for a keyword on X
+  async search(keyword: string) {
+    await this.page.goto("https://x.com/explore"); // Go to X's explore page
+    const searchInput = this.page.locator('input[placeholder="Search"]'); // Search bar
+    await searchInput.fill(keyword); // Enter keyword
+    await searchInput.press("Enter"); // Press enter to search
+    await this.page.waitForLoadState("domcontentloaded"); // Wait for results to load
+  }
+
+  // Open the first profile matching the keyword
+  async openFirstProfile(keyword: string, timeout: number = 5000) {
+    const profileSelector = `a[href*="/${keyword}"]`;
+    
+    try {
+        await this.page.waitForSelector(profileSelector, {
+            state: 'attached',
+            timeout: timeout
+        });
+
+        const profile = this.page.locator(profileSelector).first();
+        
+        await profile.scrollIntoViewIfNeeded();
+        
+        await Promise.all([
+            this.page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+            profile.click()
+        ]);
+        
+    } catch (error) {
+        throw new Error(`Failed to open profile with keyword "${keyword}": ${error}`);
+    }
+}
+
+  // Retweet the top most relevant tweet
+  async retweetTopTweet() {
+    const retweetButton = this.retweetButton().first(); 
+    await retweetButton.click(); 
+    const confirmReTweeetSelector = 'div[data-testid="retweetConfirm"]'
+    await this.page.waitForSelector(confirmReTweeetSelector);
+    const confirmButton = this.page.locator(confirmReTweeetSelector);
+    await confirmButton.click();
   }
 }
 
