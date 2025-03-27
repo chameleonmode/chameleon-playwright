@@ -7,12 +7,19 @@ class X extends Base {
     super(page, "https://x.com");
   }
 
+
+  tweetBox = () => this.page.locator(`div[data-testid=tweetTextarea_0RichTextInputContainer]`);
+  tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
+  locator = (selector: string) => {
+    return this.page.locator(selector)
+  }
+
   // Check login  
   checkLoginAuthentication = async () => {
     try {
       const selector = "a[data-testid='loginButton']";
       const loginButton = this.page.locator(selector);
-  
+
       try {
         await this.page.waitForSelector(selector, { state: 'visible' });
       } catch (error) {
@@ -23,16 +30,16 @@ class X extends Base {
         }
         console.log(error);
       }
-  
+
       const loginButtonCount = await loginButton.count();
       if (loginButtonCount > 0) {
         console.log('isAuthenticated: ', false);
         return false;
       }
-  
+
       console.log('isAuthenticated: ', true);
       return true;
-  
+
     } catch (error) {
       console.error('Error during authentication check:', error);
       return false;
@@ -109,6 +116,28 @@ class X extends Base {
         await googleLoginNextButton.click();
       }
     }
+  }
+
+  loveTweet = async () => {
+    const isAlreadyLiked = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="unlike"]');
+    const isAvailable = await isAlreadyLiked.count() > 0;
+    if (!isAvailable) {
+      const likeButton = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="like"]').first();
+      await likeButton.scrollIntoViewIfNeeded();
+      await likeButton.click();
+      console.log("Button clicked: Liked!");
+    } else {
+      await isAlreadyLiked.scrollIntoViewIfNeeded();
+      console.log("Already liked")
+    }
+  }
+  // Locators
+
+  tweetToX = async (tweet: string) => {
+    await this.tweetBox().waitFor();
+    await this.tweetBox().click();
+    await this.tweetBox().pressSequentially(tweet, { delay: random(128, 256) });
+    await this.tweetButton().first().click();
   }
 }
 
