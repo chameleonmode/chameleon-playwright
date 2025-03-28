@@ -1,4 +1,4 @@
-import Reddit from "../page.js";
+import X from "../page.js";
 
 export default async function (
   context: import('@playwright/test').BrowserContext,
@@ -7,10 +7,15 @@ export default async function (
     password : string;
   }
 ) {
-  const page = new Reddit(await context.newPage());
+  const page = new X(await context.newPage());
+  // Step 1 - Launch X
   await page.goToStartPage();
+  
+  // check authentication
   const isLogin = await page.checkLoginAuthentication()
+
   if (!isLogin) {
+    // Login with google
     await page.loginWithGoogle(options.email, options.password);
   }
 }

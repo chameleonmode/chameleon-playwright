@@ -24,7 +24,7 @@ export default async function ask(input: string): Promise<string> {
 }
 
 
-async function callApi(input: string): Promise<string> {
+export async function callApi(input: string): Promise<string> {
   const apiUrl = 'https://chameleon-ws.onrender.com/air/ask/7?feature=reddit';
 
   const requestBody = {

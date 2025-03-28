@@ -1,6 +1,7 @@
 import { Page } from "@playwright/test";
 import Base from "../../lib/page.js";
 import { random } from "../../lib/utils.js";
+import { callApi } from "../../lib/ask.js";
 
 class X extends Base {
   constructor(readonly page: Page) {
@@ -10,6 +11,7 @@ class X extends Base {
   retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
   tweetBox = () => this.page.locator(`div[data-testid="tweetTextarea_0RichTextInputContainer"]`);
   tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
+  articles = () => this.page.locator(`main[role="main"] section article`);
   locator = (selector: string) => {
     return this.page.locator(selector)
   }
@@ -31,7 +33,7 @@ class X extends Base {
     }
   };
 
-
+  // Login with credentials 
   loginWithCredentials = async (email: string, userName: string, password: string) => {
     console.log('login proccess started...');
     const selector = "a[data-testid='loginButton']";
@@ -42,19 +44,19 @@ class X extends Base {
     if (isLoginBtn) {
       loginAnchor.click();
       const emailInput = this.page.locator('input[autocomplete="username"]');
-      await emailInput.type(email, { delay: random(10, 50) });
+      await emailInput.type(email, { delay: random(50, 100) });
       const emailNextButton = 'button:has-text("Next")';
       await this.page.waitForSelector(emailNextButton);
       await this.page.click(emailNextButton);
 
       const userNameInput = this.page.locator('input[data-testid="ocfEnterTextTextInput"]');
-      await userNameInput.type(userName, { delay: random(10, 50) });
+      await userNameInput.type(userName, { delay: random(50, 100) });
       const userNameNextButton = 'button[data-testid="ocfEnterTextNextButton"]';
       await this.page.waitForSelector(userNameNextButton);
       await this.page.click(userNameNextButton);
 
       const passwordInput = this.page.locator('input[name="password"]');
-      await passwordInput.type(password, { delay: random(10, 50) });
+      await passwordInput.type(password, { delay: random(50, 100) });
       const loginButton = 'button[data-testid="LoginForm_Login_Button"]';
       await this.page.waitForSelector(loginButton);
       await this.page.click(loginButton);
@@ -62,6 +64,7 @@ class X extends Base {
     }
   }
 
+  // Login with goole
   loginWithGoogle = async (email: string, password: string) => {
     console.log('login proccess started...');
     const googleIframeSelector = 'iframe[title="Sign in with Google Button"]';
@@ -87,12 +90,12 @@ class X extends Base {
 
       if (!isEmailValueEmpty) {
         console.log('email not found!');
-        await emailInput.type(email, { delay: random(10, 50) });
+        await emailInput.type(email, { delay: random(50, 100) });
         await googleLoginNextButton.click();
 
         const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
         await passwordInput.waitFor({ state: 'visible' });
-        await passwordInput.type(password, { delay: random(10, 50) });
+        await passwordInput.type(password, { delay: random(50, 100) });
 
         const googleLoginPassNextButton = popupDetailFilleds.locator('div#passwordNext button');
         await googleLoginPassNextButton.waitFor({ state: 'visible' });
@@ -229,6 +232,56 @@ class X extends Base {
     }
   }
 
+  // search keyword on post and reply
+  async searchKeyWordOnPost(keyword: string): Promise<void> {
+    await this.articles().first().waitFor();
+
+    const allArticles = await this.articles().all();
+    await Promise.all(allArticles.map(article => article.waitFor({ state: 'visible' })));
+    const visibleArticles = allArticles.slice(0, 5);
+    let found = false;
+
+    for (const article of visibleArticles) {
+      const articleText: string | null = await article.textContent();
+      if (articleText && articleText.includes(keyword)) {
+        console.log(`Keyword :- "${keyword}" found in article :-`, articleText);
+        await article.scrollIntoViewIfNeeded();
+        found = true;
+        
+        const replyBtn = article.locator('button[data-testid="reply"]');
+        try {
+          // Call Api for get reply comment
+          const replyedText = await callApi(articleText);
+          if (replyedText) {
+            replyBtn.click();
+            // Reply on search keyword
+            await this.replyOnPost(replyedText);
+          } else {
+            console.log('Replyed text not found!');
+          }
+        } catch (error) {
+          console.log(error, '---errror--');
+        }
+        break;
+      }
+    }
+    if (!found) {
+      console.log(`Keyword "${keyword}" not found in any article.`);
+    }
+  }
+
+  // Reply on post 
+  async replyOnPost(replyText: string): Promise<void> {
+    const replySelector = 'div[data-viewportview="true"] div.DraftEditor-editorContainer';
+    await this.page.waitForSelector(replySelector, { state: 'visible' });
+    await this.type(replyText);
+
+    const replyBtnSelector = 'div[data-testid="toolBar"] button[data-testid="tweetButton"]';
+    let replyBtn = this.page.locator(replyBtnSelector);
+    replyBtn.waitFor();
+    replyBtn.click();
+    console.log('replyed on comment');
+  }
 }
 
 export default X;

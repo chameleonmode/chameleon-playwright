@@ -1,4 +1,4 @@
-import { Page, expect, Locator } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 import { random, sleepRandom } from "../../lib/utils.js";
 import Base from "../../lib/page.js";
 
@@ -33,7 +33,7 @@ class Reddit extends Base {
     return title;
   }
 
-  // Check login  
+  // Check authentication  
   checkLoginAuthentication = async () => {
     try {
       const selector = '#login-button';
@@ -50,6 +50,7 @@ class Reddit extends Base {
     }
   }
 
+  // Login with credentials
   loginWithCredentials = async (email: string, password: string) => {
     console.log('login proccess started...');
     const selector = '#login-button';
@@ -61,14 +62,14 @@ class Reddit extends Base {
     loginUserName.click();
 
     const loginUserNameInput = loginUserName.locator("input");
-    await loginUserNameInput.type(email, { delay: random(10, 50) });
+    await loginUserNameInput.type(email, { delay: random(50, 100) });
     await loginUserNameInput.press('Tab');
 
     const loginUserPassword = this.page.locator("faceplate-text-input#login-password");
     loginUserPassword.click();
 
     const loginUserPasswordInput = loginUserPassword.locator("input");
-    await loginUserPasswordInput.type(password, { delay: random(10, 50) });
+    await loginUserPasswordInput.type(password, { delay: random(50, 100) });
     const loginButtonn = this.page.getByRole('button', { name: 'Log In' });
 
     await expect(loginButtonn).toBeVisible();
@@ -76,6 +77,7 @@ class Reddit extends Base {
     return true;
   }
 
+  // Login google
   loginWithGoogle = async (email: string, password: string) => {
     console.log('login proccess started...');
     const selector = '#login-button';
@@ -107,12 +109,12 @@ class Reddit extends Base {
 
       if (!isEmailValueEmpty) {
         console.log('email not found!');
-        await emailInput.type(email, { delay: random(10, 50) });
+        await emailInput.type(email, { delay: random(50, 100) });
         await googleLoginNextButton.click();
 
         const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
         await passwordInput.waitFor({ state: 'visible' });
-        await passwordInput.type(password, { delay: random(10, 50) });
+        await passwordInput.type(password, { delay: random(50, 100) });
 
         const googleLoginPassNextButton = popupDetailFilleds.locator('div#passwordNext button');
         await googleLoginPassNextButton.waitFor({ state: 'visible' });
@@ -359,6 +361,8 @@ class Reddit extends Base {
     console.log("Successfully joined the subreddit.");
     return true;
   }
+  
+  // UpVote / DownVote
   async doVote(vote: boolean) {
     try {
       const upVoteButton = this.upVoteButton();
@@ -461,6 +465,7 @@ class Reddit extends Base {
       await this.page.keyboard.press("Tab");
       await this.page.keyboard.press("Tab");
       await this.page.keyboard.press("Enter");
+      await this.page.keyboard.type(commentText, { delay: random(56, 128) });
 
       const buttonLocator = this.page.locator('#inner-post-submit-button');
       const buttonCount = await buttonLocator.count();

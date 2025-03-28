@@ -20,6 +20,7 @@
     "local:x-retweet-post": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/retweet-post.ts .cache/x \"{\\\"search\\\":\\\"IPL\\\"}\"",
     "local:x-loveTweet": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/loveTweet.js .cache/x \"{\\\"search\\\":\\\"zoho\\\"}\" ",
     "local:x-commentTweet": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/CommentTweet.js .cache/x \"{\\\"tweet\\\":\\\"hello friend\\\"}\" ",
+    "local:x-reply-comment": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/reply-comment.ts .cache/x \"{\\\"search\\\":\\\"IPL\\\", \\\"searchKeyword\\\":\\\"exciting chapter\\\"}\"",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
