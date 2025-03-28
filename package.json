@@ -16,7 +16,7 @@
     "local:reddit-comment": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/comment.js .cache/reddit \"{\\\"search\\\":\\\"playwright\\\",\\\"comSearch\\\":\\\"playwright\\\"}\"",
     "local:reddit-reply-comment": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/reply-comment.ts .cache/reddit \"{\\\"search\\\":\\\"zoho\\\"}\"",
     "local:reddit-join-subreddit": "node --loader ts-node/esm src/local.ts ./scripts/reddit/plugins/join-subreddit.ts .cache/reddit \"{\\\"search\\\":\\\"zoho\\\"}\"",
-    "local:x-keyword-search": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/keyword-search.ts .cache/default \"{\\\"search\\\":\\\"IPL\\\"}\"",
+    "local:x-keyword-search": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/keyword-search.ts .cache/default \"{\\\"search\\\":\\\"zoho\\\"}\"",
     "local:x-retweet-post": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/retweet-post.ts .cache/default \"{\\\"search\\\":\\\"IPL\\\"}\"",
     "local:x-loveTweet": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/loveTweet.js .cache/default \"{\\\"search\\\":\\\"grok\\\"}\" ",
     "local:x-commentTweet": "node --loader ts-node/esm src/local.ts ./scripts/x/plugins/CommentTweet.js .cache/default \"{\\\"tweet\\\":\\\"hello friend\\\"}\" ",

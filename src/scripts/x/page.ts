@@ -142,46 +142,101 @@ class X extends Base {
 
   // Search for a keyword on X
   async search(keyword: string) {
-    await this.page.goto("https://x.com/explore"); // Go to X's explore page
-    const searchInput = this.page.locator('input[placeholder="Search"]'); // Search bar
-    await searchInput.fill(keyword); // Enter keyword
-    await searchInput.press("Enter"); // Press enter to search
-    await this.page.waitForLoadState("domcontentloaded"); // Wait for results to load
-  }
+    console.log(`Starting search for keyword: "${keyword}"`);
+    
+    console.log("Navigating to X's explore page...");
+    await this.page.goto("https://x.com/explore");
+    
+    console.log("Locating search input field...");
+    const searchInput = this.page.locator('input[placeholder="Search"]');
+    
+    console.log(`Entering search keyword: "${keyword}"`);
+    await searchInput.fill(keyword);
+    
+    console.log("Submitting search...");
+    await searchInput.press("Enter");
+    
+    console.log("Waiting for search results to load...");
+    await this.page.waitForLoadState("domcontentloaded");
+    
+    console.log("Search completed successfully");
+    // Wait for 3 seconds before closing the page
+    // await this.page.waitForTimeout(5000);
+
+    // await this.page.close();
+}
 
   // Open the first profile matching the keyword
-  async openFirstProfile(keyword: string, timeout: number = 5000) {
-    const profileSelector = `a[href*="/${keyword}"]`;
+  async openFirstProfile(keyword: string, timeout: number = 20000) {
+    // Convert keyword to lowercase for case-insensitive matching
+    const normalizedKeyword = keyword.toLowerCase();
     
     try {
-        await this.page.waitForSelector(profileSelector, {
+        console.log(`Searching for profile matching: "${keyword}"`);
+        
+        // Wait for any profile link that contains the keyword (case-insensitive)
+        await this.page.waitForSelector(`a[href*="/${normalizedKeyword}" i]`, {
             state: 'attached',
             timeout: timeout
         });
 
-        const profile = this.page.locator(profileSelector).first();
+        // Find the first matching profile (case-insensitive)
+        const profile = this.page.locator(`a[href*="/${normalizedKeyword}" i]`).first();
         
+        console.log(`Found matching profile, scrolling into view...`);
         await profile.scrollIntoViewIfNeeded();
         
+        console.log(`Opening profile...`);
         await Promise.all([
             this.page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
             profile.click()
         ]);
         
+        console.log(`Successfully opened profile matching: "${keyword}"`);
+        
     } catch (error) {
-        throw new Error(`Failed to open profile with keyword "${keyword}": ${error}`);
+        console.error(`Failed to open profile with keyword "${keyword}": ${error}`);
+        throw new Error(`No profile found matching "${keyword}" (case-insensitive)`);
     }
 }
 
   // Retweet the top most relevant tweet
   async retweetTopTweet() {
-    const retweetButton = this.retweetButton().first(); 
-    await retweetButton.click(); 
-    const confirmReTweeetSelector = 'div[data-testid="retweetConfirm"]'
-    await this.page.waitForSelector(confirmReTweeetSelector);
-    const confirmButton = this.page.locator(confirmReTweeetSelector);
-    await confirmButton.click();
+    try {
+      console.log("Attempting to retweet the top tweet...");
+      
+      // Step 1: Click the retweet button
+      const retweetButton = this.retweetButton().first();
+      await retweetButton.click();
+      console.log("Retweet button clicked successfully.");
+  
+      // Step 2: Wait for and click the confirmation button
+      const confirmReTweetSelector = 'div[data-testid="retweetConfirm"]';
+      await this.page.waitForSelector(confirmReTweetSelector, { timeout: 5000 });
+      const confirmButton = this.page.locator(confirmReTweetSelector);
+      await confirmButton.click();
+      console.log("Retweet confirmed successfully.");
+  
+      // Step 3: Close the page
+      await this.page.close();
+      console.log("Page closed successfully.");
+  
+    } catch (error) {
+      console.error("Error during retweet process:", error);
+  
+      // Attempt to close the page even if an error occurs
+      try {
+        await this.page.close();
+        console.log("Page closed after encountering an error.");
+      } catch (error) {
+        console.error("Failed to close the page:", error);
+      }
+  
+      // Re-throw the error if needed for test failure reporting
+      throw error;
+    }
   }
+
 }
 
 export default X;

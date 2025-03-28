@@ -76,7 +76,7 @@ class Reddit extends Base {
     return true;
   }
 
-  loginWithGoogle = async (email: string, password:string) => {
+  loginWithGoogle = async (email: string, password: string) => {
     console.log('login proccess started...');
     const selector = '#login-button';
     const loginButton = this.page.locator(selector);
@@ -121,7 +121,7 @@ class Reddit extends Base {
         await googleLoginNextButton.click();
       }
     }
-  } 
+  }
 
   async search(text: string) {
     await this.searchTextBox().waitFor(); //wait for textbox to display
@@ -200,19 +200,19 @@ class Reddit extends Base {
     try {
       const firstComment = this.commentLocator().first();
       await firstComment.waitFor();
-      
+
       const replyButton = firstComment.locator("shreddit-comment-action-row button").first();
       await replyButton.click();
-      
+
       await this.page.waitForTimeout(1000);
-      
+
       const replyBox = firstComment.locator("shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer");
       await replyBox.waitFor();
-      
+
       await this.page.keyboard.type(replyMessage);
       const submitButton = replyBox.locator("button[slot='submit-button']");
       await submitButton.click();
-      
+
       return true;
     } catch (error) {
       console.error("Error replying to comment:", error);
@@ -221,82 +221,80 @@ class Reddit extends Base {
   }
 
   async findCommentWithTriggers(
-    triggerWords: string[],
+    triggerWord: string,
     caseSensitive: boolean = false
   ): Promise<any> {
     try {
-      console.log("Searching for comments with triggers:", triggerWords);
+      console.log("Searching for comments with triggers:", triggerWord);
       await this.commentLocator().first().waitFor();
-  
+
       const allComments = await this.commentLocator().all();
-  
+
       for (const comment of allComments) {
         const commentText = await comment.evaluate(el => {
           const content = el.querySelector("div[slot='comment']");
           return content ? content.textContent?.trim() || null : null;
         });
-  
+
         if (!commentText) continue;
-  
-        if (triggerWords.length === 0) {
+
+        if (triggerWord.length === 0) {
           return false;
         }
         const compareText = caseSensitive ? commentText : commentText.toLowerCase();
-        const matchedTrigger = triggerWords.some(trigger => {
-          const compareTrigger = caseSensitive ? trigger : trigger.toLowerCase();
-          return compareText.includes(compareTrigger);
-        });
-  
+        const compareTrigger = triggerWord.toLowerCase();
+        const matchedTrigger = compareText.includes(compareTrigger);
+
         if (matchedTrigger) {
-          return {elem : comment, comment: commentText}; 
+          return { elem: comment, comment: commentText };
         }
       }
       return false;
-  
+
     } catch (error) {
       return false;
     }
   }
-  
-  async replyToSearchComment(elemElem: any, reply: string){
+
+  async replyToSearchComment(elemElem: any, reply: string) {
     try {
       // const replyContainer = await commentHandler.evaluateHandle((elems, commentElemIndex) => {
       //   const elem = elems[commentElemIndex];
-      const replyContainer = await elemElem.evaluateHandle((elem:any) =>{
+      const replyContainer = await elemElem.evaluateHandle((elem: any) => {
         const commentActionsParent = elem.querySelector("shreddit-comment-action-row");
         const replyButton = commentActionsParent.querySelector("button");
-  
+
         replyButton.click();
-  
+
         const replyCommentWrapper = elem.querySelector("shreddit-comment-action-row shreddit-async-loader");
-  
+
         const replyContainerWrapper = replyCommentWrapper.querySelector("comment-composer-host faceplate-form shreddit-composer");
-  
+
         if (replyContainerWrapper) {
           return replyContainerWrapper
         } else {
           return false;
         }
       });
-  
-  
+
+
       if (replyContainer) {
-        
+
         // const maxLength = 50;
         // if (reply.length > maxLength) {
         //   console.warn(`Reply is too long, truncating to ${maxLength} characters.`);
         //   reply = reply.slice(0, maxLength);
         // }
-        
+
         await this.page.waitForTimeout(1000);
         await this.page.keyboard.type(reply);
-        await replyContainer.evaluate((elem:any) => {
+        await replyContainer.evaluate((elem: any) => {
           const submitButton = elem.querySelector("button[slot='submit-button']");
           if (submitButton) {
             submitButton.click();
           }
         });
-  
+
         return true;
       }
       return false;
@@ -306,34 +304,9 @@ class Reddit extends Base {
   }
 
 
-  async isSubredditMember(): Promise<boolean> {
-    const parentElement = this.joinButton().locator('..');
-    if (await parentElement.count() === 0) {
-      console.log("Parent element of the 'Join' button not found.");
-      return false;
-    }
+  
 
-    const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
-    if (!joinStatusAttribute) {
-      console.log("The 'noun' attribute is missing on the parent element.");
-      return false;
-    }
-
-    return joinStatusAttribute.toLowerCase().includes("unsubscribe");
-  }
-  async joinSubreddit(): Promise<boolean> {
-    const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
-    const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
-      const button = shadowRoot.querySelector<HTMLElement>('.button');
-      if (!button) return false;
-      button.click();
-      return true;
-    });
-
-    if (!joined) return false;
-    console.log("Successfully joined the subreddit.");
-    return true;
-  }
+  // Function to check the member is joined the subreddit or not if not then join the subreddit.
   async checkAndJoinSubreddit(): Promise<boolean> {
     if (await this.joinButton().count() === 0) {
       console.log("No 'Join' button found on the page.");
@@ -353,6 +326,38 @@ class Reddit extends Base {
       console.log("User is already a member of the subreddit.");
       return true;
     }
+  }
+
+  // Function to check the member is joined the subreddit or not.
+  async isSubredditMember(): Promise<boolean> {
+    const parentElement = this.joinButton().locator('..');
+    if (await parentElement.count() === 0) {
+      console.log("Parent element of the 'Join' button not found.");
+      return false;
+    }
+
+    const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
+    if (!joinStatusAttribute) {
+      console.log("The 'noun' attribute is missing on the parent element.");
+      return false;
+    }
+
+    return joinStatusAttribute.toLowerCase().includes("unsubscribe");
+  }
+
+  // Function to join the subreddit.
+  async joinSubreddit(): Promise<boolean> {
+    const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
+    const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
+      const button = shadowRoot.querySelector<HTMLElement>('.button');
+      if (!button) return false;
+      button.click();
+      return true;
+    });
+
+    if (!joined) return false;
+    console.log("Successfully joined the subreddit.");
+    return true;
   }
   async doVote(vote: boolean) {
     const upVoteButton = this.upVoteButton();

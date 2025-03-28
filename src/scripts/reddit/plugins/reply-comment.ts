@@ -7,9 +7,9 @@ export default async function (
     search: string;
     comSearch: string;
     replyMessage?: string;
-    triggerWords?: string[]; // Array of words/sentences that will trigger a reply if found in comment
-    caseSensitive?: boolean; // Whether trigger matching should be case sensitive
-    replyIfNoMatch?: boolean; // Whether to reply to random comment if no triggers match (default true)
+    triggerWord: string;
+    caseSensitive?: boolean;
+    replyIfNoMatch?: boolean;
   }
 ) {
   const page = new Reddit(await context.newPage());
@@ -23,7 +23,7 @@ export default async function (
 
   // Step 3 - Find comment matching the trigger words
   const isCommentAvaible = await page.findCommentWithTriggers(
-    options.triggerWords || ["Thanks for your comment. I currently have a free lance developer"],
+    options.triggerWord || "Thanks for your comment. I currently have a free lance developer",
     options.caseSensitive || false
   );
 
@@ -36,6 +36,8 @@ export default async function (
 
     const input = await page.PosttitleText();
     const result = await ask(input);
+
+    console.log("started process to reply on comment");
     await page.replyToSearchComment(commentElement, result);
     console.log("Clicked on the comment.", result);
   } else {
