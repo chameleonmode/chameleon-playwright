@@ -352,51 +352,58 @@ class Reddit extends Base {
       return true;
     }
   }
+
+  //Upvote/down vote
   async doVote(vote: boolean) {
-    const upVoteButton = this.upVoteButton();
-    const downVoteButton = this.downVoteButton();
+    try {
+      const upVoteButton = this.upVoteButton();
+      const downVoteButton = this.downVoteButton();
 
-    if (vote) {
-      const upVoteCount = await upVoteButton.count();
-      if (upVoteCount > 0) {
-        const isVisible = await upVoteButton.first().isVisible();
-        if (isVisible) {
-          const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
-          if (isPressed !== "true") {
-            await upVoteButton.first().scrollIntoViewIfNeeded();
-            await upVoteButton.first().click();
-            console.log("Upvote clicked");
+      if (vote) {
+        const upVoteCount = await upVoteButton.count();
+        if (upVoteCount > 0) {
+          const isVisible = await upVoteButton.first().isVisible();
+          if (isVisible) {
+            const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
+            if (isPressed !== "true") {
+              await upVoteButton.first().scrollIntoViewIfNeeded();
+              await upVoteButton.first().click();
+              console.log("Upvote clicked");
+            } else {
+              console.log("Upvote already done");
+            }
           } else {
-            console.log("Upvote already done");
+            console.log("Upvote button is not visible");
           }
         } else {
-          console.log("Upvote button is not visible");
+          console.log("No upvote button found");
         }
       } else {
-        console.log("No upvote button found");
-      }
-    } else {
-      const downVoteCount = await downVoteButton.count();
-      if (downVoteCount > 0) {
-        const isVisible = await downVoteButton.first().isVisible();
-        if (isVisible) {
-          const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
-          if (isPressed !== "true") {
-            await downVoteButton.first().scrollIntoViewIfNeeded();
-            await downVoteButton.first().click();
-            console.log("Downvote clicked");
+        const downVoteCount = await downVoteButton.count();
+        if (downVoteCount > 0) {
+          const isVisible = await downVoteButton.first().isVisible();
+          if (isVisible) {
+            const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
+            if (isPressed !== "true") {
+              await downVoteButton.first().scrollIntoViewIfNeeded();
+              await downVoteButton.first().click();
+              console.log("Downvote clicked");
+            } else {
+              console.log("Downvote already done");
+            }
           } else {
-            console.log("Downvote already done");
+            console.log("Downvote button is not visible");
           }
         } else {
-          console.log("Downvote button is not visible");
+          console.log("No downvote button found");
         }
-      } else {
-        console.log("No downvote button found");
       }
+
+      return true;
+    } catch (error) {
+      console.error("Error during voting:", error);
+      return false;
     }
-
-    return true;
   }
 
 
@@ -434,28 +441,40 @@ class Reddit extends Base {
     return false
   }
 
-  async createPostSubreddit(commentTitle: string, commmentText: string): Promise<boolean> {
-    const postButton = this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first().click();
-    const titleElem = this.page.locator("#innerTextArea").first();
-    const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
-    await titleElem.click();
-    await titleElem.pressSequentially(commentTitle, { delay: random(56, 128) });
-    await this.page.keyboard.press("Tab");
-    await this.page.keyboard.press("Tab");
-    await this.page.keyboard.press("Enter");
-    await this.page.keyboard.type(commmentText, { delay: random(56, 128) });
+  // Create Subreddit Post
+  async createPostSubreddit(commentTitle: string, commentText: string): Promise<boolean> {
+    try {
+      const postButton = this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first();
+      await postButton.click();
+      console.log("Create Post button clicked");
 
-    const buttonLocator = this.page.locator('#inner-post-submit-button');
-    const buttonCount = await buttonLocator.count();
-    if (buttonCount > 0) {
-      await buttonLocator.first().click();
-      return true
-    } else {
-      console.log('Button not found');
-      return true
+      const titleElem = this.page.locator("#innerTextArea").first();
+      const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
+
+      await titleElem.click();
+      await titleElem.pressSequentially(commentTitle, { delay: random(56, 128) });
+      await this.page.keyboard.press("Tab");
+      await this.page.keyboard.press("Tab");
+      await this.page.keyboard.press("Enter");
+
+      const buttonLocator = this.page.locator('#inner-post-submit-button');
+      const buttonCount = await buttonLocator.count();
+
+      if (buttonCount > 0) {
+        await buttonLocator.first().click();
+        console.log("Post submitted");
+        return true;
+      } else {
+        console.error("Submit button not found");
+        return false;
+      }
+
+    } catch (error) {
+      console.error("Error in createPostSubreddit:", error);
+      return false;
     }
-
   }
+
 
 }
 

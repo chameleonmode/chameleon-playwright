@@ -11,7 +11,13 @@ export default async function (
     await page.goToStartPage();
     // Step 2 - Search for topic...
     // await page.search(opts.search);
-
-    await page.tweetToX(opts.tweet)
-
+    const isLogin = await page.checkLoginAuthentication();
+    console.log(isLogin, "--islogin")
+    if (isLogin) {
+        console.log(isLogin)
+        await page.tweetToX(opts.tweet)
+    }
+    else {
+        console.error("User is Not LoggedIn, Unable to process further ");
+    }
 }
