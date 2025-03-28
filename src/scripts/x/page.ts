@@ -8,7 +8,7 @@ class X extends Base {
   }
 
   retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
-  tweetBox = () => this.page.locator(`div[data-testid=tweetTextarea_0RichTextInputContainer]`);
+  tweetBox = () => this.page.locator(`div[data-testid="tweetTextarea_0RichTextInputContainer"]`);
   tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
   locator = (selector: string) => {
     return this.page.locator(selector)
@@ -17,29 +17,14 @@ class X extends Base {
   // Check login  
   checkLoginAuthentication = async () => {
     try {
-      const selector = "a[data-testid='loginButton']";
-      const loginButton = this.page.locator(selector);
-
-      try {
-        await this.page.waitForSelector(selector, { state: 'visible' });
-      } catch (error) {
-        if (this.page.isClosed()) {
-          console.log('The page was closed during the wait.');
-          console.log('isAuthenticated: ', true);
-          return true;
-        }
-        console.log(error);
-      }
-
-      const loginButtonCount = await loginButton.count();
-      if (loginButtonCount > 0) {
+      const pageUrl = await this.page.evaluate(() => document.location.href);
+      if (pageUrl?.includes('home')) {
+        console.log('isAuthenticated: ', true);
+        return true;
+      } else {
         console.log('isAuthenticated: ', false);
         return false;
       }
-
-      console.log('isAuthenticated: ', true);
-      return true;
-
     } catch (error) {
       console.error('Error during authentication check:', error);
       return false;
@@ -117,22 +102,29 @@ class X extends Base {
       }
     }
   }
-
+  // Love Tweet
   loveTweet = async () => {
-    const isAlreadyLiked = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="unlike"]');
-    const isAvailable = await isAlreadyLiked.count() > 0;
-    if (!isAvailable) {
-      const likeButton = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="like"]').first();
-      await likeButton.scrollIntoViewIfNeeded();
-      await likeButton.click();
-      console.log("Button clicked: Liked!");
-    } else {
-      await isAlreadyLiked.scrollIntoViewIfNeeded();
-      console.log("Already liked")
+    try {
+      const isAlreadyLiked = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="unlike"]');
+      const isAvailable = await isAlreadyLiked.count() > 0;
+
+      if (!isAvailable) {
+        const likeButton = this.page.locator('div[aria-label*="Timeline"] div[data-testid="cellInnerDiv"]:first-child button[data-testid="like"]').first();
+
+        await likeButton.scrollIntoViewIfNeeded();
+        await likeButton.click();
+        console.log("Button clicked: Liked!");
+
+      } else {
+        await isAlreadyLiked.scrollIntoViewIfNeeded();
+        console.log("Already liked");
+      }
+    } catch (error) {
+      console.error("Error in loveTweet function:", error);
     }
   }
-  // Locators
 
+  // tweet to X
   tweetToX = async (tweet: string) => {
     await this.tweetBox().waitFor();
     await this.tweetBox().click();
@@ -198,7 +190,7 @@ class X extends Base {
         console.error(`Failed to open profile with keyword "${keyword}": ${error}`);
         throw new Error(`No profile found matching "${keyword}" (case-insensitive)`);
     }
-}
+  }
 
   // Retweet the top most relevant tweet
   async retweetTopTweet() {

@@ -9,11 +9,19 @@ export default async function (
     const page = new X(await context.newPage());
     // Step 1 - Launch X
     await page.goToStartPage();
-    // Step 2 - Search for topic...
-    // await page.search(opts.search);
+    const isLogin = await page.checkLoginAuthentication();
+    if (isLogin) {
 
-    await page.page.waitForTimeout(2000)
+        // Step 2 - Search for topic...
+        await page.search(opts.search);
 
-    await page.loveTweet();
+        // Step 3 - Open the first profile matching with the keyword.
+        await page.openFirstProfile(opts.search);
 
+        await page.page.waitForTimeout(2000)
+        await page.loveTweet();
+    }
+    else {
+        console.error("User is Not LoggedIn, Unable to process further ");
+    }
 }
