@@ -20,6 +20,8 @@ class Reddit extends Base {
   nextButton = () => this.page.getByRole("button", { name: "Next" });
   upVoteButton = () => this.page.locator('shreddit-post button[upvote]');
   downVoteButton = () => this.page.locator('shreddit-post button[downvote]');
+  loginButton = () => this.page.locator('#login-button');
+
   PosttitleText = async () => {
     const selector = 'h1[id^="post-title-"][slot="title"]';
     await expect(this.page.locator(selector)).toBeVisible();
@@ -36,8 +38,7 @@ class Reddit extends Base {
   // Check authentication  
   checkLoginAuthentication = async () => {
     try {
-      const selector = '#login-button';
-      const loginButton = this.page.locator(selector);
+      const loginButton = this.loginButton();
       const isLoginBtn = await loginButton.isVisible();
       if (!isLoginBtn) {
         console.log('isAuthenticated : ', true);
@@ -53,8 +54,7 @@ class Reddit extends Base {
   // Login with credentials
   loginWithCredentials = async (email: string, password: string) => {
     console.log('login proccess started...');
-    const selector = '#login-button';
-    const loginButton = this.page.locator(selector);
+    const loginButton = this.loginButton();
     await expect(loginButton).toBeVisible();
     loginButton.click();
 
@@ -70,18 +70,17 @@ class Reddit extends Base {
 
     const loginUserPasswordInput = loginUserPassword.locator("input");
     await loginUserPasswordInput.type(password, { delay: random(50, 100) });
-    const loginButtonn = this.page.getByRole('button', { name: 'Log In' });
+    const loginUserButton = this.page.getByRole('button', { name: 'Log In' });
 
-    await expect(loginButtonn).toBeVisible();
-    loginButtonn.click();
+    await expect(loginUserButton).toBeVisible();
+    loginUserButton.click();
     return true;
   }
 
   // Login google
   loginWithGoogle = async (email: string, password: string) => {
     console.log('login proccess started...');
-    const selector = '#login-button';
-    const loginButton = this.page.locator(selector);
+    const loginButton = this.loginButton();
     await expect(loginButton).toBeVisible();
     loginButton.click();
 

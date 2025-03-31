@@ -16,11 +16,15 @@ class X extends Base {
     return this.page.locator(selector)
   }
 
-  // Check login  
+  // Check login authentication
   checkLoginAuthentication = async () => {
     try {
-      const pageUrl = await this.page.evaluate(() => document.location.href);
-      if (pageUrl?.includes('home')) {
+      // Get all cookies
+      const cookies = await this.page.context().cookies();
+      // check auth cookies is availble
+      const authCookie = cookies.find(cookie => cookie.name === 'auth_token');
+
+      if (authCookie) {
         console.log('isAuthenticated: ', true);
         return true;
       } else {
@@ -76,7 +80,7 @@ class X extends Base {
     const popupDetailFilleds = await waitForOpenPopup;
     await popupDetailFilleds.waitForLoadState();
 
-    const emailButtons = popupDetailFilleds.locator('[data-email]');
+    const emailButtons = popupDetailFilleds.locator('div[data-identifier] div[data-email]');
     const emailCount = await emailButtons.count();
     if (emailCount > 0) {
       await emailButtons.first().click();
