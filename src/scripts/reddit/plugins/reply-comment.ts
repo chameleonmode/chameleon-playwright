@@ -23,7 +23,7 @@ export default async function (
 
   // Step 3 - Find comment matching the trigger words
   const isCommentAvaible = await page.findCommentWithTriggers(
-    options.triggerWord || "Thanks for your comment. I currently have a free lance developer",
+    options.triggerWord,
     options.caseSensitive || false
   );
 

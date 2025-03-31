@@ -226,7 +226,7 @@ class Reddit extends Base {
     caseSensitive: boolean = false
   ): Promise<any> {
     try {
-      console.log("Searching for comments with triggers:", triggerWord);
+      console.log("Searching for comments with triggerword:", triggerWord);
       await this.commentLocator().first().waitFor();
 
       const allComments = await this.commentLocator().all();
@@ -306,60 +306,43 @@ class Reddit extends Base {
 
 
   
-
-  // Function to check the member is joined the subreddit or not if not then join the subreddit.
+// Function to check the member is joined the subreddit or not if not then join the subreddit.
   async checkAndJoinSubreddit(): Promise<boolean> {
     if (await this.joinButton().count() === 0) {
-      console.log("No 'Join' button found on the page.");
-      return false;
-    }
-
-    const isMember = await this.isSubredditMember();
-    if (!isMember) {
-      console.log("User is not a member of the subreddit. Joining now...");
-      const isJoined = await this.joinSubreddit();
-      if (!isJoined) {
-        console.log("Failed to join the subreddit.");
+        console.log("No 'Join' button found on the page.");
         return false;
-      }
-      return true;
-    } else {
-      console.log("User is already a member of the subreddit.");
-      return true;
     }
-  }
 
-  // Function to check the member is joined the subreddit or not.
-  async isSubredditMember(): Promise<boolean> {
     const parentElement = this.joinButton().locator('..');
     if (await parentElement.count() === 0) {
-      console.log("Parent element of the 'Join' button not found.");
-      return false;
+        console.log("Parent element of the 'Join' button not found.");
+        return false;
     }
 
     const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
-    if (!joinStatusAttribute) {
-      console.log("The 'noun' attribute is missing on the parent element.");
-      return false;
+    if (joinStatusAttribute && joinStatusAttribute.toLowerCase().includes("unsubscribe")) {
+        console.log("User is already a member of the subreddit.");
+        return true;
     }
 
-    return joinStatusAttribute.toLowerCase().includes("unsubscribe");
-  }
-
-  // Function to join the subreddit.
-  async joinSubreddit(): Promise<boolean> {
+    console.log("User is not a member of the subreddit. Joining now...");
     const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
     const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
-      const button = shadowRoot.querySelector<HTMLElement>('.button');
-      if (!button) return false;
-      button.click();
-      return true;
+        const button = shadowRoot.querySelector<HTMLElement>('.button');
+        if (!button) return false;
+        button.click();
+        return true;
     });
 
-    if (!joined) return false;
+    if (!joined) {
+        console.log("Failed to join the subreddit.");
+        return false;
+    }
+
     console.log("Successfully joined the subreddit.");
     return true;
-  }
+}
+
   
   // UpVote / DownVote
   async doVote(vote: boolean) {

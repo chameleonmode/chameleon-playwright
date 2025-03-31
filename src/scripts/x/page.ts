@@ -9,6 +9,7 @@ class X extends Base {
   }
 
   retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
+  profileButton = () => this.page.locator(`a[data-testid="AppTabBar_Profile_Link"]`);
   tweetBox = () => this.page.locator(`div[data-testid="tweetTextarea_0RichTextInputContainer"]`);
   tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
   articles = () => this.page.locator(`main[role="main"] section article`);
@@ -166,7 +167,7 @@ class X extends Base {
 }
 
   // Open the first profile matching the keyword
-  async openFirstProfile(keyword: string, timeout: number = 20000) {
+  async openFirstProfile(keyword: string, timeout: number = 50000) {
     // Convert keyword to lowercase for case-insensitive matching
     const normalizedKeyword = keyword.toLowerCase();
     
@@ -217,6 +218,7 @@ class X extends Base {
       console.log("Retweet confirmed successfully.");
   
       // Step 3: Close the page
+      await this.page.waitForTimeout(5000);
       await this.page.close();
       console.log("Page closed successfully.");
   
