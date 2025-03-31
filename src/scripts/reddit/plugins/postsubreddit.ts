@@ -19,9 +19,9 @@ export default async function (
 
     if (isAvailable) {
         const isCommented = await page.createPostSubreddit(options.commentTitle, options.commentText);
-        if (isCommented) {
-            console.log("comment to sub reddit")
-        }
+    }
+    else {
+        console.log(`Subreddit not found.`);
     }
 
 }

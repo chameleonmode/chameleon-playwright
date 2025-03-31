@@ -305,45 +305,43 @@ class Reddit extends Base {
   }
 
 
-  
-// Function to check the member is joined the subreddit or not if not then join the subreddit.
+  // Function to check the member is joined the subreddit or not if not then join the subreddit.
   async checkAndJoinSubreddit(): Promise<boolean> {
     if (await this.joinButton().count() === 0) {
-        console.log("No 'Join' button found on the page.");
-        return false;
+      console.log("No 'Join' button found on the page.");
+      return false;
     }
 
     const parentElement = this.joinButton().locator('..');
     if (await parentElement.count() === 0) {
-        console.log("Parent element of the 'Join' button not found.");
-        return false;
+      console.log("Parent element of the 'Join' button not found.");
+      return false;
     }
 
     const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
     if (joinStatusAttribute && joinStatusAttribute.toLowerCase().includes("unsubscribe")) {
-        console.log("User is already a member of the subreddit.");
-        return true;
+      console.log("User is already a member of the subreddit.");
+      return true;
     }
 
     console.log("User is not a member of the subreddit. Joining now...");
     const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
     const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
-        const button = shadowRoot.querySelector<HTMLElement>('.button');
-        if (!button) return false;
-        button.click();
-        return true;
+      const button = shadowRoot.querySelector<HTMLElement>('.button');
+      if (!button) return false;
+      button.click();
+      return true;
     });
 
     if (!joined) {
-        console.log("Failed to join the subreddit.");
-        return false;
+      console.log("Failed to join the subreddit.");
+      return false;
     }
 
     console.log("Successfully joined the subreddit.");
     return true;
-}
+  }
 
-  
   // UpVote / DownVote
   async doVote(vote: boolean) {
     try {
@@ -353,14 +351,17 @@ class Reddit extends Base {
       if (vote) {
         const upVoteCount = await upVoteButton.count();
         if (upVoteCount > 0) {
+          await upVoteButton.first().scrollIntoViewIfNeeded();
           const isVisible = await upVoteButton.first().isVisible();
           if (isVisible) {
             const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
+
             if (isPressed !== "true") {
               await upVoteButton.first().scrollIntoViewIfNeeded();
               await upVoteButton.first().click();
               console.log("Upvote clicked");
             } else {
+              await upVoteButton.first().scrollIntoViewIfNeeded();
               console.log("Upvote already done");
             }
           } else {
@@ -380,6 +381,7 @@ class Reddit extends Base {
               await downVoteButton.first().click();
               console.log("Downvote clicked");
             } else {
+              await downVoteButton.first().scrollIntoViewIfNeeded();
               console.log("Downvote already done");
             }
           } else {
@@ -396,7 +398,6 @@ class Reddit extends Base {
       return false;
     }
   }
-
 
 
   async findSubreddit(search: string): Promise<boolean> {
