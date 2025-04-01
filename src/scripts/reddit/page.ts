@@ -307,45 +307,39 @@ class Reddit extends Base {
 
   // Function to check the member is joined the subreddit or not if not then join the subreddit.
   async checkAndJoinSubreddit(): Promise<boolean> {
-    try{
-      if (await this.joinButton().count() === 0) {
-        console.log("No 'Join' button found on the page.");
-        return false;
-      }
-  
-      const parentElement = this.joinButton().locator('..');
-      if (await parentElement.count() === 0) {
-        console.log("Parent element of the 'Join' button not found.");
-        return false;
-      }
-  
-      const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
-      if (joinStatusAttribute && joinStatusAttribute.toLowerCase().includes("unsubscribe")) {
-        console.log("User is already a member of the subreddit.");
-        return true;
-      }
-  
-      console.log("User is not a member of the subreddit. Joining now...");
-      const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
-      const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
-        const button = shadowRoot.querySelector<HTMLElement>('.button');
-        if (!button) return false;
-        button.click();
-        return true;
-      });
-  
-      if (!joined) {
-        console.log("Failed to join the subreddit.");
-        return false;
-      }
-  
-      console.log("Successfully joined the subreddit.");
-      return true;
-    }
-    catch (error) {
-      console.error("Error during voting:", error);
+    if (await this.joinButton().count() === 0) {
+      console.log("No 'Join' button found on the page.");
       return false;
     }
+
+    const parentElement = this.joinButton().locator('..');
+    if (await parentElement.count() === 0) {
+      console.log("Parent element of the 'Join' button not found.");
+      return false;
+    }
+
+    const joinStatusAttribute = await parentElement.evaluate(el => el.getAttribute("noun"));
+    if (joinStatusAttribute && joinStatusAttribute.toLowerCase().includes("unsubscribe")) {
+      console.log("User is already a member of the subreddit.");
+      return true;
+    }
+
+    console.log("User is not a member of the subreddit. Joining now...");
+    const shadowRootHandle = await this.joinButton().evaluateHandle(el => el.shadowRoot);
+    const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
+      const button = shadowRoot.querySelector<HTMLElement>('.button');
+      if (!button) return false;
+      button.click();
+      return true;
+    });
+
+    if (!joined) {
+      console.log("Failed to join the subreddit.");
+      return false;
+    }
+
+    console.log("Successfully joined the subreddit.");
+    return true;
   }
 
   // UpVote / DownVote
