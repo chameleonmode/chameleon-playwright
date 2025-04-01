@@ -160,10 +160,6 @@ class X extends Base {
     await this.page.waitForLoadState("domcontentloaded");
     
     console.log("Search completed successfully");
-    // Wait for 3 seconds before closing the page
-    // await this.page.waitForTimeout(5000);
-
-    // await this.page.close();
 }
 
   // Open the first profile matching the keyword
