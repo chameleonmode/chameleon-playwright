@@ -252,6 +252,7 @@ class X extends Base {
         
         const replyBtn = article.locator('button[data-testid="reply"]');
         try {
+          console.log('Please wait for reply on comment!');
           // Call Api for get reply comment
           const replyedText = await callApi(articleText);
           if (replyedText) {
@@ -282,7 +283,7 @@ class X extends Base {
     let replyBtn = this.page.locator(replyBtnSelector);
     replyBtn.waitFor();
     replyBtn.click();
-    console.log('replyed on comment');
+    console.log('Successfully replyed on comment');
   }
 }
 
