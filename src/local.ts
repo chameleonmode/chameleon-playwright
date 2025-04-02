@@ -24,6 +24,14 @@ const options = process.argv[4];
             return undefined;
         }
       })(),
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-gpu",
+      ]
     }),
     JSON.parse(options)
   );
