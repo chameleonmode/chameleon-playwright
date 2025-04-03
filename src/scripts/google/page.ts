@@ -31,7 +31,7 @@ export default class GsitePage extends Base {
   };
 
   constructor(readonly page: Page) {
-    super(page, "https://sites.google.com/");
+    super(page, "https://sites.google.com/", "Google");
 
     this.gotItButton = page.locator(`//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`);
     this.skipThisTourButton = page.locator(
