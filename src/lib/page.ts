@@ -3,13 +3,17 @@ import { Page } from "@playwright/test";
 import { random } from "./utils.js";
 
 class Base {
-  constructor(readonly page: Page, readonly START_URL: string) {
+  constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
     this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
     this.page.setDefaultTimeout(1000 * 60 * 5);
   }
 
   async goToStartPage() {
-    await this.page.goto(this.START_URL, { waitUntil: "load" });
+    await this.navigate(this.START_URL);
+  }
+
+  async navigate(url: string) {
+    await this.page.goto(url, { waitUntil: "load" });
     await this.waitForNavigation();
   }
 
@@ -36,6 +40,15 @@ class Base {
 
   async type(text: string) {
     await this.page.keyboard.type(text, { delay: random(50, 100) });
+  }
+
+  error(message: string, cause?: unknown) {
+    return new Error(`[${this.feature}] - [${this.START_URL}] ${message}`, { cause });
+  }
+
+  bang<T>(message: string, expect: T, source?: unknown) {
+    if (expect) return expect;
+    throw this.error(message, { source, expect });
   }
 }
 

@@ -1,38 +1,50 @@
-const pluginPath = process.argv[2];
-const userDataDir = process.argv[3];
-const options = process.argv[4];
-(async () => {
-  await (
-    await import(`${pluginPath}`)
-  ).default(
-    await (
-      await import("@playwright/test")
-    ).chromium.launchPersistentContext(`${userDataDir}`, {
-      headless: false,
-      viewport: { width: 1280, height: 720 },
-      executablePath: (() => {
-        switch (process.platform) {
-          case "win32":
-            return process.arch === "x64"
-              ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-              : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-          case "darwin":
-            return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-          case "linux":
-            return "/usr/bin/google-chrome";
-          default:
-            return undefined;
-        }
-      })(),
-      args: [
-        '--disable-blink-features=AutomationControlled',
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-gpu",
-      ]
-    }),
-    JSON.parse(options)
-  );
-})();
+// This file is used to run the local version of the plugin
+// Usage: node src/local.ts <platform> <plugin> <options>
+// Example: node src/local.ts reddit comment '{"search": "AI in healthcare"}'
+const [platform, file, json] = process.argv.slice(2);
+const pluginPath = `./scripts/${platform}/plugins/${file}`;
+const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/28296"; //`.cache/${platform}`;
+const opts = JSON.parse(json) || "{}";
+
+async function main() {
+  process.env.API = await (async () => {
+    try {
+      // Simple fetch check with AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300);
+
+      await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      return "http://127.0.0.1:3042"; // Local server is available
+    } catch (error) {
+      return "https://chameleon-ws.onrender.com"; // Use fallback
+    }
+  })();
+
+  const { chromium } = await import("@playwright/test");
+  const { default: plugin } = await import(pluginPath);
+  
+  await plugin(await chromium.launchPersistentContext(userDataDir, {
+    headless: false,
+    viewport: { width: 1280, height: 720 },
+    executablePath: (() => {
+      switch (process.platform) {
+        case "win32":
+          return process.arch === "x64"
+            ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+            : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+        case "darwin":
+          return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+        case "linux":
+          return "/usr/bin/google-chrome";
+        default:
+          return undefined;
+      }
+    })(),
+    // adding args might create issues with some plugins on different platforms leave it empty
+    args: [],
+  }), opts);
+}
+
+main().catch(console.error);
