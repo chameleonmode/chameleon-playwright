@@ -316,122 +316,86 @@ async replyToComment(locator: Locator, reply: string) {
  
 
   // UpVote / DownVote
-  async doVote(vote: boolean) {
-    try {
-      const upVoteButton = this.upVoteButton();
-      const downVoteButton = this.downVoteButton();
+  async voteOnPost(vote: boolean): Promise<boolean> {
+    const direction = vote ? "Upvote" : "Downvote";
+    const voteButtonLocator = vote ? this.upVoteButton() : this.downVoteButton();
+    await this.bang(`No ${direction.toLowerCase()} button found`, voteButtonLocator.isVisible(), voteButtonLocator);
+    const voteButton = voteButtonLocator.first();
+    await voteButton.scrollIntoViewIfNeeded();
 
-      if (vote) {
-        const upVoteCount = await upVoteButton.count();
-        if (upVoteCount > 0) {
-          await upVoteButton.first().scrollIntoViewIfNeeded();
-          const isVisible = await upVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
+    const isPressed = await voteButton.getAttribute("aria-pressed");
+    const isAlreadyPressed = isPressed?.toLowerCase() === "true";
 
-            if (isPressed !== "true") {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              await upVoteButton.first().click();
-              console.log("Upvote clicked");
-            } else {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Upvote already done");
-            }
-          } else {
-            console.log("Upvote button is not visible");
-          }
-        } else {
-          console.log("No upvote button found");
-        }
-      } else {
-        const downVoteCount = await downVoteButton.count();
-        if (downVoteCount > 0) {
-          const isVisible = await downVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
-            if (isPressed !== "true") {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              await downVoteButton.first().click();
-              console.log("Downvote clicked");
-            } else {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Downvote already done");
-            }
-          } else {
-            console.log("Downvote button is not visible");
-          }
-        } else {
-          console.log("No downvote button found");
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error during voting:", error);
-      return false;
+    if (!isAlreadyPressed) {
+      await voteButton.click();
+      console.log(`${direction} clicked`);
+    } else {
+      console.log(`${direction} already done`);
     }
+    return true;
   }
 
   async findSubreddit(search: string) {
-    const selector = "faceplate-tracker[noun=tab_communities]";
+    const selector = 'a[id = "search-results-page-tab-communities"]';
     await this.page.locator(selector).click();
-
     await this.waitForNavigation();
+    await sleepRandom({ multiplier: 5 });
 
     const subRedditSearchOption = this.page.locator("search-telemetry-tracker a").first();
-    const href = this.bang(
-      "Subreddit search option not found",
-      await this.page.locator("search-telemetry-tracker a").first().getAttribute("href")
-    );
-    const url = new URL(href);
-    const searchTerm = url.searchParams.get("q");
-    const decodedSearchTerm = searchTerm ? decodeURIComponent(searchTerm) : "";
-    if (decodedSearchTerm.toLowerCase().trim() === search.toLowerCase().trim()) {
-      console.log("Found Subreddit");
-      subRedditSearchOption.click();
-      await this.waitForNavigation();
+    this.bang("Subreddit search option not found", await subRedditSearchOption.isVisible(), subRedditSearchOption);
+    const unParsedhref = await subRedditSearchOption.getAttribute("href");
 
-      const postButton = this.page
-        .locator("#subgrid-container faceplate-tracker[noun=create_post]")
-        .first();
-      await expect(postButton).toBeVisible();
+    if (unParsedhref) {
+      const href = unParsedhref;
+      const match = href.match(/\/r\/([^\/]+)\/?/) || "";
+      this.bang(`${search} subreddit not found`, `r/${match[1]}`.toLowerCase().trim() === search.toLowerCase().trim(), href);
+      const subredditPath = `r/${match[1]}`;
+
+      if (subredditPath.toLowerCase().trim() === search.toLowerCase().trim()) {
+        console.log("Found Subreddit");
+        await subRedditSearchOption.click();
+      }
     }
   }
 
   // Create Subreddit Post
   async createPostSubreddit(commentTitle: string, commentText: string) {
-    try {
-      const postButton = this.page
-        .locator("#subgrid-container faceplate-tracker[noun=create_post]")
-        .first();
-      await postButton.click();
-      console.log("Create Post button clicked");
+    await this.waitForNavigation();
+    const postButton = this.page.locator("section create-post-entry-point-wrapper faceplate-tracker a[data-testid='create-post']");
+    await postButton.waitFor({ state: "visible" });
+    this.bang("Create Post button not visible", await postButton.isVisible(), postButton);
+    await postButton.click();
 
-      const titleElem = this.page.locator("#innerTextArea").first();
-      const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
+    const titleElem = this.page.locator("#innerTextArea").first();
+    await sleepRandom({ multiplier: 5 });
+    this.bang("Title input not visible", await titleElem.isVisible(), titleElem);
+    await titleElem.click();
+    await this.type(commentTitle)
 
-      await titleElem.click();
-      await titleElem.pressSequentially(commentTitle, { delay: random(56, 128) });
-      await this.page.keyboard.press("Tab");
-      await this.page.keyboard.press("Tab");
-      await this.page.keyboard.press("Enter");
-      await this.page.keyboard.type(commentText, { delay: random(56, 128) });
+    const flairBtn = this.page.locator('r-post-flairs-modal#post-flair-modal');
+    this.bang("Flair add Button not visible", await flairBtn.isVisible(), flairBtn);
+    await flairBtn.click();
 
-      const buttonLocator = this.page.locator("#inner-post-submit-button");
-      const buttonCount = await buttonLocator.count();
+    const flairRadioBtn = this.page.locator('faceplate-radio-input#post-flair-radio-input-0');
+    this.bang("Flair radio Button not visible", await flairRadioBtn.isVisible(), flairRadioBtn);
+    await flairRadioBtn.click();
 
-      if (buttonCount > 0) {
-        await buttonLocator.first().click();
-        console.log("Post submitted");
-        return true;
-      } else {
-        console.error("Submit button not found");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error in createPostSubreddit:", error);
-      return false;
-    }
+    const addFlairBtn = this.page.locator('button#post-flair-modal-apply-button')
+    this.bang("Add flair Button not visible", await addFlairBtn.isVisible(), addFlairBtn);
+    await addFlairBtn.click();
+
+    const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
+
+    this.bang("Body input not visible", await bodyElem.isVisible(), bodyElem);
+    await bodyElem.click();
+    await this.type(commentText);
+
+    const submitButton = this.page.locator("#inner-post-submit-button").first();
+    this.bang("Submit button not visible", await submitButton.isVisible(), submitButton);
+
+    await submitButton.click();
+    console.log("Post submitted");
+    return true;
   }
 }
 
