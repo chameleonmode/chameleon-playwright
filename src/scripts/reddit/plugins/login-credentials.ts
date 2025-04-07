@@ -10,7 +10,9 @@ export default async function (
   // Step 1 - Launch Reddit
   const page = await Reddit(await context.newPage());
 
-  // check Authentication
+  // Step 2 - Check authentication for reddit
   await page.checkLoginAuthentication();
+
+  // Step 3 - Login with credentials
   await page.loginWithCredentials(options.email, options.password);
 }
