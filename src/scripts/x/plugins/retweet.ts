@@ -6,9 +6,7 @@ export default async function (
     search: string;
   }
 ) {
-  const page = new X(await context.newPage());
-  // Step 1 - Launch X
-  await page.goToStartPage();
-  // Step 2 - Search for topic...
- // await page.search(opts.search);
+   // Step 1 - Launch X
+  const page = await X(await context.newPage());
+
 }

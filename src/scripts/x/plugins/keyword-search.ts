@@ -6,15 +6,9 @@ export default async function (
     search: string;
   }
 ) {
-  const page = new X(await context.newPage());
-
   // Step 1 - Launch X
-  await page.goToStartPage();
+  const page = await X(await context.newPage());
 
-  // Step 2 - Search for topic...
+  // Step 2 - Search for topic.
   await page.search(opts.search);
-
-  // Step 3 - Open the first profile matching with the keyword.
-  await page.openFirstProfile(opts.search);
-
 }
