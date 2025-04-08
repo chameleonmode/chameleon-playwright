@@ -1,6 +1,6 @@
-import { Page } from "@playwright/test";
+import { Page, Locator } from "@playwright/test";
 import Base from "../../lib/page.js";
-import { random } from "../../lib/utils.js";
+import { random, sleepRandom } from "../../lib/utils.js";
 
 class X extends Base {
   constructor(readonly page: Page) {
@@ -16,6 +16,7 @@ class X extends Base {
   userNameNextButton = () => this.page.locator(`button[data-testid="ocfEnterTextNextButton"]`);
   loginFormSubmitButton = () => this.page.locator(`button[data-testid="LoginForm_Login_Button"]`);
   articles = () => this.page.locator(`main[role="main"] section article`);
+  searchInput = () => this.page.locator('input[placeholder="Search"]');
   locator = (selector: string) => {
     return this.page.locator(selector)
   }
@@ -92,10 +93,62 @@ class X extends Base {
       }
     }
   };
+
+  // Search for a keyword on X
+  async search(keyword: string) {
+    await this.bang("Search text box not found", this.searchInput().isVisible(), this.searchInput());
+    await this.searchInput().click();
+    await this.type(keyword);
+    await this.searchInput().press("Enter");
+  }
+
+  // Retweet the top most relevant tweet on X
+  async retweetTopTweet() {
+  const retweetButton = this.retweetButton().first();
+  await this.bang("Retweet button not found or not visible", retweetButton.isVisible(), retweetButton);
+  await retweetButton.click();
+
+  const confirmSelector = 'div[data-testid="retweetConfirm"]';
+  const confirmButton = this.page.locator(confirmSelector);
+  await this.bang("Retweet confirmation button not found", confirmButton.isVisible(), confirmButton);
+  await confirmButton.click();
+}
+
+  // Function to get a comment
+  async getTweet(nth = 2, random = Math.random() < 0.5) {
+  const comment = this.bang(
+    "Comment not found",
+    random
+      ? this.articles().nth(Math.floor(Math.random() * (await this.articles().count())))
+      : this.articles().nth(nth)
+  );
+  // Use a more specific selector to avoid nested matches
+  const commentContent = comment.locator('div[data-testid="tweetText"]').first();
+  commentContent.scrollIntoViewIfNeeded();
+  return {
+    text: await commentContent.innerText(),
+    locator: comment,
+  };
+}
+
+  async replyToTweet(locator: Locator, reply: string) {
+    await sleepRandom({ multiplier: 4 });
+    locator.locator('button[data-testid="reply"]').click();
+    const replySelector = 'div[data-viewportview="true"] div.DraftEditor-editorContainer';
+    const replyBox = this.locator(replySelector);
+    await this.bang("Reply box not found", replyBox.isVisible(), replyBox);
+    replyBox.click();
+    await replyBox.type(reply, { delay: random(50, 100) });
+
+    const replyBtnSelector = 'div[data-testid="toolBar"] button[data-testid="tweetButton"]';
+    const replyButton = this.locator(replyBtnSelector);
+    await this.bang("Reply box not found", replyButton.isVisible(), replyButton);
+    await replyButton.click();
+  }
 }
 
 export default async function (page: Page, url?: string) {
-  const x = new X(page);
-  await x.navigate(url || x.START_URL);
-  return x;
+  const twitter = new X(page);
+  await twitter.navigate(url || twitter.START_URL);
+  return twitter;
 }
