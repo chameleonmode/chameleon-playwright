@@ -22,6 +22,8 @@
     "x:keyword-search": "npm run node:ts src/local.ts -- x keyword-search.js '{\"search\":\"mission impossible\"}'",
     "x:retweet-post": "npm run node:ts src/local.ts -- x retweet-post.js '{\"search\":\"simpsons\"}'",
     "x:reply-tweet": "npm run node:ts src/local.ts -- x reply-tweet.js '{\"search\":\"simpsons\"}'",
+    "x:love-tweet": "npm run node:ts src/local.ts -- x love-tweet.js '{\"search\":\"zoho\"}'",
+    "x:tweet-to-x": "npm run node:ts src/local.ts -- x tweet-to-x.js '{\"tweet\":\"Hello friends!\"}'",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",

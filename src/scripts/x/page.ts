@@ -17,6 +17,9 @@ class X extends Base {
   loginFormSubmitButton = () => this.page.locator(`button[data-testid="LoginForm_Login_Button"]`);
   articles = () => this.page.locator(`main[role="main"] section article`);
   searchInput = () => this.page.locator('input[placeholder="Search"]');
+  postLocator() {
+    return this.page.locator('[aria-label*="Timeline"] [role="article"]');
+  }
   locator = (selector: string) => {
     return this.page.locator(selector)
   }
@@ -144,6 +147,41 @@ class X extends Base {
     const replyButton = this.locator(replyBtnSelector);
     await this.bang("Reply box not found", replyButton.isVisible(), replyButton);
     await replyButton.click();
+  }
+
+  // Find post to love Tweet
+  async scrollToPost(nth = 2, random = Math.random() < 0.5) {
+    await this.postLocator().first().waitFor();
+    const post = this.bang(
+      "Comment not found",
+      random
+        ? this.postLocator().nth(Math.floor(Math.random() * (await this.postLocator().count())))
+        : this.postLocator().nth(nth)
+    );
+    await post.waitFor({ state: "visible" });
+    await post.scrollIntoViewIfNeeded();
+    return post;
+  }
+
+  // Love Tweet
+  loveTweet = async (post: Locator) => {
+    const likeButton = post.locator('button[data-testid*="like"]');
+    await likeButton.waitFor({ state: "visible" });
+    const ariaLabel = await this.bang("Like button not found or not visible", likeButton.getAttribute('aria-label'), likeButton);
+    const isLiked = ariaLabel?.split(". ")[1];
+    const isAlreadyLiked = isLiked?.trim().toLowerCase() === "liked";
+    await likeButton.scrollIntoViewIfNeeded();
+    if (!isAlreadyLiked) {
+      await likeButton.click();
+    }
+  };
+
+  // tweet to X
+  tweetToX = async (tweet: string) => {
+    await this.tweetBox().waitFor();
+    await this.tweetBox().click();
+    await this.tweetBox().pressSequentially(tweet, { delay: random(50, 100) });
+    await this.tweetButton().first().click();
   }
 }
 
