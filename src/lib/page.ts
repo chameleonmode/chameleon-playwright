@@ -1,6 +1,6 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { random } from "./utils.js";
+import { random, sleepRandom } from "./utils.js";
 
 class Base {
   constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
@@ -55,13 +55,15 @@ class Base {
   }
 
   async click<T>(locator: Locator) {
+    await sleepRandom();
     await this.waitForNavigation();
     await locator.waitFor();
     await locator.scrollIntoViewIfNeeded();
-    expect(locator).toBeVisible();
-    expect(locator).toBeEnabled();
+    expect(locator).toBeEnabled({ timeout: 1000 * 5 });
+    expect(locator).toBeVisible({ timeout: 1000 * 5 });
     await locator.click();
     await this.waitForNavigation();
+    await sleepRandom();
   }
 
   error(message: string, cause?: unknown) {
