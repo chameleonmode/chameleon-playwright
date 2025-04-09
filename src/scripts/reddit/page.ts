@@ -10,6 +10,7 @@ export class Reddit extends Base {
   // Locators
   searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
   threadLocator = () => this.page.getByTestId("search-post-unit");
+  subredditLocator = () => this.page.getByTestId("search-community");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
   commentLocator = () => this.page.locator("shreddit-comment");
   commentActionRow = () => this.page.locator("shreddit-comment-action-row");
@@ -24,7 +25,7 @@ export class Reddit extends Base {
 
   // get the text content of a locator
   locatorTxtContent = async (selector: string, locator?: Locator) => {
-    const element = locator?.locator(selector) || this.page.locator(selector);
+    const element = locator?.locator(selector).first() || this.page.locator(selector).first();
     await expect(element).toBeVisible();
 
     return this.bang(
@@ -97,7 +98,7 @@ export class Reddit extends Base {
 
       if (!isEmailValueEmpty) {
         console.log("email not found!");
-        await emailInput.type(email, { delay: random(50, 100) });
+        await this.pressSequentially(emailInput, email);
         await googleLoginNextButton.click();
 
         const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
@@ -114,9 +115,7 @@ export class Reddit extends Base {
   };
 
   async search(text: string) {
-    await this.searchTextBox().waitFor(); //wait for textbox to display
-    await this.searchTextBox().click();
-    await this.searchTextBox().pressSequentially(text, { delay: random(128, 256) });
+    await this.pressSequentially(this.searchTextBox(), text);
     await this.searchTextBox().press("Enter");
   }
 
@@ -155,11 +154,17 @@ export class Reddit extends Base {
     throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
   }
 
+  async findSubreddit() {
+    const tab = await this.randoNth(this.page.getByTestId("search-community"));
+    await this.click(tab);
+
+    const subreddit = await this.randoNth(this.subredditLocator());
+    await this.click(subreddit);
+  }
+
   async addCommentToThread(comment: string) {
     // Wait for button to be visible and enabled
-    await expect(this.commentButton()).toBeVisible();
-    await expect(this.commentButton()).toBeEnabled();
-    await this.commentButton().click();
+    await this.click(this.commentButton());
 
     // Wait for comment input to be visible
     await this.page.waitForSelector('comment-composer-host[slot="ready"]');
@@ -167,23 +172,18 @@ export class Reddit extends Base {
 
     // Continue with comment input
     const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
-    await expect(textbox).toBeVisible();
-    await textbox.click();
-    await textbox.pressSequentially(comment, { delay: random(56, 128) });
+    await this.pressSequentially(textbox, comment);
 
     // Submit comment
     const submitButton = this.page.locator('button.button-primary[slot="submit-button"]');
-    expect(submitButton).toBeVisible();
-    await submitButton.click();
+    await this.click(submitButton);
   }
 
   // Function to get a comment
   async getComment(nth = 0, random = Math.random() < 0.5) {
     const comment = this.bang(
       "Comment not found",
-      random
-        ? this.commentLocator().nth(Math.floor(Math.random() * (await this.commentLocator().count())))
-        : this.commentLocator().nth(nth)
+      random ? await this.randoNth(this.commentLocator()) : this.commentLocator().nth(nth)
     );
     return {
       text: await this.locatorTxtContent("div[slot='comment']", comment),
@@ -196,16 +196,22 @@ export class Reddit extends Base {
     await locator.waitFor();
 
     // Click the reply button
-    locator.locator("shreddit-comment-action-row button").first().click();
-    await sleepRandom({ multiplier: 2 });
+    // locator.locator("shreddit-comment-action-row button").first().click();
+    const comment = locator.locator("shreddit-comment-action-row button").first();
+    await comment.scrollIntoViewIfNeeded();
+    await sleepRandom();
+    await comment.click();
+    await sleepRandom();
 
     // Wait for the reply box to be visible
     const replyBox = locator.locator(
       "shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
     );
     await replyBox.waitFor();
+    await this.type(reply);
+    await sleepRandom();
 
-    await this.page.keyboard.type(reply);
+    // Click the submit button
     await replyBox.locator("button[slot='submit-button']").click();
   }
 
@@ -308,85 +314,13 @@ export class Reddit extends Base {
   }
 
   // UpVote / DownVote
-  async doVote(vote: boolean) {
-    try {
-      const upVoteButton = this.upVoteButton();
-      const downVoteButton = this.downVoteButton();
-
-      if (vote) {
-        const upVoteCount = await upVoteButton.count();
-        if (upVoteCount > 0) {
-          await upVoteButton.first().scrollIntoViewIfNeeded();
-          const isVisible = await upVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
-
-            if (isPressed !== "true") {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              await upVoteButton.first().click();
-              console.log("Upvote clicked");
-            } else {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Upvote already done");
-            }
-          } else {
-            console.log("Upvote button is not visible");
-          }
-        } else {
-          console.log("No upvote button found");
-        }
-      } else {
-        const downVoteCount = await downVoteButton.count();
-        if (downVoteCount > 0) {
-          const isVisible = await downVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
-            if (isPressed !== "true") {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              await downVoteButton.first().click();
-              console.log("Downvote clicked");
-            } else {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Downvote already done");
-            }
-          } else {
-            console.log("Downvote button is not visible");
-          }
-        } else {
-          console.log("No downvote button found");
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error during voting:", error);
-      return false;
-    }
-  }
-
-  async findSubreddit(search: string) {
-    const selector = "faceplate-tracker[noun=tab_communities]";
-    await this.page.locator(selector).click();
-
-    await this.waitForNavigation();
-
-    const subRedditSearchOption = this.page.locator("search-telemetry-tracker a").first();
-    const href = this.bang(
-      "Subreddit search option not found",
-      await this.page.locator("search-telemetry-tracker a").first().getAttribute("href")
-    );
-    const url = new URL(href);
-    const searchTerm = url.searchParams.get("q");
-    const decodedSearchTerm = searchTerm ? decodeURIComponent(searchTerm) : "";
-    if (decodedSearchTerm.toLowerCase().trim() === search.toLowerCase().trim()) {
-      console.log("Found Subreddit");
-      subRedditSearchOption.click();
-      await this.waitForNavigation();
-
-      const postButton = this.page
-        .locator("#subgrid-container faceplate-tracker[noun=create_post]")
-        .first();
-      await expect(postButton).toBeVisible();
+  async doVote(vote = Math.random() < 0.5) {
+    if (vote) {
+      const upvoteButton = await this.randoNth(this.page.getByRole("button", { name: "Upvote" }));
+      await this.click(upvoteButton);
+    } else {
+      const downVoteButton = await this.randoNth(this.page.getByRole("button", { name: "Downvote" }));
+      await this.click(downVoteButton);
     }
   }
 

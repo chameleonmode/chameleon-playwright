@@ -13,6 +13,6 @@ export default async function (
 
   // Step 2 - Search for topic and click on 1st test result
   await page.search("r/" + options.search);
-  await page.findSubreddit("r/" + options.search);
+  await page.findSubreddit();
   await page.createPostSubreddit(options.commentTitle, options.commentText);
 }

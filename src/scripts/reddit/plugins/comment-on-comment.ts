@@ -16,7 +16,8 @@ export default async function (
 
   // Step 3 - Find a available comment
   const { locator, text } = await page.getComment();
+  const title = await page.postTitleText();
 
   // Step 4 - Reply to the comment
-  await page.replyToComment(locator, await askAI({ input: text, feature: page.feature, ai: "gpt" }));
+  await page.replyToComment(locator, await askAI({ input: `this '${text}' comment, on a post titled ${title}`, feature: page.feature, ai: "gpt" }));
 }

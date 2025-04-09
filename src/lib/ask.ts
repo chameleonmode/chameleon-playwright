@@ -29,7 +29,7 @@ export async function askAI(opts: { input: string; feature: string; ai?: string;
     backgrounds = ["sarcastic", "informative", "relatable", "straightforward"],
   } = opts;
 
-  const res = await fetch(`${process.env.API}/air/ask/${ai}?feature=${feature}`, {
+  const res = await fetch(`${process.env.API || "https://chameleon-ws.onrender.com"}/air/ask/${ai}?feature=${feature}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
