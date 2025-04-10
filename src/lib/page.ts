@@ -1,13 +1,12 @@
 // src/scripts/pages/base.page.ts
-import { Page } from "@playwright/test";
-import { random } from "./utils.js";
+import { Locator, Page, expect } from "@playwright/test";
+import { random, sleepRandom } from "./utils.js";
 
 class Base {
   constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
     this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
     this.page.setDefaultTimeout(1000 * 60 * 5);
   }
-
   async goToStartPage() {
     await this.navigate(this.START_URL);
   }
@@ -39,7 +38,32 @@ class Base {
   }
 
   async type(text: string) {
-    await this.page.keyboard.type(text, { delay: random(50, 100) });
+    await this.page.keyboard.type(text, {
+      delay: random(64, 128),
+    });
+  }
+
+  async pressSequentially(locator: Locator, text: string) {
+    await this.click(locator);
+    await locator.pressSequentially(text, {
+      delay: random(64, 128),
+    });
+  }
+
+  async randoNth<T>(locator: Locator) {
+    return locator.nth(Math.floor(Math.random() * (await locator.count())));
+  }
+
+  async click<T>(locator: Locator) {
+    await sleepRandom();
+    await this.waitForNavigation();
+    await locator.waitFor();
+    await locator.scrollIntoViewIfNeeded();
+    expect(locator).toBeEnabled({ timeout: 1000 * 5 });
+    expect(locator).toBeVisible({ timeout: 1000 * 5 });
+    await locator.click();
+    await this.waitForNavigation();
+    await sleepRandom();
   }
 
   error(message: string, cause?: unknown) {

@@ -43,7 +43,14 @@ async function main() {
       }
     })(),
     // adding args might create issues with some plugins on different platforms leave it empty
-    args: [],
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-gpu",
+    ],
   }), opts);
 }
 
