@@ -12,7 +12,7 @@ async function main() {
   const context = await (async function(){
     try {
       // Try to connect to an already running Chrome instance
-      return await chromium.connectOverCDP("http://localhost:3690");
+      return await chromium.connectOverCDP("http://localhost:9613");
     } catch (error) {
       // Ensure the context is connected to the newly launched browser
       return await chromium.launchPersistentContext(userDataDir, {

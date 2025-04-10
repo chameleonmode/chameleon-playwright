@@ -3,7 +3,7 @@ import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
 import { askAI, scenario, tones } from "../lib/ask.js";
 
-class Base {
+export default class {
   constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
     this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
     this.page.setDefaultTimeout(1000 * 60 * 5);
@@ -58,12 +58,16 @@ class Base {
   async click(locator: Locator) {
     await sleepRandom();
     await this.waitForNavigation();
-    await locator.waitFor();
-    await locator.scrollIntoViewIfNeeded();
-    const { fulfilled } = await tryForEach([
-      expect(locator).toBeEnabled({ timeout: 1000 * 5 }),
-      expect(locator).toBeVisible({ timeout: 1000 * 5 }),
+    const timeout = 1000 * 10;
+    const { errors } = await tryForEach([
+      locator.waitFor({ timeout }),
+      locator.scrollIntoViewIfNeeded({ timeout }),
     ]);
+    const { fulfilled } = await tryForEach([
+      expect(locator).toBeEnabled({ timeout }),
+      expect(locator).toBeVisible({ timeout }),
+    ]);
+    // TODO: maby bang fulfilled or errors
     await locator.click();
     await this.waitForNavigation();
     await sleepRandom();
@@ -141,5 +145,3 @@ class Base {
     throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
   }
 }
-
-export default Base;
