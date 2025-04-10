@@ -1,3 +1,23 @@
+export type scenario = {
+  input: string;
+  type: "comment" | "post" | "reply" | "title";
+  tone?: "sarcastic" | "informative" | "relatable" | "straightforward";
+  range?:
+    | "3-9"
+    | "10-20"
+    | "10-30"
+    | "10-40"
+    | "10-50"
+    | "20-30"
+    | "20-40"
+    | "20-50"
+    | "50-100"
+    | "100-250"
+    | "200-500"
+    | "500-1000";
+};
+export const tones: scenario["tone"][] = ["sarcastic", "informative", "relatable", "straightforward"];  
+
 export async function askConsole(input: string): Promise<string> {
   console.log(`Ask:${input}`); // must remain ask for seperate process to intercept
 
@@ -21,27 +41,44 @@ export async function askConsole(input: string): Promise<string> {
   });
 }
 
-export async function askAI(opts: { input: string; feature: string; ai?: string; backgrounds?: string[] }) {
-  const {
-    input,
-    feature,
-    ai = "gpt",
-    backgrounds = ["sarcastic", "informative", "relatable", "straightforward"],
-  } = opts;
-
-  const res = await fetch(`${process.env.API}/air/ask/${ai}?feature=${feature}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      background: backgrounds[Math.floor(Math.random() * backgrounds.length)],
-      scenario: { keyword: input },
-    }),
-  });
+export async function askAI(opts: {
+  ai?: string;
+  feature: string;
+  background?: string;
+  scenario: scenario;
+}) {
+  const { feature, scenario, ai = "gpt", background = "" } = opts;
+  const res = await fetch(
+    `${process.env.API ||= await endpoint()}/air/ask/${ai}?feature=${feature}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        background,
+        scenario,
+      }),
+    }
+  );
 
   const {
     payload: { response },
   } = await res.json();
-  return response;
+  return response as string;
+}
+
+async function endpoint() {
+  try {
+    // Simple fetch check with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300);
+
+    await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    return "http://127.0.0.1:3042"; // Local server is available
+  } catch (error) {
+    return "https://chameleon-ws.onrender.com"; // Use fallback
+  }
 }
