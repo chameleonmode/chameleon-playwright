@@ -7,7 +7,7 @@ export const sleep = (ms: number) => {
 };
 
 export async function sleepRandom(args: { minMs?: number; maxMs?: number; multiplier?: number } = {}) {
-  const { minMs = 256, maxMs = 512, multiplier = 1 } = args;
+  const { minMs = 256, maxMs = 512, multiplier = random(2, 4) } = args;
   const delay = random(minMs, maxMs);
   await sleep(delay * multiplier);
 }

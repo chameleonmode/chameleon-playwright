@@ -1,5 +1,5 @@
 import { Locator, Page, expect } from "@playwright/test";
-import { random, sleepRandom } from "../../lib/utils.js";
+import { sleepRandom } from "../../lib/utils.js";
 import Base from "../../lib/page.js";
 
 export class Reddit extends Base {
@@ -9,22 +9,20 @@ export class Reddit extends Base {
 
   // Locators
   searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
-  threadLocator = () => this.page.getByTestId("search-post-unit");
+  threadLocator = () => this.page.getByTestId("search-community");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
+  commentReplyButton = () => this.page.locator('a[data-post-click-location="comments-button"]');
   commentLocator = () => this.page.locator("shreddit-comment");
-  commentActionRow = () => this.page.locator("shreddit-comment-action-row");
-  commentComposer = () => this.page.locator("comment-composer-host");
-  joinButton = () => this.page.locator("shreddit-join-button").first();
-  emailField = () => this.page.locator('input[type="email"]');
-  passwordField = () => this.page.locator('input[type="password"]');
   nextButton = () => this.page.getByRole("button", { name: "Next" });
-  upVoteButton = () => this.page.locator("shreddit-post button[upvote]");
-  downVoteButton = () => this.page.locator("shreddit-post button[downvote]");
   loginButton = () => this.page.locator("#login-button");
+  postLocator = () => this.page.locator('main[id="main-content"] search-telemetry-tracker a[class="absolute inset-0"]');
+  postTitleText = () => this.locatorTxtContent('h1[id^="post-title-"][slot="title"]');
+  flairButton = () => this.randoNth(this.page.locator('div[name="flairId"]:not(.hidden) faceplate-radio-input[id^="post-flair-radio-input"]'));
+  locator = (selector: string) => this.page.locator(selector);
 
   // get the text content of a locator
   locatorTxtContent = async (selector: string, locator?: Locator) => {
-    const element = locator?.locator(selector) || this.page.locator(selector);
+    const element = locator?.locator(selector).first() || this.page.locator(selector).first();
     await expect(element).toBeVisible();
 
     return this.bang(
@@ -33,79 +31,58 @@ export class Reddit extends Base {
     );
   };
 
-  // Get post title content
-  postTitleText = () => this.locatorTxtContent('h1[id^="post-title-"][slot="title"]');
-
   // Check authentication
   checkLoginAuthentication = async () =>
     this.bang("Login button not found", await this.loginButton().isVisible(), this.loginButton());
 
   // Login with credentials
   loginWithCredentials = async (email: string, password: string) => {
-    console.log("login proccess started...");
-    const loginButton = this.loginButton();
-    await expect(loginButton).toBeVisible();
-    loginButton.click();
+    await this.click(this.loginButton());
 
-    const loginUserName = this.page.locator("faceplate-text-input#login-username");
-    loginUserName.click();
+    const loginUserName = this.locator("faceplate-text-input#login-username input");
+    await this.pressSequentially(loginUserName, email);
 
-    const loginUserNameInput = loginUserName.locator("input");
-    await loginUserNameInput.type(email, { delay: random(50, 100) });
-    await loginUserNameInput.press("Tab");
+    const loginUserPassword = this.locator("faceplate-text-input#login-password input");
+    await this.pressSequentially(loginUserPassword, password);
 
-    const loginUserPassword = this.page.locator("faceplate-text-input#login-password");
-    loginUserPassword.click();
-
-    const loginUserPasswordInput = loginUserPassword.locator("input");
-    await loginUserPasswordInput.type(password, { delay: random(50, 100) });
     const loginUserButton = this.page.getByRole("button", { name: "Log In" });
-
-    await expect(loginUserButton).toBeVisible();
-    loginUserButton.click();
-    return true;
+    await this.bang("Login submit button not found", loginUserButton.isVisible(), loginUserButton);
+    await loginUserButton.click();
   };
 
   // Login google
   loginWithGoogle = async (email: string, password: string) => {
-    console.log("login proccess started...");
-    const loginButton = this.loginButton();
-    await expect(loginButton).toBeVisible();
-    loginButton.click();
+    await this.click(this.loginButton());
 
     const googleIframeSelector = 'iframe[title="Sign in with Google Button"]';
-    await this.page.waitForSelector(googleIframeSelector, { state: "visible" });
-    const googleButton = this.page.locator(googleIframeSelector);
+    const googleButton = this.locator(googleIframeSelector);
+    await this.bang("Google button not found", googleButton.isVisible(), googleButton);
     await googleButton.click();
 
-    const waitForOpenPopup = this.page.waitForEvent("popup");
-    const popupDetailFilleds = await waitForOpenPopup;
-    await popupDetailFilleds.waitForLoadState();
+    const detailsPopup = await this.page.waitForEvent("popup");
+    await detailsPopup.waitForLoadState();
+    const emailButtons = detailsPopup.locator("div[data-email]");
 
-    const emailButtons = popupDetailFilleds.locator("[data-email]");
-    const emailCount = await emailButtons.count();
-
-    if (emailCount > 0) {
+    if (await emailButtons.count() > 0) {
       await emailButtons.first().click();
     } else {
-      const emailInput = popupDetailFilleds.getByLabel("Email or phone");
-      await emailInput.waitFor({ state: "visible" });
-      let isEmailValueEmpty = await emailInput.inputValue();
+      const emailInput = detailsPopup.locator('input[aria-label="Email or phone"]');
+      await this.bang("Email input not found", emailInput.isVisible(), emailInput);
 
-      const googleLoginNextButton = popupDetailFilleds.locator("div#identifierNext button");
-      await googleLoginNextButton.waitFor({ state: "visible" });
+      let isEmailValueEmpty = await emailInput.inputValue();
+      const googleLoginNextButton = detailsPopup.locator("div#identifierNext button");
+      await this.bang("Email next button not found", googleLoginNextButton.isVisible(), googleLoginNextButton);
 
       if (!isEmailValueEmpty) {
-        console.log("email not found!");
-        await emailInput.type(email, { delay: random(50, 100) });
+        await this.pressSequentially(emailInput, email);
         await googleLoginNextButton.click();
 
-        const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
-        await passwordInput.waitFor({ state: "visible" });
-        await passwordInput.type(password, { delay: random(50, 100) });
+        const passwordInput = detailsPopup.locator('input[aria-label="Enter your password"]');
+        await this.bang("Password input not found", passwordInput.isVisible(), passwordInput);
+        await this.pressSequentially(passwordInput, password);
 
-        const googleLoginPassNextButton = popupDetailFilleds.locator("div#passwordNext button");
-        await googleLoginPassNextButton.waitFor({ state: "visible" });
+        const googleLoginPassNextButton = detailsPopup.locator("div#passwordNext button");
+        await this.bang("Password next button not found", googleLoginPassNextButton.isVisible(), googleLoginPassNextButton);
         await googleLoginPassNextButton.click();
       } else {
         await googleLoginNextButton.click();
@@ -114,77 +91,71 @@ export class Reddit extends Base {
   };
 
   async search(text: string) {
-    await this.searchTextBox().waitFor(); //wait for textbox to display
-    await this.searchTextBox().click();
-    await this.searchTextBox().pressSequentially(text, { delay: random(128, 256) });
+    await this.pressSequentially(this.searchTextBox(), text);
     await this.searchTextBox().press("Enter");
   }
 
-  async findRandomThread(): Promise<boolean> {
+  async findRandomThread() {
     await this.page.getByRole("button", { name: "Posts" }).click();
 
-    const maxAttempts = 18;
+    const maxAttempts = 1;
     const triedIndices: number[] = [];
     for (let i = 0; i < maxAttempts; i++) {
       console.debug(`Attempts remaining: ${maxAttempts - i}`);
       await this.waitForNavigation();
-      await sleepRandom({ multiplier: 3 });
+      await sleepRandom();
 
       // Wait for thread elements to be available
-      const availableIndices = [...Array(await this.threadLocator().count()).keys()].filter(
-        (i) => !triedIndices.includes(i)
+      const threads = await this.threadLocator().count();
+      this.bang("Thread not found", threads > 0, this.threadLocator());
+
+      // Filter out indices we've already tried
+      const availableIndices = Array.from({ length: threads }, (_, i) => i).filter(
+        (index) => !triedIndices.includes(index)
       );
-      triedIndices.push(availableIndices[Math.floor(Math.random() * availableIndices.length)]);
 
-      const thread = this.threadLocator().nth(triedIndices.at(-1) ?? 0);
-      await thread.scrollIntoViewIfNeeded();
-      await sleepRandom({ multiplier: 2 });
+      // If we've tried all threads, throw an error
+      this.bang("No available threads", availableIndices.length > 0, this.threadLocator());
 
-      await thread.click({ force: true });
-      await this.waitForNavigation();
-      await sleepRandom({ multiplier: 3 });
+      // Randomly select an index from the available indices
+      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+
       try {
-        await expect(this.commentButton()).toBeVisible({ timeout: 5000 });
+        const thread = this.threadLocator().nth(randomIndex);
+        await this.click(thread);
         return true;
       } catch (e) {
-        console.warn("Post is archived or removed.");
+        console.warn("Func is archived or removed.", e);
+        triedIndices.push(randomIndex);
         await this.page.goBack();
       }
     }
+  }
 
-    throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
+  async findSubreddit() {
+    await this.click(await this.randoNth(this.page.getByTestId("search-community")));
   }
 
   async addCommentToThread(comment: string) {
     // Wait for button to be visible and enabled
-    await expect(this.commentButton()).toBeVisible();
-    await expect(this.commentButton()).toBeEnabled();
-    await this.commentButton().click();
-
-    // Wait for comment input to be visible
-    await this.page.waitForSelector('comment-composer-host[slot="ready"]');
-    await expect(this.commentComposer()).toBeVisible();
+    await this.click(this.commentButton());
 
     // Continue with comment input
-    const textbox = this.page.locator("#subgrid-container").getByRole("textbox");
-    await expect(textbox).toBeVisible();
-    await textbox.click();
-    await textbox.pressSequentially(comment, { delay: random(56, 128) });
+    await this.pressSequentially(this.page.locator("#subgrid-container").getByRole("textbox"), comment);
 
     // Submit comment
-    const submitButton = this.page.locator('button.button-primary[slot="submit-button"]');
-    expect(submitButton).toBeVisible();
-    await submitButton.click();
+    await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
   }
 
   // Function to get a comment
-  async getComment(nth = 0, random = Math.random() < 0.5) {
+  async getComment(nth = 2, random = Math.random() < 0.5) {
+    await this.commentReplyButton().first().click();
     const comment = this.bang(
       "Comment not found",
-      random
-        ? this.commentLocator().nth(Math.floor(Math.random() * (await this.commentLocator().count())))
-        : this.commentLocator().nth(nth)
+      random ? await this.randoNth(this.commentLocator()) : this.commentLocator().nth(nth)
     );
+    comment.scrollIntoViewIfNeeded();
+    await comment.waitFor();
     return {
       text: await this.locatorTxtContent("div[slot='comment']", comment),
       locator: comment,
@@ -193,237 +164,48 @@ export class Reddit extends Base {
 
   // Function to reply to a comment
   async replyToComment(locator: Locator, reply: string) {
-    await locator.waitFor();
-
     // Click the reply button
-    locator.locator("shreddit-comment-action-row button").first().click();
-    await sleepRandom({ multiplier: 2 });
+    const comment = locator.locator("shreddit-comment-action-row button").first();
+    await this.click(comment);
 
     // Wait for the reply box to be visible
     const replyBox = locator.locator(
       "shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
     );
     await replyBox.waitFor();
+    await this.type(reply);
 
-    await this.page.keyboard.type(reply);
-    await replyBox.locator("button[slot='submit-button']").click();
-  }
-
-  // Function to find a comment with a specific trigger word
-  async findCommentWithTriggers(triggerWord: string, caseSensitive = false) {
-    // stop using any in typescript either add propper typing : Promise<boolean | { elem: Locator; comment: string }> or dont specify at all
-    try {
-      console.log("Searching for comments with triggerword:", triggerWord);
-      await this.commentLocator().first().waitFor();
-
-      const allComments = await this.commentLocator().all();
-
-      for (const comment of allComments) {
-        const commentText = await comment.evaluate((el) => {
-          const content = el.querySelector("div[slot='comment']");
-          return content ? content.textContent?.trim() || null : null;
-        });
-
-        if (!commentText) continue;
-
-        if (triggerWord.length === 0) {
-          return false;
-        }
-        const compareText = caseSensitive ? commentText : commentText.toLowerCase();
-        const compareTrigger = triggerWord.toLowerCase();
-        const matchedTrigger = compareText.includes(compareTrigger);
-
-        if (matchedTrigger) {
-          return { elem: comment, comment: commentText };
-        }
-      }
-      return false;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // Function to reply to a comment
-  async replyToSearchComment(locator: Locator, reply: string) {
-    // stop using any in typescript
-    // const replyContainer = await commentHandler.evaluateHandle((elems, commentElemIndex) => {
-    //   const elem = elems[commentElemIndex];
-    const replyContainer = await locator.evaluateHandle((elem) => {
-      elem.querySelector("shreddit-comment-action-row")?.querySelector("button")?.click();
-      return elem
-        .querySelector("shreddit-comment-action-row shreddit-async-loader")
-        ?.querySelector("comment-composer-host faceplate-form shreddit-composer");
-    });
-
-    // const maxLength = 50;
-    // if (reply.length > maxLength) {
-    //   console.warn(`Reply is too long, truncating to ${maxLength} characters.`);
-    //   reply = reply.slice(0, maxLength);
-    // }
-
-    await this.page.waitForTimeout(1000);
-    await this.page.keyboard.type(reply);
-    await replyContainer.evaluate((elem) => {
-      if (!elem) throw new Error("Reply container not found");
-      const submitButton = elem.querySelector<HTMLElement>("button[slot='submit-button']");
-      if (submitButton) {
-        submitButton.click();
-      }
-
-      throw new Error("Submit button not found");
-    });
+    // Click the submit button
+    await this.click(replyBox.locator("button[slot='submit-button']").first());
   }
 
   // Function to check the member is joined the subreddit or not if not then join the subreddit.
   async checkAndJoinSubreddit() {
-    if ((await this.joinButton().count()) === 0) {
-      console.log("No 'Join' button found on the page.");
-      return false;
-    }
-
-    const parentElement = this.joinButton().locator("..");
-    if ((await parentElement.count()) === 0) {
-      console.log("Parent element of the 'Join' button not found.");
-      return false;
-    }
-
-    const joinStatusAttribute = await parentElement.evaluate((el) => el.getAttribute("noun"));
-    if (joinStatusAttribute && joinStatusAttribute.toLowerCase().includes("unsubscribe")) {
-      console.log("User is already a member of the subreddit.");
-      return true;
-    }
-
-    console.log("User is not a member of the subreddit. Joining now...");
-    const shadowRootHandle = await this.joinButton().evaluateHandle((el) => el.shadowRoot);
-    const joined = await shadowRootHandle.evaluate((shadowRoot: ShadowRoot) => {
-      const button = shadowRoot.querySelector<HTMLElement>(".button");
-      if (!button) return false;
-      button.click();
-      return true;
-    });
-
-    if (!joined) {
-      throw new Error("Failed to join the subreddit.");
-    }
+    // Click the "Join" button
+    await this.click(
+      this.bang(
+        "'Join' button not found",
+        this.page.getByRole("button", { name: "Join", exact: true }).first()
+      )
+    );
   }
 
   // UpVote / DownVote
-  async doVote(vote: boolean) {
-    try {
-      const upVoteButton = this.upVoteButton();
-      const downVoteButton = this.downVoteButton();
-
-      if (vote) {
-        const upVoteCount = await upVoteButton.count();
-        if (upVoteCount > 0) {
-          await upVoteButton.first().scrollIntoViewIfNeeded();
-          const isVisible = await upVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await upVoteButton.first().getAttribute("aria-pressed");
-
-            if (isPressed !== "true") {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              await upVoteButton.first().click();
-              console.log("Upvote clicked");
-            } else {
-              await upVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Upvote already done");
-            }
-          } else {
-            console.log("Upvote button is not visible");
-          }
-        } else {
-          console.log("No upvote button found");
-        }
-      } else {
-        const downVoteCount = await downVoteButton.count();
-        if (downVoteCount > 0) {
-          const isVisible = await downVoteButton.first().isVisible();
-          if (isVisible) {
-            const isPressed = await downVoteButton.first().getAttribute("aria-pressed");
-            if (isPressed !== "true") {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              await downVoteButton.first().click();
-              console.log("Downvote clicked");
-            } else {
-              await downVoteButton.first().scrollIntoViewIfNeeded();
-              console.log("Downvote already done");
-            }
-          } else {
-            console.log("Downvote button is not visible");
-          }
-        } else {
-          console.log("No downvote button found");
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error during voting:", error);
-      return false;
-    }
+  async doVote(vote = Math.random() < 0.5) {
+    if (vote) await this.click(await this.randoNth(this.page.getByRole("button", { name: "Upvote" })));
+    else await this.click(await this.randoNth(this.page.getByRole("button", { name: "Downvote" })));
   }
 
-  async findSubreddit(search: string) {
-    const selector = "faceplate-tracker[noun=tab_communities]";
-    await this.page.locator(selector).click();
-
-    await this.waitForNavigation();
-
-    const subRedditSearchOption = this.page.locator("search-telemetry-tracker a").first();
-    const href = this.bang(
-      "Subreddit search option not found",
-      await this.page.locator("search-telemetry-tracker a").first().getAttribute("href")
-    );
-    const url = new URL(href);
-    const searchTerm = url.searchParams.get("q");
-    const decodedSearchTerm = searchTerm ? decodeURIComponent(searchTerm) : "";
-    if (decodedSearchTerm.toLowerCase().trim() === search.toLowerCase().trim()) {
-      console.log("Found Subreddit");
-      subRedditSearchOption.click();
-      await this.waitForNavigation();
-
-      const postButton = this.page
-        .locator("#subgrid-container faceplate-tracker[noun=create_post]")
-        .first();
-      await expect(postButton).toBeVisible();
-    }
-  }
-
-  // Create Subreddit Post
+  // Create Subreddit Post  
   async createPostSubreddit(commentTitle: string, commentText: string) {
-    try {
-      const postButton = this.page
-        .locator("#subgrid-container faceplate-tracker[noun=create_post]")
-        .first();
-      await postButton.click();
-      console.log("Create Post button clicked");
-
-      const titleElem = this.page.locator("#innerTextArea").first();
-      const bodyElem = this.page.locator("shreddit-composer div[name=body]").first();
-
-      await titleElem.click();
-      await titleElem.pressSequentially(commentTitle, { delay: random(56, 128) });
-      await this.page.keyboard.press("Tab");
-      await this.page.keyboard.press("Tab");
-      await this.page.keyboard.press("Enter");
-      await this.page.keyboard.type(commentText, { delay: random(56, 128) });
-
-      const buttonLocator = this.page.locator("#inner-post-submit-button");
-      const buttonCount = await buttonLocator.count();
-
-      if (buttonCount > 0) {
-        await buttonLocator.first().click();
-        console.log("Post submitted");
-        return true;
-      } else {
-        console.error("Submit button not found");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error in createPostSubreddit:", error);
-      return false;
-    }
+    await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+    await this.pressSequentially(this.page.locator("#innerTextArea").first(), commentTitle);
+    await this.click(this.page.locator('r-post-flairs-modal#post-flair-modal'));
+    const isAvailbleFlair = await this.page.locator('div[name="flairId"]:not(.hidden) faceplate-radio-input[id^="post-flair-radio-input"]').count();
+    if (isAvailbleFlair) { await this.click(await this.flairButton()) }
+    await this.click(this.page.locator('button#post-flair-modal-apply-button'));
+    await this.pressSequentially(this.page.locator("shreddit-composer div[name=body]").first(), commentText);
+    await this.click(this.page.locator("#inner-post-submit-button").first());
   }
 }
 
