@@ -1,6 +1,7 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { random, sleepRandom } from "./utils.js";
+import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
+import { askAI, scenario, tones } from "../lib/ask.js";
 
 class Base {
   constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
@@ -50,20 +51,45 @@ class Base {
     });
   }
 
-  async randoNth<T>(locator: Locator) {
-    return locator.nth(Math.floor(Math.random() * (await locator.count())));
+  randoNth(locator: Locator, count: number) {
+    return locator.nth(Math.floor(Math.random() * count));
   }
 
-  async click<T>(locator: Locator) {
+  async click(locator: Locator) {
     await sleepRandom();
     await this.waitForNavigation();
     await locator.waitFor();
     await locator.scrollIntoViewIfNeeded();
-    expect(locator).toBeEnabled({ timeout: 1000 * 5 });
-    expect(locator).toBeVisible({ timeout: 1000 * 5 });
+    const { fulfilled } = await tryForEach([
+      expect(locator).toBeEnabled({ timeout: 1000 * 5 }),
+      expect(locator).toBeVisible({ timeout: 1000 * 5 }),
+    ]);
     await locator.click();
     await this.waitForNavigation();
     await sleepRandom();
+  }
+
+  async scrollabit() {
+    // Scroll down multiple times with delay to simulate natural scrolling
+    for (let i = 0; i < random(6, 9); i++) {
+      // Occasionally scroll up slightly (1 in 8 chance)
+      const direction = Math.random() > 0.875 ? -1 : 1;
+      await this.page.mouse.wheel(0, direction * random(1024, 2048));
+      await sleepRandom();
+    }
+  }
+
+  async ai(background: string, scenario: scenario) {
+    const result = await askAI({
+      feature: this.feature,
+      background,
+      scenario: {
+        tone: rando(tones),
+        range: "10-50",
+        ...scenario,
+      },
+    });
+    return result.startsWith('"') && result.endsWith('"') ? result.slice(1, -1) : result;
   }
 
   error(message: string, cause?: unknown) {
@@ -73,6 +99,21 @@ class Base {
   bang<T>(message: string, expect: T, source?: unknown) {
     if (expect) return expect;
     throw this.error(message, { source, expect });
+  }
+
+  async test(ids: string[]) {
+    for (const id of ids) {
+      const locator = this.page.getByTestId(id);
+      const count = await locator.count();
+      if (count > 0) {
+        return {
+          count,
+          locator,
+          id,
+        };
+      }
+    }
+    throw this.error(`No elements found for IDs: ${ids.join(", ")}`);
   }
 }
 

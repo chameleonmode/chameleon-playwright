@@ -1,5 +1,4 @@
 import Reddit from "../page.js";
-import { askAI } from "../../../lib/ask.js";
 
 export default async function (
   context: import("@playwright/test").BrowserContext,
@@ -12,10 +11,11 @@ export default async function (
 
   // Step 2 - Search for topic and click on 1st test result
   await page.search(opts.search);
-  await page.findRandomThread();
+  await page.findRandoThread();
 
   // Step 3 - 1st Comment on main thread
+  const title = await page.postTitleText();
   await page.addCommentToThread(
-    await askAI({ input: await page.postTitleText(), feature: page.feature })
+    await page.ai(`on a reddit post titled '${title}'`, { input: title, type: "comment" })
   );
 }

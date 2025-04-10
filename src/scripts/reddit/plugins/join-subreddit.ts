@@ -13,5 +13,5 @@ export default async function (
   await page.search(options.search);
 
   // Step 3 - Check and join the subreddit if not already a member
-  await page.findRandomThread(() => page.checkAndJoinSubreddit());
+  await page.findRandoThread(() => page.checkAndJoinSubreddit());
 }

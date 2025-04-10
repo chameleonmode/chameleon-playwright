@@ -24,27 +24,38 @@ async function main() {
 
   const { chromium } = await import("@playwright/test");
   const { default: plugin } = await import(pluginPath);
+
+  const context = await (async function(){
+    try {
+      // Try to connect to an already running Chrome instance
+      return await chromium.connectOverCDP("http://localhost:3690");
+    } catch (error) {
+      // Ensure the context is connected to the newly launched browser
+      return await chromium.launchPersistentContext(userDataDir, {
+        headless: false,
+        executablePath: (() => {
+          switch (process.platform) {
+            case "win32":
+              return process.arch === "x64"
+                ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+            case "darwin":
+              return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+            case "linux":
+              return "/usr/bin/google-chrome";
+            default:
+              return undefined;
+          }
+        })(),
+        // adding args might create issues with some plugins on different platforms leave it empty
+        args: ["--remote-debugging-port=3690"],
+      })
+    }
+  })()
+
+
   
-  await plugin(await chromium.launchPersistentContext(userDataDir, {
-    headless: false,
-    viewport: { width: 1280, height: 720 },
-    executablePath: (() => {
-      switch (process.platform) {
-        case "win32":
-          return process.arch === "x64"
-            ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-            : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-        case "darwin":
-          return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-        case "linux":
-          return "/usr/bin/google-chrome";
-        default:
-          return undefined;
-      }
-    })(),
-    // adding args might create issues with some plugins on different platforms leave it empty
-    args: [],
-  }), opts);
+  await plugin(context, opts);
 }
 
 main().catch(console.error);

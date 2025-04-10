@@ -10,7 +10,7 @@ export default async function (
 
   // Step 2 - Search for topic and click on 1st test result
   await page.search(options.search);
-  await page.findSubreddit();
+  await page.findRandoSubreddit();
 
   // Step 3 - Upvote/down vote
   await page.doVote();
