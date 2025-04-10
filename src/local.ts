@@ -8,24 +8,7 @@ const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/282
 const opts = JSON.parse(json) || "{}";
 
 async function main() {
-  process.env.API = await (async () => {
-    try {
-      // Simple fetch check with AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300);
-
-      await fetch("http://127.0.0.1:3042", { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      return "http://127.0.0.1:3042"; // Local server is available
-    } catch (error) {
-      return "https://chameleon-ws.onrender.com"; // Use fallback
-    }
-  })();
-
   const { chromium } = await import("@playwright/test");
-  const { default: plugin } = await import(pluginPath);
-
   const context = await (async function(){
     try {
       // Try to connect to an already running Chrome instance
@@ -54,8 +37,7 @@ async function main() {
     }
   })()
 
-
-  
+  const { default: plugin } = await import(pluginPath);
   await plugin(context, opts);
 }
 

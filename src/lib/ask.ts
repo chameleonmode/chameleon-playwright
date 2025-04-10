@@ -49,7 +49,7 @@ export async function askAI(opts: {
 }) {
   const { feature, scenario, ai = "gpt", background = "" } = opts;
   const res = await fetch(
-    `${process.env.API || "https://chameleon-ws.onrender.com"}/air/ask/${ai}?feature=${feature}`,
+    `${process.env.API ||= await endpoint()}/air/ask/${ai}?feature=${feature}`,
     {
       method: "POST",
       headers: {
@@ -66,4 +66,19 @@ export async function askAI(opts: {
     payload: { response },
   } = await res.json();
   return response as string;
+}
+
+async function endpoint() {
+  try {
+    // Simple fetch check with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300);
+
+    await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    return "http://127.0.0.1:3042"; // Local server is available
+  } catch (error) {
+    return "https://chameleon-ws.onrender.com"; // Use fallback
+  }
 }
