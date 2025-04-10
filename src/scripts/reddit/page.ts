@@ -49,49 +49,45 @@ export class Reddit extends Base {
 
   // Login google
   loginWithGoogle = async (email: string, password: string) => {
-    console.log("login proccess started...");
-    const loginButton = this.loginButton();
-    await expect(loginButton).toBeVisible();
-    loginButton.click();
+    // Step 1: Click the main login button
+    await this.click(this.loginButton());
 
-    const googleIframeSelector = 'iframe[title="Sign in with Google Button"]';
-    await this.page.waitForSelector(googleIframeSelector, { state: "visible" });
-    const googleButton = this.page.locator(googleIframeSelector);
-    await googleButton.click();
+    // Step 2: Find and click the Google sign-in button inside iframe
+    const { frame } = await this.findFrame([
+      'iframe[src*="accounts.google.com/gsi/button"]',
+      'iframe[allow="identity-credentials-get"]',
+      'iframe[id^="gsi_"]',
+      'iframe[title="Sign in with Google Button"]',
+      'iframe[title*="Google"]'
+    ]);
+    await frame.locator('div[role="button"]').click();
 
-    const waitForOpenPopup = this.page.waitForEvent("popup");
-    const popupDetailFilleds = await waitForOpenPopup;
-    await popupDetailFilleds.waitForLoadState();
+    // Step 3: Handle the Google authentication popup
+    const popup = await this.page.waitForEvent("popup");
+    await popup.waitForLoadState();
 
-    const emailButtons = popupDetailFilleds.locator("[data-email]");
-    const emailCount = await emailButtons.count();
-
-    if (emailCount > 0) {
-      await emailButtons.first().click();
-    } else {
-      const emailInput = popupDetailFilleds.getByLabel("Email or phone");
-      await emailInput.waitFor({ state: "visible" });
-      let isEmailValueEmpty = await emailInput.inputValue();
-
-      const googleLoginNextButton = popupDetailFilleds.locator("div#identifierNext button");
-      await googleLoginNextButton.waitFor({ state: "visible" });
-
-      if (!isEmailValueEmpty) {
-        console.log("email not found!");
-        await this.pressSequentially(emailInput, email);
-        await googleLoginNextButton.click();
-
-        const passwordInput = popupDetailFilleds.getByLabel("Enter your password");
-        await passwordInput.waitFor({ state: "visible" });
-        await passwordInput.type(password, { delay: random(50, 100) });
-
-        const googleLoginPassNextButton = popupDetailFilleds.locator("div#passwordNext button");
-        await googleLoginPassNextButton.waitFor({ state: "visible" });
-        await googleLoginPassNextButton.click();
-      } else {
-        await googleLoginNextButton.click();
-      }
+    // Check if we have saved accounts to select from
+    const emailButtons = popup.locator("[data-email]");
+    if ((await emailButtons.count()) > 0) {
+      // Use existing account
+      return await emailButtons.first().click();
     }
+
+    // Enter email
+    const emailInput = popup.getByLabel("Email or phone");
+    await this.pressSequentially(emailInput, email);
+
+    // Click next after email
+    const nextButton = popup.locator("div#identifierNext button");
+    await this.click(nextButton);
+
+    // Enter password if needed
+    const passwordInput = popup.getByLabel("Enter your password");
+    await this.pressSequentially(passwordInput, password);
+
+    // Complete login
+    const passwordNextButton = popup.locator("div#passwordNext button");
+    await this.click(passwordNextButton);
   };
 
   async search(text: string) {
@@ -113,7 +109,7 @@ export class Reddit extends Base {
       await sleepRandom();
 
       // Wait for thread elements to be available
-      const { count, locator, id } = await this.test([
+      const { count, locator, id } = await this.find([
         "search-post-with-content-preview",
         "search-post-unit",
       ]);
@@ -221,8 +217,8 @@ export class Reddit extends Base {
 
     // Using Array.from with just length
     for (let i = 0; i < length; i++) {
-     if(rando()) await this.click(ups.nth(i));
-     else await this.click(downs.nth(i));
+      if (rando()) await this.click(ups.nth(i));
+      else await this.click(downs.nth(i));
     }
     [...Array(length)].map(
       async (_, i) => await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)))

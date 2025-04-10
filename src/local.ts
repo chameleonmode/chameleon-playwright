@@ -3,7 +3,8 @@
 // Example: node src/local.ts reddit comment '{"search": "AI in healthcare"}'
 const [platform, file, json] = process.argv.slice(2);
 const pluginPath = `./scripts/${platform}/plugins/${file}`;
-const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/28296"; //`.cache/${platform}`;
+//const userDataDir = `.cache/${platform}`;
+const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/28296"; 
 const opts = JSON.parse(json) || "{}";
 
 async function main() {

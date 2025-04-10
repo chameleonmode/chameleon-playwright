@@ -101,19 +101,44 @@ class Base {
     throw this.error(message, { source, expect });
   }
 
-  async test(ids: string[]) {
+  async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
     for (const id of ids) {
-      const locator = this.page.getByTestId(id);
+      const locator =
+        strategy === "testId"
+          ? this.page.getByTestId(id)
+          : strategy === "selector"
+          ? this.page.locator(id)
+          : this.page.getByText(id);
+
       const count = await locator.count();
+
       if (count > 0) {
-        return {
-          count,
-          locator,
-          id,
-        };
+        return { count, locator, id };
       }
     }
-    throw this.error(`No elements found for IDs: ${ids.join(", ")}`);
+
+    throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+  }
+
+  // Separate function for frames
+  async findFrame(selectors: string[]) {
+    for (const selector of selectors) {
+      try {
+        const frame = this.page.frameLocator(selector);
+        const frameHandle = await this.page.$(selector);
+        const contentFrame = frameHandle ? await frameHandle.contentFrame() : null;
+
+        if (contentFrame) {
+          return { frame, frameHandle, contentFrame, selector };
+        }
+      } catch (e) {
+        // Continue to next selector if this one failed
+        console.warn(`Failed to find frame for selector: ${selector}`, e);
+        continue;
+      }
+    }
+
+    throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
   }
 }
 
