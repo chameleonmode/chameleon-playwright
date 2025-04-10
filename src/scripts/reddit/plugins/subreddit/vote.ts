@@ -1,4 +1,4 @@
-import Reddit from "../page.js";
+import Reddit from "../../page.js";
 export default async function (
   context: import("@playwright/test").BrowserContext,
   options: {

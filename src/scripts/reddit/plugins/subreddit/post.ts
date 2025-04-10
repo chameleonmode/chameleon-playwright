@@ -1,5 +1,5 @@
-import Reddit from "../page.js";
-import { rando } from "../../../lib/utils.js";
+import Reddit from "../../page.js";
+import { rando } from "../../../../lib/utils.js";
 
 export default async function (
   context: import("@playwright/test").BrowserContext,

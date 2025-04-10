@@ -33,28 +33,18 @@ export class Reddit extends Base {
 
   // Login with credentials
   loginWithCredentials = async (email: string, password: string) => {
-    console.log("login proccess started...");
-    const loginButton = this.loginButton();
-    await expect(loginButton).toBeVisible();
-    loginButton.click();
+    await this.click(this.loginButton());
 
-    const loginUserName = this.page.locator("faceplate-text-input#login-username");
-    loginUserName.click();
+    //
+    const loginUserNameInput = this.page.locator("faceplate-text-input#login-username input");
+    await this.pressSequentially(loginUserNameInput, email);
+    await this.page.keyboard.press("Tab");
 
-    const loginUserNameInput = loginUserName.locator("input");
-    await loginUserNameInput.type(email, { delay: random(50, 100) });
-    await loginUserNameInput.press("Tab");
+    const loginUserPassword = this.page.locator("faceplate-text-input#login-password input");
+    await this.pressSequentially(loginUserPassword, password);
 
-    const loginUserPassword = this.page.locator("faceplate-text-input#login-password");
-    loginUserPassword.click();
-
-    const loginUserPasswordInput = loginUserPassword.locator("input");
-    await loginUserPasswordInput.type(password, { delay: random(50, 100) });
     const loginUserButton = this.page.getByRole("button", { name: "Log In" });
-
-    await expect(loginUserButton).toBeVisible();
-    loginUserButton.click();
-    return true;
+    await this.click(loginUserButton);
   };
 
   // Login google
