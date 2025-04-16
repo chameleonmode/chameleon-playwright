@@ -1,6 +1,6 @@
-import { Locator, Page, expect } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 import Base from "../page.js";
-import { random, rando, sleepRandom } from "../../lib/utils.js";
+import { random, rando } from "../../lib/utils.js";
 
 export class X extends Base {
   constructor(readonly page: Page) {
@@ -12,6 +12,8 @@ export class X extends Base {
   retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
   articles = () => this.page.locator(`main[role="main"] section article`);
   replyBtnSelector = () => this.page.locator('div[data-testid="toolBar"] button[data-testid="tweetButton"]');
+  tweetBox = () => this.page.locator(`div[data-testid="tweetTextarea_0RichTextInputContainer"]`);
+  tweetButton = () => this.page.locator(`button[data-testid="tweetButtonInline"]`);
 
   // Check login authentication
   checkLoginAuthentication = async () => {
@@ -130,6 +132,22 @@ export class X extends Base {
     await this.bang("Reply box not found", replyBox.click(), replyBox);
     await replyBox.type(reply, { delay: random(50, 100) });
     await this.click(this.replyBtnSelector());
+  }
+
+  // tweet to X
+  tweetToX = async (tweet: string) => {
+    await this.pressSequentially(this.tweetBox(), tweet);
+    await this.tweetButton().first().click();
+  }
+
+  // Love Tweet
+  async loveTweet() {
+    await this.scrollabit();
+    const likeButtons = this.page.locator('button[data-testid*="like"]');
+    const count = rando((await likeButtons.count()));
+    for (let i = 0; i <= count; i++) {
+      await this.click(likeButtons.nth(i));
+    }
   }
 }
 

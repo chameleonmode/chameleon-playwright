@@ -21,6 +21,8 @@
     "x:keyword-search": "npm run x:run post/keyword-search.ts '{\"search\":\"business\"}'",
     "x:reply-tweet": "npm run x:run post/reply-tweet.ts '{\"search\":\"simpsons\"}'",
     "x:retweet-post": "npm run x:run post/retweet-post.ts '{\"search\":\"tom Cruise\"}'",
+    "x:tweet-to-x": "npm run x:run post/tweet-to-x.ts '{\"tweet\":\"Donald trump tarrifs\"}'",
+    "x:love-tweet": "npm run x:run post/love-tweet.ts '{\"search\":\"ipl\"}'",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
