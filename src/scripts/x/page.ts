@@ -1,5 +1,6 @@
-import { Page } from "@playwright/test";
+import { Locator, Page, expect } from "@playwright/test";
 import Base from "../page.js";
+import { random, rando, sleepRandom } from "../../lib/utils.js";
 
 export class X extends Base {
   constructor(readonly page: Page) {
@@ -7,6 +8,10 @@ export class X extends Base {
   }
 
   loginButton = () => this.page.locator(`a[data-testid='loginButton']`);
+  searchInput = () => this.page.locator('input[placeholder="Search"]');
+  retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
+  articles = () => this.page.locator(`main[role="main"] section article`);
+  replyBtnSelector = () => this.page.locator('div[data-testid="toolBar"] button[data-testid="tweetButton"]');
 
   // Check login authentication
   checkLoginAuthentication = async () => {
@@ -82,6 +87,49 @@ export class X extends Base {
     // Complete login
     const passwordNextButton = popup.locator("div#passwordNext button");
     await this.click(passwordNextButton);
+  }
+
+  // Search for the keyword on X
+  async search(text: string) {
+    await this.pressSequentially(this.searchInput(), text);
+    await this.searchInput().press("Enter");
+  }
+
+  // Retweet the top most relevant tweet on X
+  async retweetTopTweet() {
+    const retweetButton = this.retweetButton().first();
+    await this.bang("Retweet button not found or not visible", retweetButton.isVisible(), retweetButton);
+    await retweetButton.click();
+
+    const confirmSelector = ("retweetConfirm");
+    await this.click(this.page.getByTestId(confirmSelector))
+  }
+
+  // Function to get a comment
+  async getTweet(nth = 2, random = Math.random() < 0.5) {
+    const comment = this.bang(
+      "Comment not found",
+      random
+        ? this.articles().nth(Math.floor(Math.random() * (await this.articles().count())))
+        : this.articles().nth(nth)
+    );
+    // Use a more specific selector to avoid nested matches
+    const commentContent = comment.locator('div[data-testid="tweetText"]').first();
+    commentContent.scrollIntoViewIfNeeded();
+    return {
+      text: await commentContent.innerText(),
+      locator: comment,
+    };
+  }
+
+  // Function to reply to the tweet
+  async replyToTweet(locator: Locator, reply: string) {
+    locator.locator('button[data-testid="reply"]').click();
+    const replySelector = 'div[data-viewportview="true"] div.DraftEditor-editorContainer';
+    const replyBox = this.page.locator(replySelector);
+    await this.bang("Reply box not found", replyBox.click(), replyBox);
+    await replyBox.type(reply, { delay: random(50, 100) });
+    await this.click(this.replyBtnSelector());
   }
 }
 
