@@ -1,5 +1,6 @@
-import { Page } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 import Base from "../page.js";
+import { rando } from "../../lib/utils.js";
 
 export class Facebook extends Base {
     constructor(readonly page: Page) {
@@ -15,6 +16,7 @@ export class Facebook extends Base {
     shareNowButtonSelector = () => this.page.locator('div[aria-label="Share now"]');
     replyBoxSelector = () => this.page.locator('div[aria-label="Write a comment…"]');
     replycommentButton = () => this.page.locator('div[aria-label="Comment"]');
+    postOuter = () => this.page.locator('div[role="feed"] div[data-virtualized]');
     locator = (selector: string) => {
         return this.page.locator(selector)
     }
@@ -85,6 +87,30 @@ export class Facebook extends Base {
         await this.click(this.replyBoxSelector());
         await this.pressSequentially(this.replyBoxSelector(), reply);
         await this.click(this.replycommentButton());
+    }
+
+    // Love Facebook Post
+    lovePostFaceook = async () => {
+        await this.scrollabit();
+        const count = rando(await this.postOuter().count());
+        for (let i = 0; i <= count; i++) {
+            const currentPost = this.postOuter().nth(i);
+            await currentPost.scrollIntoViewIfNeeded();
+            const likedPosts = currentPost.locator('div[aria-label="Remove Love"][role="button"]');
+            if (await likedPosts.count() > 0) {
+                await this.click(this.bang("'Unlike' button not found", likedPosts));
+                continue;
+            }
+            await currentPost.locator('div[aria-label="Like"][role="button"]').hover();
+            await this.click(this.bang("'Love' button not found", this.page.locator('div[aria-label=\"Love\"]')));
+        }
+    }
+
+    // create post on facebook
+    createPostFaceook = async (postText: string) => {
+        await this.click(this.bang("'Create Post' not found", this.page.locator('div[aria-label="Create a post"][role="region"] div[role="button"]').first()));
+        await this.pressSequentially(this.page.locator(`div[contenteditable="true"][role="textbox"]`), postText);
+        await this.click(this.bang("'Post' button not found", this.page.locator('div[aria-label="Post"][role="button"]').first()));
     }
 }
 

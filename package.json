@@ -21,6 +21,8 @@
     "facebook:keyword-search": "npm run facebook:run post/keyword-search.ts '{\"search\":\"marvel\"}'",
     "facebook:share-post": "npm run facebook:run post/share-post.ts '{\"search\":\"stranger things\"}'",
     "facebook:reply-post": "npm run facebook:run post/reply-post.ts '{\"search\":\"tom cruise\"}'",
+    "facebook:create-post": "npm run facebook:run post/create-post.js '{\"postText\":\"Donald trump tarrifs\"}'",
+    "facebook:love-post": "npm run facebook:run post/love-post.js '{\"search\":\"ipl\"}'",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
