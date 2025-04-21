@@ -16,6 +16,8 @@
     "reddit:post-subreddit": "npm run reddit:run subreddit/post.ts '{\"search\":\"playwright\"}'",
     "reddit:join-subreddit": "npm run reddit:run subreddit/join.ts '{\"search\":\"business\"}'",
     "local:x-retweet": "npm run node:ts src/local.ts -- x retweet.js '{\"search\":\"grok\"}'",
+    "facebook:run": "npm run node:ts src/local.ts -- facebook",
+    "facebook:login-credentials": "npm run facebook:run login/credentials.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
