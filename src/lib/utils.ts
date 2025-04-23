@@ -63,8 +63,9 @@ export function rando<T>(list?: T[] | number): T | boolean | number {
 
 export async function sleepRandom(args: { min?: number; max?: number; multiplier?: number } = {}) {
   const { min = 256, max = 512, multiplier = random(2, 4) } = args;
-  const delay = random(min, max);
-  await sleep(delay * multiplier);
+  const delay = random(min, max) * multiplier;
+  await sleep(delay);
+  return delay;
 }
 
 export async function tryForEach<T>(promises: Promise<T>[]) {

@@ -6,7 +6,8 @@ interface Opts<T> {
 
 interface Start {
   feature: string;
-  url: string;
+  url?: string;
+  new?: boolean;
 }
 
 interface Settings {

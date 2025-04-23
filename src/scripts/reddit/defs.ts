@@ -15,8 +15,7 @@ interface Options extends Opts<Args> {}
 
 export const defaults: Opts<Args> = {
   start: {
-    feature: "",
-    url: "",
+    feature: "default",
   },
   args: {
     search: "chameleon",
@@ -26,9 +25,9 @@ export const defaults: Opts<Args> = {
   },
   settings: {
     timeouts: {
-      default: 1,
-      navigate: 2,
-      wait: 6,
+      default: 36,
+      navigate: 72,
+      wait: 18,
       rando: {
         min: 256,
         max: 512,
@@ -51,4 +50,5 @@ export default function (opts: Partial<Opts<Args>>) {
     ...opts,
   };
 }
-export type { Opts, Settings, Args, Options, Sort, Filter, Scope };
+
+export type { Args, Options, Sort, Filter, Scope };

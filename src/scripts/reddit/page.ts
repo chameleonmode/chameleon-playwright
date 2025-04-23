@@ -1,12 +1,12 @@
-import { Locator, Page, expect } from "@playwright/test";
+import { BrowserContext, Locator, Page, expect } from "@playwright/test";
 import { random, rando } from "../../lib/utils.js";
 import { Base } from "../page.js";
+import Player from "../play.js";
 import configure, { Options, Scope, defaults } from "./defs.js";
-import { Player } from "../play.js";
 
 export class Reddit extends Base {
-  constructor(readonly page: Page, readonly opts: Options) {
-    super(page, opts);
+  constructor(readonly context: BrowserContext, readonly opts: Options) {
+    super(context, opts);
   }
 
   // Locators
@@ -293,14 +293,16 @@ export class Reddit extends Base {
     });
 
     await this.page.keyboard.press("Enter");
+    await this.nap();
   }
 }
 
-export default async function (page: Page, opts?: Partial<Options>) {
+export default async function (context: BrowserContext, opts?: Partial<Options>) {
   const options = configure({
     start: {
       feature: "reddit",
       url: "https://www.reddit.com",
+      new: true,
     },
     args: {
       search: "tim allen",
@@ -322,13 +324,12 @@ export default async function (page: Page, opts?: Partial<Options>) {
     },
     ...opts,
   });
-  const reddit = new Reddit(page, options);
-  // await reddit.navigate(options.start.url);
-  // await reddit.search(options.args.search);
-  const times = random(reddit.opts.settings.variations.min, reddit.opts.settings.variations.max);
+  const reddit = new Reddit(context, options);
+  const player = await Player(reddit);
+  await reddit.search(options.args.search);
   return {
     reddit,
     options,
-    player: new Player(reddit, [], times),
+    player,
   };
 }

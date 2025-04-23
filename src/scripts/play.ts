@@ -1,3 +1,4 @@
+import { random } from "../lib/utils.js";
 import { Base } from "./page.js";
 
 export class Player {
@@ -15,4 +16,14 @@ export class Player {
       this.threads.push(resulto);
     }
   }
+}
+
+export default async function (actor: Base) {
+  await actor.init();
+  if (actor.opts.start.url) await actor.navigate(actor.opts.start.url); // Added navigation to the start URL
+  return new Player(
+    actor,
+    [],
+    random(actor.opts.settings.variations.min, actor.opts.settings.variations.max)
+  );
 }

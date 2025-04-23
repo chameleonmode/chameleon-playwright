@@ -1,15 +1,31 @@
 // src/scripts/pages/base.page.ts
-import { Locator, Page, expect } from "@playwright/test";
+import { BrowserContext, Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
 import { askAI, Scenario, tones } from "../lib/ask.js";
-import { Opts } from "./types.js";
+import { Opts, Timeouts } from "./types.js";
 
-export class Base{
-  timout: number;
-  constructor(readonly page: Page, readonly opts: Opts<unknown>) {
-    this.timout = 1000 * 60 * opts.settings.timeouts.navigate;
-    this.page.setDefaultNavigationTimeout(this.timout);
-    this.page.setDefaultTimeout(1000 * 60 * opts.settings.timeouts.default);
+export class Base {
+  timeouts: Timeouts;
+  page!: Page;
+  constructor(readonly context: BrowserContext, readonly opts: Opts<unknown>) {
+    this.timeouts = {
+      navigate: 1000 * opts.settings.timeouts.navigate,
+      default: 1000 * opts.settings.timeouts.default,
+      wait: 1000 * opts.settings.timeouts.wait,
+      rando: {
+        min: 1000 * opts.settings.timeouts.rando.min,
+        max: 1000 * opts.settings.timeouts.rando.max,
+        multiplier: opts.settings.timeouts.rando.multiplier,
+      },
+    };
+  }
+
+  async init() {
+    this.page = this.opts.start.new
+      ? await this.context.newPage()
+      : this.context.pages()[this.context.pages().length - 1];
+    this.page.setDefaultTimeout(this.timeouts.default);
+    this.page.setDefaultNavigationTimeout(this.timeouts.navigate);
   }
 
   async navigate(url: string) {
@@ -17,11 +33,10 @@ export class Base{
     await this.waitForNavigation();
   }
 
-  async waitForNavigation() {
+  async waitForNavigation(timeout = this.timeouts.navigate) {
     return await tryForEach([
-      this.page.waitForLoadState("load", { timeout: this.timout }),
-      this.page.waitForLoadState("domcontentloaded", { timeout: this.timout }),
-      // this.page.waitForLoadState("networkidle", { timeout: this.timout }),
+      this.page.waitForLoadState("load", { timeout }),
+      this.page.waitForLoadState("domcontentloaded", { timeout }),
     ]);
   }
 
@@ -55,12 +70,12 @@ export class Base{
   }
 
   randoNth(locator: Locator, count: number) {
-    return locator.nth(Math.min(
-      random(this.opts.settings.rando.min, this.opts.settings.rando.max), rando(count))
+    return locator.nth(
+      Math.min(random(this.opts.settings.rando.min, this.opts.settings.rando.max), rando(count))
     );
   }
 
-  async click(locator: Locator, timeout = 1000 * this.opts.settings.timeouts.wait) {
+  async click(locator: Locator, timeout = this.timeouts.wait) {
     await this.nap();
 
     // Expect for the element to be enabled and visible
@@ -78,14 +93,13 @@ export class Base{
     ]);
     this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length); // Added bang for errors check
 
-
     await this.nap();
   }
 
   async scrollabit() {
     // Scroll down multiple times with delay to simulate natural scrolling
     for (let i = 0; i < random(3, 9); i++) {
-      await this.nap(); 
+      await this.nap();
       try {
         // if already scrolled till end break
         const { scrollTop, scrollHeight, clientHeight } = await this.page.evaluate(() => {
@@ -112,13 +126,13 @@ export class Base{
 
   async nap(
     args: { min: number; max: number; multiplier?: number } = {
-      min: this.opts.settings.timeouts.rando.min,
-      max: this.opts.settings.timeouts.rando.max,
-      multiplier: this.opts.settings.timeouts.rando.multiplier,
+      min: this.timeouts.rando.min,
+      max: this.timeouts.rando.max,
+      multiplier: this.timeouts.rando.multiplier,
     }
   ) {
-    await sleepRandom(args);
-    await this.page.waitForTimeout(random(args.min, args.max) * (args.multiplier || random(2, 4)));
+    const sleepo = await sleepRandom(args);
+    await this.page.waitForTimeout(sleepo);
     await this.waitForNavigation();
   }
 
