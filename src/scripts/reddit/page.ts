@@ -1,11 +1,11 @@
 import { Locator, Page, expect } from "@playwright/test";
-import { random, rando, sleepRandom } from "../../lib/utils.js";
+import { random, rando } from "../../lib/utils.js";
 import { Base } from "../page.js";
-import configure, { Opts, Scope, Settings, Args, defaults } from "./defs.js";
+import configure, { Options, Scope, defaults } from "./defs.js";
 import { Player } from "../play.js";
 
 export class Reddit extends Base {
-  constructor(readonly page: Page, readonly opts: Opts<Args>) {
+  constructor(readonly page: Page, readonly opts: Options) {
     super(page, opts);
   }
 
@@ -138,7 +138,7 @@ export class Reddit extends Base {
         await this.click(thread);
         const funky = await funco();
         return {
-          foundo: index,
+          found: index,
           funky,
         };
       } catch (e) {
@@ -278,7 +278,7 @@ export class Reddit extends Base {
   }
 }
 
-export default async function (page: Page, opts?: Partial<Opts<Args>>) {
+export default async function (page: Page, opts?: Partial<Options>) {
   const options = configure({
     start: {
       feature: "reddit",
@@ -286,7 +286,7 @@ export default async function (page: Page, opts?: Partial<Opts<Args>>) {
     },
     args: {
       search: "joe rogan",
-      scope: "Posts",
+      scope: "Communities",
       sort: "Relevance",
       filter: "All time",
     },

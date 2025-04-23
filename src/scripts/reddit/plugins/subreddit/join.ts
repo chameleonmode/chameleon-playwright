@@ -1,8 +1,8 @@
 import { BrowserContext } from "@playwright/test";
+import { Options } from "../../defs.js";
 import Reddit from "../../page.js";
-import { Args, Settings } from "../../defs.js";
 
-export default async function (context: BrowserContext, opts: { args: Args; settings: Settings }) {
+export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
   const { reddit, options, player } = await Reddit(await context.newPage(), opts);
 
@@ -16,6 +16,6 @@ export default async function (context: BrowserContext, opts: { args: Args; sett
       ranno
     );
 
-    return expecto.foundo;
+    return expecto.found;
   });
 }

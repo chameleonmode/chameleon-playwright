@@ -11,6 +11,8 @@ interface Args {
   filter: Filter;
 }
 
+interface Options extends Opts<Args> {}
+
 export const defaults: Opts<Args> = {
   start: {
     feature: "",
@@ -49,4 +51,4 @@ export default function (opts: Partial<Opts<Args>>) {
     ...opts,
   };
 }
-export type { Opts, Settings, Args, Sort, Filter, Scope };
+export type { Opts, Settings, Args, Options, Sort, Filter, Scope };
