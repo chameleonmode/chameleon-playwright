@@ -1,5 +1,5 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../defs.js";
+import { Options } from "../../settings.js";
 import Reddit from "../../page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
@@ -12,12 +12,14 @@ export default async function (context: BrowserContext, opts: Options) {
       options.args.scope,
       async () => {
         // find post content from a comment
-        const { text, post } = await reddit.findComment(0);
-        await reddit.visitSubredditCommunity();
+        const { text } = await reddit.post.getComment(0);
+        await reddit.post.visitCommunity();
 
         // Ask ai to create a new post title and content
         const title = await reddit.ai(
-          `Based on this '${text}' comment, on a post titled ${post}, through a search term of ${options.args.search}`,
+          `Based on this '${text}' comment, on a post titled ${await reddit.post.title()}, through a search term of ${
+            options.args.search
+          }`,
           { input: options.args.search, type: "title", range: "3-9" }
         );
         const content = await reddit.ai(

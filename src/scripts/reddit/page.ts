@@ -1,17 +1,142 @@
-import { BrowserContext, Locator, Page, expect } from "@playwright/test";
+import { BrowserContext, Locator, expect } from "@playwright/test";
 import { random, rando } from "../../lib/utils.js";
 import { Base } from "../page.js";
-import Player from "../play.js";
-import configure, { Options, Scope, defaults } from "./defs.js";
+import Player from "../player.js";
+import configure, { Options, Scope, defaults } from "./settings.js";
 
 export class Reddit extends Base {
   constructor(readonly context: BrowserContext, readonly opts: Options) {
     super(context, opts);
   }
+  
+  // login
+  readonly login = {
+    // Check authentication
+    checkLoginAuthentication: async () => {
+      const locato = this.page.locator("#login-button").first();
+      this.bang("Login button not found", await locato.isVisible(), locato);
+      await this.click(locato);
+    },
 
-  // Locators
-  commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
-  loginButton = () => this.page.locator("#login-button");
+    // Login with credentials
+    loginWithCredentials: async (email: string, password: string) => {
+      await this.login.checkLoginAuthentication();
+
+      //
+      const loginUserNameInput = this.page.locator("faceplate-text-input#login-username input");
+      await this.pressSequentially(loginUserNameInput, email);
+      await this.page.keyboard.press("Tab");
+
+      const loginUserPassword = this.page.locator("faceplate-text-input#login-password input");
+      await this.pressSequentially(loginUserPassword, password);
+
+      const loginUserButton = this.page.getByRole("button", { name: "Log In" });
+      await this.click(loginUserButton);
+    },
+
+    // Login google
+    loginWithGoogle: async (email: string, password: string) => {
+      await this.login.checkLoginAuthentication();
+
+      // Step 2: Find and click the Google sign-in button inside iframe
+      const { frame } = await this.findFrame([
+        'iframe[src*="accounts.google.com/gsi/button"]',
+        'iframe[allow="identity-credentials-get"]',
+        'iframe[id^="gsi_"]',
+        'iframe[title="Sign in with Google Button"]',
+        'iframe[title*="Google"]',
+      ]);
+      await frame.locator('div[role="button"]').click();
+
+      // Step 3: Handle the Google authentication popup
+      const popup = await this.page.waitForEvent("popup");
+      await popup.waitForLoadState();
+
+      // Check if we have saved accounts to select from
+      const emailButtons = popup.locator("[data-email]");
+      if ((await emailButtons.count()) > 0) {
+        // Use existing account
+        return await emailButtons.first().click();
+      }
+
+      // Enter email
+      const emailInput = popup.getByLabel("Email or phone");
+      await this.pressSequentially(emailInput, email);
+
+      // Click next after email
+      const nextButton = popup.locator("div#identifierNext button");
+      await this.click(nextButton);
+
+      // Enter password if needed
+      const passwordInput = popup.getByLabel("Enter your password");
+      await this.pressSequentially(passwordInput, password);
+
+      // Complete login
+      const passwordNextButton = popup.locator("div#passwordNext button");
+      await this.click(passwordNextButton);
+    },
+  };
+
+  // post
+  readonly post = {
+    title: () => this.locatorTxtContent('h1[id^="post-title-"][slot="title"]'),
+
+    // Function to find a comment
+    getComment: async (nth = -1, random = Math.random() < 0.5) => {
+      const locator = this.page.locator("shreddit-comment");
+      const comment = this.bang(
+        "Comment not found",
+        random && nth < 0 ? this.randoNth(locator, await locator.count()) : locator.nth(nth)
+      );
+      await comment.waitFor();
+      return {
+        text: await this.locatorTxtContent("div[slot='comment']", comment),
+        locator: comment,
+      };
+    },
+
+    // Function to add a comment to the main thread
+    addComment: async (comment: () => Promise<string>) => {
+      const locato = this.page.getByRole("button", { name: "Add a comment" });
+
+      // Wait for button to be visible and enabled
+      await this.click(locato);
+
+      // Continue with comment input
+      await this.pressSequentially(
+        this.page.locator("#subgrid-container").getByRole("textbox"),
+        await comment()
+      );
+
+      // Submit comment
+      await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
+    },
+
+    // Function to reply to a comment
+    replyToComment: async (locator: Locator, reply: () => Promise<string>) => {
+      // Click the reply button
+      const comment = locator.locator("shreddit-comment-action-row button").first();
+      await this.click(comment);
+
+      // Wait for the reply box to be visible
+      const replyBox = locator.locator(
+        "shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
+      );
+      await replyBox.waitFor();
+      await this.type(await reply());
+
+      // Click the submit button
+      await this.click(replyBox.locator("button[slot='submit-button']").first());
+    },
+
+    // visit the subreddit
+    visitCommunity: async () => {
+      // Click the "Join" button
+      await this.click(
+        this.bang("'visit' button not found", this.page.locator('span.avatar a[href^="/r/"]').first())
+      );
+    },
+  };
 
   // get the text content of a locator
   locatorTxtContent = async (selector: string, locator?: Locator) => {
@@ -24,73 +149,7 @@ export class Reddit extends Base {
     );
   };
 
-  // Get post title content
-  postTitleText = () => this.locatorTxtContent('h1[id^="post-title-"][slot="title"]');
-
-  // Check authentication
-  checkLoginAuthentication = async () =>
-    this.bang("Login button not found", await this.loginButton().isVisible(), this.loginButton());
-
-  // Login with credentials
-  loginWithCredentials = async (email: string, password: string) => {
-    await this.click(this.loginButton());
-
-    //
-    const loginUserNameInput = this.page.locator("faceplate-text-input#login-username input");
-    await this.pressSequentially(loginUserNameInput, email);
-    await this.page.keyboard.press("Tab");
-
-    const loginUserPassword = this.page.locator("faceplate-text-input#login-password input");
-    await this.pressSequentially(loginUserPassword, password);
-
-    const loginUserButton = this.page.getByRole("button", { name: "Log In" });
-    await this.click(loginUserButton);
-  };
-
-  // Login google
-  loginWithGoogle = async (email: string, password: string) => {
-    // Step 1: Click the main login button
-    await this.click(this.loginButton());
-
-    // Step 2: Find and click the Google sign-in button inside iframe
-    const { frame } = await this.findFrame([
-      'iframe[src*="accounts.google.com/gsi/button"]',
-      'iframe[allow="identity-credentials-get"]',
-      'iframe[id^="gsi_"]',
-      'iframe[title="Sign in with Google Button"]',
-      'iframe[title*="Google"]',
-    ]);
-    await frame.locator('div[role="button"]').click();
-
-    // Step 3: Handle the Google authentication popup
-    const popup = await this.page.waitForEvent("popup");
-    await popup.waitForLoadState();
-
-    // Check if we have saved accounts to select from
-    const emailButtons = popup.locator("[data-email]");
-    if ((await emailButtons.count()) > 0) {
-      // Use existing account
-      return await emailButtons.first().click();
-    }
-
-    // Enter email
-    const emailInput = popup.getByLabel("Email or phone");
-    await this.pressSequentially(emailInput, email);
-
-    // Click next after email
-    const nextButton = popup.locator("div#identifierNext button");
-    await this.click(nextButton);
-
-    // Enter password if needed
-    const passwordInput = popup.getByLabel("Enter your password");
-    await this.pressSequentially(passwordInput, password);
-
-    // Complete login
-    const passwordNextButton = popup.locator("div#passwordNext button");
-    await this.click(passwordNextButton);
-  };
-
-  async search(text: string) {
+  async searcho(text: string) {
     const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
     await this.pressSequentially(locator, text);
     await locator.press("Enter");
@@ -154,61 +213,8 @@ export class Reddit extends Base {
     throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
   }
 
-  async findRandoSubreddit(visit = false) {
-    const locator = this.page.getByTestId("search-community");
-    await this.click(this.randoNth(locator, await locator.count()));
-  }
-
-  // Function to find a comment
-  async findComment(nth = -1, random = Math.random() < 0.5) {
-    const locator = this.page.locator("shreddit-comment");
-    const comment = this.bang(
-      "Comment not found",
-      random && nth < 0 ? this.randoNth(locator, await locator.count()) : locator.nth(nth)
-    );
-    await comment.waitFor();
-    return {
-      post: await this.postTitleText(),
-      text: await this.locatorTxtContent("div[slot='comment']", comment),
-      locator: comment,
-    };
-  }
-
-  async hasComments() {
-    await expect(this.commentButton()).toBeVisible({ timeout: 5000 });
-  }
-
-  // Function to add a comment to the main thread
-  async addCommentToThread(comment: () => Promise<string>) {
-    // Wait for button to be visible and enabled
-    await this.click(this.commentButton());
-
-    // Continue with comment input
-    await this.pressSequentially(this.page.locator("#subgrid-container").getByRole("textbox"), await comment());
-
-    // Submit comment
-    await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
-  }
-
-  // Function to reply to a comment
-  async replyToComment(locator: Locator, reply: () => Promise<string>) {
-    // Click the reply button
-    const comment = locator.locator("shreddit-comment-action-row button").first();
-    await this.click(comment);
-
-    // Wait for the reply box to be visible
-    const replyBox = locator.locator(
-      "shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
-    );
-    await replyBox.waitFor();
-    await this.type(await reply());
-
-    // Click the submit button
-    await this.click(replyBox.locator("button[slot='submit-button']").first());
-  }
-
   // Function to check the member is joined the subreddit or not if not then join the subreddit.
-  async checkAndJoinSubreddit() {
+  async joino() {
     // Click the "Join" button
     await this.click(
       this.bang(
@@ -219,25 +225,29 @@ export class Reddit extends Base {
   }
 
   // Function to check the member is following a user or not if not then follow the user.
-  async checkAndFollowUser() {
+  async follow() {
     await this.click(
       this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
     );
   }
 
-  // visit the subreddit
-  async visitSubredditCommunity() {
-    // Click the "Join" button
-    await this.click(
-      this.bang("'visit' button not found", this.page.locator('span.avatar a[href^="/r/"]').first())
-    );
-  }
-
+  // UpVote / DownVote available
   async voters() {
     await this.scrollabit();
     const ups = this.page.getByRole("button", { name: "Upvote" });
     const downs = this.page.getByRole("button", { name: "Downvote" });
     const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
+
+        // Math.min(upCount, downCount) ensure we don't exceed the number of available votes
+    const length = Math.min(
+      random(this.opts.settings.rando.min, this.opts.settings.rando.max),
+      rando(Math.min(upCount, downCount))
+    );
+
+    // Using Array.from with just length
+    for (let i = 0; i < length; i++) {
+      await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
+    }
     return {
       ups: {
         locator: ups,
@@ -245,23 +255,6 @@ export class Reddit extends Base {
       },
       downs: { locator: downs, count: downCount },
     };
-  }
-
-  // UpVote / DownVote
-  async doVote(params: {
-    ups: { locator: Locator; count: number };
-    downs: { locator: Locator; count: number };
-  }) {
-    // Math.min(upCount, downCount) ensure we don't exceed the number of available votes
-    const length = Math.min(
-      random(this.opts.settings.rando.min, this.opts.settings.rando.max),
-      rando(Math.min(params.ups.count, params.downs.count))
-    );
-
-    // Using Array.from with just length
-    for (let i = 0; i < length; i++) {
-      await (rando() ? this.click(params.ups.locator.nth(i)) : this.click(params.downs.locator.nth(i)));
-    }
   }
 
   // Create Subreddit Post
@@ -328,7 +321,7 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
   });
   const reddit = new Reddit(context, options);
   const player = await Player(reddit);
-  await reddit.search(options.args.search);
+  await reddit.searcho(options.args.search);
   return {
     reddit,
     options,

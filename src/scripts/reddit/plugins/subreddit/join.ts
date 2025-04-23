@@ -1,5 +1,5 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../defs.js";
+import { Options } from "../../settings.js";
 import Reddit from "../../page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
@@ -11,8 +11,8 @@ export default async function (context: BrowserContext, opts: Options) {
     const expecto = await reddit.findo(
       options.args.scope,
       options.args.scope === "People"
-        ? () => reddit.checkAndFollowUser()
-        : () => reddit.checkAndJoinSubreddit(),
+        ? () => reddit.follow()
+        : () => reddit.joino(),
       ranno
     );
 

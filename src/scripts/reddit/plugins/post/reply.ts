@@ -1,5 +1,5 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../defs.js";
+import { Options } from "../../settings.js";
 import Reddit from "../../page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
@@ -12,12 +12,10 @@ export default async function (context: BrowserContext, opts: Options) {
       options.args.scope,
       async () => {
         // duo
-        const { locator, text } = await reddit.findComment();
-        const title = await reddit.postTitleText();
+        const title = await reddit.post.title();
+        const { locator, text } = await reddit.post.getComment();
 
-        // Step 4 - Reply to the comment
-        //`to this '${text}' comment, on a post titled ${title}`
-        await reddit.replyToComment(locator, () =>
+        await reddit.post.replyToComment(locator, () =>
           reddit.ai(`on a a reddit post titled '${title}'`, { input: text, type: "reply" })
         );
       },

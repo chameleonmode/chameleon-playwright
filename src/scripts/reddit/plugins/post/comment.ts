@@ -1,5 +1,5 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../defs.js";
+import { Options } from "../../settings.js";
 import Reddit from "../../page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
@@ -12,9 +12,9 @@ export default async function (context: BrowserContext, opts: Options) {
       options.args.scope,
       async () => {
         // duo
-        const title = await reddit.postTitleText();
-        await reddit.addCommentToThread(
-          () => reddit.ai(`on a reddit post titled '${title}'`, { input: title, type: "comment" })
+        const title = await reddit.post.title();
+        await reddit.post.addComment(() =>
+          reddit.ai(`on a reddit post titled '${title}'`, { input: title, type: "comment" })
         );
       },
       visited

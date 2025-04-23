@@ -1,4 +1,4 @@
-import { Opts, Settings } from "../types";
+import { Opts } from "../types.js";
 
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comment count";

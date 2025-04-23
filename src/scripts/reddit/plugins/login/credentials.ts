@@ -8,9 +8,8 @@ export default async function (
   }
 ) {
   // Step 1 - Launch Reddit
-  const { reddit: page } = await Reddit(await context.newPage());
+  const { reddit } = await Reddit(context);
 
-  // check Authentication
-  await page.checkLoginAuthentication();
-  await page.loginWithCredentials(options.email, options.password);
+  // Step 2 - Authentication
+  await reddit.login.loginWithCredentials(options.email, options.password);
 }
