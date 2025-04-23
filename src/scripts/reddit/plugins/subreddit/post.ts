@@ -12,7 +12,7 @@ export default async function (
 
   // Step 2 - Search for topic
   await page.search(options.search);
-  await page.findRandoThread(rando() ? () => page.checkAndJoinSubreddit() : undefined);
+  await page.findo("Posts", rando() ? () => page.checkAndJoinSubreddit() : () => page.hasComments());
 
   // Step 3 - find post content from a comment
   const { text, post } = await page.findComment(0);

@@ -1,8 +1,8 @@
 import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom } from "../../lib/utils.js";
-import Base from "../page.js";
-import configure, { Opts, Scope } from "./configure.js";
-import { Args } from "./configure.js";
+import { Base } from "../page.js";
+import configure, { Opts, Scope, Settings, Args, defaults } from "./defs.js";
+import { Player } from "../play.js";
 
 export class Reddit extends Base {
   constructor(readonly page: Page, readonly opts: Opts<Args>) {
@@ -96,40 +96,54 @@ export class Reddit extends Base {
     await locator.press("Enter");
   }
 
-  async findRandoThread(func?: () => Promise<void>, scope: Scope = "Posts", triedIndices: number[] = []) {
-    if (!func) {
-      func = () => expect(this.commentButton()).toBeVisible({ timeout: 5000 });
-    }
-    await this.page.getByRole("button", { name: scope }).click();
+  async findo(scope: Scope, funco: () => Promise<unknown>, rano: number[] = []) {
+    const localator =
+      scope === "Posts"
+        ? this.page.getByRole("button", { name: "Posts" }).first()
+        : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first();
+    await this.click(localator);
 
-    const maxAttempts = 18;
+    const findulator = (() => {
+      const scopeToTestIdsMap: {
+        [key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
+      } = {
+        Posts: { ids: ["search-post-with-content-preview", "search-post-unit"], strat: "testId" },
+        Communities: { ids: ["search-community"], strat: "testId" },
+        Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
+        Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
+        People: { ids: ["search-author"], strat: "testId" },
+      };
+      return scopeToTestIdsMap[scope];
+    })();
+
+    const maxAttempts = random(this.opts.settings.rando.min, this.opts.settings.rando.max);
     for (let i = 0; i < maxAttempts; i++) {
       console.debug(`Attempts remaining: ${maxAttempts - i}`);
       await this.nap();
       await this.scrollabit();
 
       // Wait for thread elements to be available
-      const { count, locator, id } = await this.find([
-        "search-post-with-content-preview",
-        "search-post-unit",
-      ]);
+      const { count, locator, id } = await this.find(findulator.ids, findulator.strat);
 
       // Filter out indices we've already tried
       const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
-        (index) => !triedIndices.includes(index)
+        (index) => !rano.includes(index)
       );
-      this.bang("No available threads", availableIndices.length > 0, triedIndices);
+      this.bang("No available threads", availableIndices.length > 0, { triedIndices: rano, availableIndices });
 
       // Randomly select an index from the available indices
-      const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
       try {
-        const thread = locator.nth(randomIndex);
+        const thread = locator.nth(index);
         await this.click(thread);
-        await func();
-        return randomIndex;
+        const funky = await funco();
+        return {
+          foundo: index,
+          funky,
+        };
       } catch (e) {
         console.warn("Func is archived or removed.", e);
-        triedIndices.push(randomIndex);
+        rano.push(index);
         await this.page.goBack();
       }
     }
@@ -155,6 +169,10 @@ export class Reddit extends Base {
       text: await this.locatorTxtContent("div[slot='comment']", comment),
       locator: comment,
     };
+  }
+
+  async hasComments() {
+    await expect(this.commentButton()).toBeVisible({ timeout: 5000 });
   }
 
   // Function to add a comment to the main thread
@@ -193,8 +211,14 @@ export class Reddit extends Base {
       this.bang(
         "'Join' button not found",
         this.page.getByRole("button", { name: "Join", exact: true }).first()
-      ),
-      1
+      )
+    );
+  }
+
+  // Function to check the member is following a user or not if not then follow the user.
+  async checkAndFollowUser() {
+    await this.click(
+      this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
     );
   }
 
@@ -206,26 +230,35 @@ export class Reddit extends Base {
     );
   }
 
-  // UpVote / DownVote
-  async doVote() {
+  async voters() {
     await this.scrollabit();
-
     const ups = this.page.getByRole("button", { name: "Upvote" });
     const downs = this.page.getByRole("button", { name: "Downvote" });
-
-    // Math.min(upCount, downCount) ensure we don't exceed the number of available votes
     const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
-    const length = rando(Math.min(upCount, downCount));
+    return {
+      ups: {
+        locator: ups,
+        count: upCount,
+      },
+      downs: { locator: downs, count: downCount },
+    };
+  }
+
+  // UpVote / DownVote
+  async doVote(params: {
+    ups: { locator: Locator; count: number };
+    downs: { locator: Locator; count: number };
+  }) {
+    // Math.min(upCount, downCount) ensure we don't exceed the number of available votes
+    const length = Math.min(
+      random(this.opts.settings.rando.min, this.opts.settings.rando.max),
+      rando(Math.min(params.ups.count, params.downs.count))
+    );
 
     // Using Array.from with just length
     for (let i = 0; i < length; i++) {
-      // if (rando()) await this.click(ups.nth(i));
-      // else await this.click(downs.nth(i));
-      await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
+      await (rando() ? this.click(params.ups.locator.nth(i)) : this.click(params.downs.locator.nth(i)));
     }
-    // [...Array(length)].map(
-    //   async (_, i) => await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)))
-    // );
   }
 
   // Create Subreddit Post
@@ -251,12 +284,33 @@ export default async function (page: Page, opts?: Partial<Opts<Args>>) {
       feature: "reddit",
       url: "https://www.reddit.com",
     },
+    args: {
+      search: "joe rogan",
+      scope: "Posts",
+      sort: "Relevance",
+      filter: "All time",
+    },
+    settings: {
+      ...defaults.settings,
+      rando: {
+        min: 3,
+        max: 9,
+      },
+      // use to find variations of search term from ai
+      variations: {
+        min: 3,
+        max: 3,
+      },
+    },
     ...opts,
   });
   const reddit = new Reddit(page, options);
   await reddit.navigate(options.start.url);
+  await reddit.search(options.args.search);
+  const times = random(reddit.opts.settings.variations.min, reddit.opts.settings.variations.max);
   return {
     reddit,
     options,
+    player: new Player(reddit, [], times),
   };
 }

@@ -10,10 +10,22 @@ interface Start {
 }
 
 interface Settings {
-  timeout: number;
-  wait: number;
-  max: number;
-  variations: number;
+  timeouts: Timeouts;
+  rando: Rando;
+  variations: Rando;
 }
 
-export type { Opts, Start, Settings };
+interface Timeouts {
+  default: number;
+  wait: number;
+  navigate: number;
+  rando: Rando;
+}
+
+interface Rando {
+  min: number;
+  max: number;
+  multiplier?: number;
+}
+
+export type { Opts, Start, Settings, Timeouts, Rando };

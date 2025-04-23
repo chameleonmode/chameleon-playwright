@@ -11,7 +11,7 @@ export default async function (
 
   // Step 2 - Search for topic and click on 1st test result
   await page.search(opts.search);
-  await page.findRandoThread();
+  await page.findo();
 
   // Step 3 - 1st Comment on main thread
   const title = await page.postTitleText();

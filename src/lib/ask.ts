@@ -1,4 +1,4 @@
-export type scenario = {
+export type Scenario = {
   input: string;
   type: "comment" | "post" | "reply" | "title";
   tone?: "sarcastic" | "informative" | "relatable" | "straightforward";
@@ -16,7 +16,7 @@ export type scenario = {
     | "200-500"
     | "500-1000";
 };
-export const tones: scenario["tone"][] = ["sarcastic", "informative", "relatable", "straightforward"];  
+export const tones: Scenario["tone"][] = ["sarcastic", "informative", "relatable", "straightforward"];  
 
 export async function askConsole(input: string): Promise<string> {
   console.log(`Ask:${input}`); // must remain ask for seperate process to intercept
@@ -45,7 +45,7 @@ export async function askAI(opts: {
   ai?: string;
   feature: string;
   background?: string;
-  scenario: scenario;
+  scenario: Scenario;
 }) {
   const { feature, scenario, ai = "gpt", background = "" } = opts;
   const res = await fetch(

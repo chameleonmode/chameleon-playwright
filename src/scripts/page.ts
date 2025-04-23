@@ -1,23 +1,28 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
-import { askAI, scenario, tones } from "../lib/ask.js";
+import { askAI, Scenario, tones } from "../lib/ask.js";
 import { Opts } from "./types.js";
 
-export default class {
+export class Base{
+  timout: number;
   constructor(readonly page: Page, readonly opts: Opts<unknown>) {
-    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
-    this.page.setDefaultTimeout(opts.settings.timeout);
+    this.timout = 1000 * 60 * opts.settings.timeouts.navigate;
+    this.page.setDefaultNavigationTimeout(this.timout);
+    this.page.setDefaultTimeout(1000 * 60 * opts.settings.timeouts.default);
   }
 
   async navigate(url: string) {
-    await this.page.goto(url, { waitUntil: "load" });
+    await this.page.goto(url);
     await this.waitForNavigation();
   }
 
   async waitForNavigation() {
-    await this.page.waitForLoadState("domcontentloaded");
-    await this.page.waitForLoadState("load");
+    return await tryForEach([
+      this.page.waitForLoadState("load", { timeout: this.timout }),
+      this.page.waitForLoadState("domcontentloaded", { timeout: this.timout }),
+      // this.page.waitForLoadState("networkidle", { timeout: this.timout }),
+    ]);
   }
 
   async getFocusedElement() {
@@ -50,46 +55,76 @@ export default class {
   }
 
   randoNth(locator: Locator, count: number) {
-    return locator.nth(Math.floor(Math.random() * count));
+    return locator.nth(Math.min(
+      random(this.opts.settings.rando.min, this.opts.settings.rando.max), rando(count))
+    );
   }
 
-  async click(locator: Locator, seconds = 5) {
-    await sleepRandom();
-    await this.waitForNavigation();
-    const timeout = 1000 * seconds;
-    const { errors } = await tryForEach([
-      locator.waitFor({ timeout }),
-      locator.scrollIntoViewIfNeeded({ timeout }),
-    ]);
-    const { fulfilled } = await tryForEach([
+  async click(locator: Locator, timeout = 1000 * this.opts.settings.timeouts.wait) {
+    await this.nap();
+
+    // Expect for the element to be enabled and visible
+    const expecto = await tryForEach([
+      locator.click({ timeout, force: true }),
       expect(locator).toBeEnabled({ timeout }),
       expect(locator).toBeVisible({ timeout }),
     ]);
-    // TODO: maby bang fulfilled or errors
-    await locator.click();
-    await this.waitForNavigation();
-    await sleepRandom();
+    this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length); // Added bang for fulfilled check
+
+    // Wait for the element to be in the viewport and scroll into view
+    const locato = await tryForEach([
+      locator.waitFor({ timeout }),
+      locator.scrollIntoViewIfNeeded({ timeout }),
+    ]);
+    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length); // Added bang for errors check
+
+
+    await this.nap();
   }
 
   async scrollabit() {
     // Scroll down multiple times with delay to simulate natural scrolling
-    for (let i = 0; i < random(3, 6); i++) {
+    for (let i = 0; i < random(3, 9); i++) {
+      await this.nap(); 
+      try {
+        // if already scrolled till end break
+        const { scrollTop, scrollHeight, clientHeight } = await this.page.evaluate(() => {
+          return {
+            scrollTop: window.scrollY,
+            clientHeight: document.documentElement.clientHeight,
+            scrollHeight: document.body.scrollHeight,
+          };
+        });
+
+        // Throws when at bottom or can't scroll further
+        this.bang(
+          `scrollHeight: ${scrollHeight}, scrollTop: ${scrollTop}, clientHeight: ${clientHeight}`,
+          scrollTop + clientHeight < scrollHeight
+        );
+      } catch (e) {
+        break;
+      }
       // Occasionally scroll up slightly (1 in 8 chance)
-      const direction = Math.random() > 0.875 ? -1 : 1;
+      const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
       await this.page.mouse.wheel(0, direction * random(1024, 2048));
-      await sleepRandom();
     }
   }
 
-  async nap() {
-    await sleepRandom();
-    await this.page.waitForTimeout(random(256, 512) * random(2, 4));
+  async nap(
+    args: { min: number; max: number; multiplier?: number } = {
+      min: this.opts.settings.timeouts.rando.min,
+      max: this.opts.settings.timeouts.rando.max,
+      multiplier: this.opts.settings.timeouts.rando.multiplier,
+    }
+  ) {
+    await sleepRandom(args);
+    await this.page.waitForTimeout(random(args.min, args.max) * (args.multiplier || random(2, 4)));
     await this.waitForNavigation();
   }
 
-  async ai(background: string, scenario: scenario) {
+  async ai(background: string, scenario: Scenario) {
     const result = await askAI({
-      feature: this.opts?.start.feature || "unknown",
+      feature: this.opts.start.feature,
       background,
       scenario: {
         tone: rando(tones),
@@ -105,6 +140,7 @@ export default class {
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {
+    console.log(`[Banger] Message: ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }

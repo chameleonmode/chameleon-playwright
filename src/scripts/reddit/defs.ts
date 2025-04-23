@@ -1,4 +1,4 @@
-import { Opts } from "../types";
+import { Opts, Settings } from "../types";
 
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comment count";
@@ -23,24 +23,30 @@ export const defaults: Opts<Args> = {
     filter: "All time",
   },
   settings: {
-    timeout: 1000 * 60 * 1,
-    wait: 1000,
-    max: 3,
-    variations: 1,
+    timeouts: {
+      default: 1,
+      navigate: 2,
+      wait: 6,
+      rando: {
+        min: 256,
+        max: 512,
+        multiplier: undefined,
+      },
+    },
+    rando: {
+      min: 1,
+      max: 3,
+    },
+    variations: {
+      min: 1,
+      max: 3,
+    },
   },
 };
 export default function (opts: Partial<Opts<Args>>) {
   return {
     ...defaults,
     ...opts,
-    args: {
-      ...defaults.args,
-      ...opts.args,
-    },
-    settings: {
-      ...defaults.settings,
-      ...opts.settings,
-    },
   };
 }
-export type { Opts, Args, Sort, Filter, Scope };
+export type { Opts, Settings, Args, Sort, Filter, Scope };

@@ -38,7 +38,12 @@ async function main() {
   })();
 
   const { default: plugin } = await import(pluginPath);
-  await plugin(context, opts);
+    try {
+      console.log(`Try: ${platform} File: ${file} JSON: ${json}`);
+      await plugin(context, opts);
+    } finally {
+      console.log(`Finally: ${file} completed finally block`);
+    }
 }
 
 main().catch(console.error);
