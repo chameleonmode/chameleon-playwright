@@ -1,16 +1,16 @@
 import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom } from "../../lib/utils.js";
 import Base from "../page.js";
+import configure, { Opts } from "../types.js";
 
 export class Reddit extends Base {
-  constructor(readonly page: Page) {
-    super(page, "https://www.reddit.com", "Reddit");
+  constructor(readonly page: Page, readonly opts: Opts) {
+    super(page, opts);
   }
 
   // Locators
   searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
-  nextButton = () => this.page.getByRole("button", { name: "Next" });
   loginButton = () => this.page.locator("#login-button");
 
   // get the text content of a locator
@@ -58,7 +58,7 @@ export class Reddit extends Base {
       'iframe[allow="identity-credentials-get"]',
       'iframe[id^="gsi_"]',
       'iframe[title="Sign in with Google Button"]',
-      'iframe[title*="Google"]'
+      'iframe[title*="Google"]',
     ]);
     await frame.locator('div[role="button"]').click();
 
@@ -95,11 +95,11 @@ export class Reddit extends Base {
     await this.searchTextBox().press("Enter");
   }
 
-  async findRandoThread(func?: () => Promise<void>) {
+  async findRandoThread(func?: () => Promise<void>, scope = "Posts") {
     if (!func) {
       func = () => expect(this.commentButton()).toBeVisible({ timeout: 5000 });
     }
-    await this.page.getByRole("button", { name: "Posts" }).click();
+    await this.page.getByRole("button", { name: scope }).click();
 
     const triedIndices: number[] = [];
     const maxAttempts = 18;
@@ -217,12 +217,13 @@ export class Reddit extends Base {
 
     // Using Array.from with just length
     for (let i = 0; i < length; i++) {
-      if (rando()) await this.click(ups.nth(i));
-      else await this.click(downs.nth(i));
+      // if (rando()) await this.click(ups.nth(i));
+      // else await this.click(downs.nth(i));
+      await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
     }
-    [...Array(length)].map(
-      async (_, i) => await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)))
-    );
+    // [...Array(length)].map(
+    //   async (_, i) => await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)))
+    // );
   }
 
   // Create Subreddit Post
@@ -242,8 +243,19 @@ export class Reddit extends Base {
   }
 }
 
-export default async function (page: Page, url?: string) {
-  const reddit = new Reddit(page);
-  await reddit.navigate(url || reddit.START_URL);
-  return reddit;
+export default async function (page: Page, opts?: Partial<Opts>) {
+  
+  const options = configure({
+    ...opts,
+    start: {
+      feature: opts?.start?.feature || "reddit",
+      url: opts?.start?.url || "https://www.reddit.com",
+    },
+  });
+  const reddit = new Reddit(page, options);
+  await reddit.navigate(options.start.url);
+  return {
+    reddit,
+    options,
+  };
 }

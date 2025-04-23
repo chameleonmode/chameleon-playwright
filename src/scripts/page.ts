@@ -1,15 +1,13 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
+import { Opts } from "./types.js";
 import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
 import { askAI, scenario, tones } from "../lib/ask.js";
 
 export default class {
-  constructor(readonly page: Page, readonly START_URL: string, readonly feature: string) {
-    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
-    this.page.setDefaultTimeout(1000 * 60 * 5);
-  }
-  async goToStartPage() {
-    await this.navigate(this.START_URL);
+  constructor(readonly page: Page, readonly opts: Opts) {
+    this.page.setDefaultNavigationTimeout(1000 * 60);
+    this.page.setDefaultTimeout(opts.settings.timeout);
   }
 
   async navigate(url: string) {
@@ -85,7 +83,7 @@ export default class {
 
   async ai(background: string, scenario: scenario) {
     const result = await askAI({
-      feature: this.feature,
+      feature: this.opts.start.feature,
       background,
       scenario: {
         tone: rando(tones),
@@ -97,7 +95,7 @@ export default class {
   }
 
   error(message: string, cause?: unknown) {
-    return new Error(`[${this.feature}] - [${this.START_URL}] ${message}`, { cause });
+    return new Error(`[${this.opts.start.feature}] - [${this.opts.start.url}] ${message}`, { cause });
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {

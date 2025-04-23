@@ -1,5 +1,6 @@
 import { BrowserContext } from "@playwright/test";
 import Page from "../page.js";
+import configure from "../../types.js"
 
 export default async function (
   context: BrowserContext,
@@ -13,9 +14,8 @@ export default async function (
     // locationSearch: string;
   }
 ) {
-  const page = new Page(await context.newPage());
+  const page = new Page(await context.newPage(), configure({ start: { feature: args.title, url:  "https://sites.google.com/" } }));
   // Step 1 - Launch Google Sites
-  await page.goToStartPage();
   await page.waitForNavigation();
   //optional - Click on Got It Button if displayed (for newly created account)
   await page.clickOnGotItButton();

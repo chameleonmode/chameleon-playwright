@@ -39,3 +39,18 @@ export async function tryForEach<T>(promises: Promise<T>[]) {
 
   return { fulfilled, errors };
 }
+
+export function deepMerge(target: any, source: any) {
+  if (!source) return target;
+  const output = { ...target };
+  
+  Object.keys(source).forEach(key => {
+    if (source[key] instanceof Object && key in target) {
+      output[key] = deepMerge(target[key], source[key]);
+    } else {
+      output[key] = source[key];
+    }
+  });
+  
+  return output;
+}

@@ -1,4 +1,5 @@
 import path from "path";
+import configure from "../scripts/types.js";
 
 export async function loader(file: string): Promise<any> {
   // Recreate dirname for ES module

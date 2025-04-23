@@ -4,15 +4,15 @@
 const [platform, file, json] = process.argv.slice(2);
 const pluginPath = `./scripts/${platform}/plugins/${file}`;
 //const userDataDir = `.cache/${platform}`;
-const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/28296"; 
+const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256";
 const opts = JSON.parse(json) || "{}";
 
 async function main() {
   const { chromium } = await import("@playwright/test");
-  const context = await (async function(){
+  const context = await (async function () {
     try {
       // Try to connect to an already running Chrome instance
-      return await chromium.connectOverCDP("http://localhost:9613");
+      return (await chromium.connectOverCDP("http://localhost:9613")).contexts()[0];
     } catch (error) {
       // Ensure the context is connected to the newly launched browser
       return await chromium.launchPersistentContext(userDataDir, {
@@ -33,9 +33,9 @@ async function main() {
         })(),
         // adding args might create issues with some plugins on different platforms leave it empty
         args: ["--remote-debugging-port=3690"],
-      })
+      });
     }
-  })()
+  })();
 
   const { default: plugin } = await import(pluginPath);
   await plugin(context, opts);

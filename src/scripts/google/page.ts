@@ -1,6 +1,7 @@
 import { FrameLocator, Locator, Page, expect } from "@playwright/test";
 import { random, sleepRandom } from "../../lib/utils.js";
 import Base from "../page.js";
+import { Opts } from "../types.js";
 
 export default class GsitePage extends Base {
   // LOCATORS
@@ -30,8 +31,8 @@ export default class GsitePage extends Base {
     applyButton: Locator;
   };
 
-  constructor(readonly page: Page) {
-    super(page, "https://sites.google.com/", "Google");
+  constructor(readonly page: Page, readonly opts: Opts) {
+    super(page, opts);
 
     this.gotItButton = page.locator(`//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`);
     this.skipThisTourButton = page.locator(
