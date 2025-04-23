@@ -10,8 +10,8 @@ export default async function (context: BrowserContext, opts: Options) {
   await player.start(async (visited) => {
     const expecto = await reddit.findo(
       options.args.scope,
+      // Step 3 - Moves
       async () => {
-        // duo
         const title = await reddit.post.title();
         await reddit.post.addComment(() =>
           reddit.ai(`on a reddit post titled '${title}'`, { input: title, type: "comment" })

@@ -10,8 +10,8 @@ export default async function (context: BrowserContext, opts: Options) {
   await player.start(async (visited) => {
     const expecto = await reddit.findo(
       options.args.scope,
+      // Step 3 - Moves
       async () => {
-        // duo
         const title = await reddit.post.title();
         const { locator, text } = await reddit.post.getComment();
 
