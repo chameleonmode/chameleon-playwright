@@ -155,7 +155,7 @@ export class Reddit extends Base {
     await locator.press("Enter");
   }
 
-  async findo(scope: Scope, funco: () => Promise<unknown>, visited: number[] = []) {
+  async findo(funco: () => Promise<unknown>, visited: number[] = [], scope = this.opts.args.scope) {
     const localator =
       scope === "Posts"
         ? this.page.getByRole("button", { name: "Posts" }).first()
@@ -258,10 +258,10 @@ export class Reddit extends Base {
   }
 
   // Create Subreddit Post
-  async poster(content: () => Promise<{ title: string; content: string }>) {
+  async poster(contents: () => Promise<{ title: string; content: string }>) {
     await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
 
-    const { title, content: commentText } = await content();
+    const { title, content } = await contents();
     await this.pressSequentially(this.page.locator("#innerTextArea").first(), title);
 
     const traverse = async (
@@ -280,7 +280,7 @@ export class Reddit extends Base {
     await traverse((ele) => {
       return ele.ariaLabel !== "Post body text field";
     });
-    await this.type(commentText);
+    await this.type(content);
 
     // submit
     await traverse((ele) => {
@@ -322,11 +322,9 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
     ...opts,
   });
   const reddit = new Reddit(context, options);
-  const player = await Player(reddit);
-  await reddit.searcho(options.args.search);
+  const player = await Player(reddit, () => reddit.searcho(options.args.search));
   return {
     reddit,
-    options,
     player,
   };
 }

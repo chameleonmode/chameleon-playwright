@@ -18,9 +18,11 @@ export class Player {
   }
 }
 
-export default async function (actor: Base) {
+export default async function (actor: Base, postInit: () => Promise<void>) {
   await actor.init();
   if (actor.opts.start.url) await actor.navigate(actor.opts.start.url); // Added navigation to the start URL
+  await actor.nap();
+  await postInit();
   return new Player(
     actor,
     [],
