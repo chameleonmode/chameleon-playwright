@@ -129,7 +129,10 @@ export class Reddit extends Base {
       const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
         (index) => !rano.includes(index)
       );
-      this.bang("No available threads", availableIndices.length > 0, { triedIndices: rano, availableIndices });
+      this.bang("No available threads", availableIndices.length > 0, {
+        triedIndices: rano,
+        availableIndices,
+      });
 
       // Randomly select an index from the available indices
       const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
@@ -266,14 +269,29 @@ export class Reddit extends Base {
     await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
     await this.pressSequentially(this.page.locator("#innerTextArea").first(), commentTitle);
 
+    const traverse = async (
+      condition: (ele: {
+        element: Element | null;
+        tagName: string | undefined;
+        ariaLabel: string | null | undefined;
+      }) => boolean
+    ) => {
+      while (condition(await this.getFocusedElement())) {
+        this.page.keyboard.press("Tab");
+      }
+    };
+
     // enter comment
-    await this.page.keyboard.press("Tab");
-    await this.page.keyboard.press("Tab");
+    await traverse((ele) => {
+      return ele.ariaLabel !== "Post body text field";
+    });
     await this.type(commentText);
 
     // submit
-    await this.page.keyboard.press("Tab");
-    await this.page.keyboard.press("Tab");
+    await traverse((ele) => {
+      return ele.tagName !== "R-POST-FORM-SUBMIT-BUTTON";
+    });
+
     await this.page.keyboard.press("Enter");
   }
 }
@@ -285,8 +303,8 @@ export default async function (page: Page, opts?: Partial<Options>) {
       url: "https://www.reddit.com",
     },
     args: {
-      search: "joe rogan",
-      scope: "Communities",
+      search: "tim allen",
+      scope: "Posts",
       sort: "Relevance",
       filter: "All time",
     },
@@ -305,8 +323,8 @@ export default async function (page: Page, opts?: Partial<Options>) {
     ...opts,
   });
   const reddit = new Reddit(page, options);
-  await reddit.navigate(options.start.url);
-  await reddit.search(options.args.search);
+  // await reddit.navigate(options.start.url);
+  // await reddit.search(options.args.search);
   const times = random(reddit.opts.settings.variations.min, reddit.opts.settings.variations.max);
   return {
     reddit,
