@@ -16,19 +16,24 @@ export default async function (context: BrowserContext, opts: Options) {
         await reddit.post.visitCommunity();
 
         // Ask ai to create a new post title and content
-        const title = await reddit.ai(
-          `Based on this '${text}' comment, on a post titled ${await reddit.post.title()}, through a search term of ${
-            options.args.search
-          }`,
-          { input: options.args.search, type: "title", range: "3-9" }
-        );
-        const content = await reddit.ai(
-          `for a new post titled ${title}, to this comment'${text}' through a search term of ${options.args.search}`,
-          { input: title, type: "post" }
-        );
+        const content = async () => {
+          const title = await reddit.ai(
+            `Based on this '${text}' comment, on a post titled ${await reddit.post.title()}, through a search term of ${
+              options.args.search
+            }`,
+            { input: options.args.search, type: "title", range: "3-9" }
+          );
+          return {
+            title,
+            content: await reddit.ai(
+              `Based on this '${text}' comment, on a post titled ${title}, through a search term of ${options.args.search}`,
+              { input: text, type: "post" }
+            ),
+          };
+        };
 
         // Create a new post
-        await reddit.poster(title, content);
+        await reddit.poster(content);
       },
       ranno
     );

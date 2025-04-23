@@ -258,9 +258,11 @@ export class Reddit extends Base {
   }
 
   // Create Subreddit Post
-  async poster(commentTitle: string, commentText: string) {
+  async poster(content: () => Promise<{ title: string; content: string }>) {
     await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
-    await this.pressSequentially(this.page.locator("#innerTextArea").first(), commentTitle);
+
+    const { title, content: commentText } = await content();
+    await this.pressSequentially(this.page.locator("#innerTextArea").first(), title);
 
     const traverse = async (
       condition: (ele: {
