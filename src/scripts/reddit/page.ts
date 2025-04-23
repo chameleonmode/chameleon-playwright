@@ -81,7 +81,7 @@ export class Reddit extends Base {
   readonly post = {
     title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
 
-    // Function to find a comment
+    // find a comment
     getComment: async (nth = -1, random = Math.random() < 0.5) => {
       const locator = this.page.locator("shreddit-comment");
       const comment = this.bang(
@@ -95,7 +95,7 @@ export class Reddit extends Base {
       };
     },
 
-    // Function to add a comment to the main thread
+    // add a comment to the main thread
     addComment: async (comment: () => Promise<string>) => {
       const locato = this.page.getByRole("button", { name: "Add a comment" });
 
@@ -112,7 +112,7 @@ export class Reddit extends Base {
       await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
     },
 
-    // Function to reply to a comment
+    // reply to a comment
     replyToComment: async (locator: Locator, reply: () => Promise<string>) => {
       // Click the reply button
       const comment = locator.locator("shreddit-comment-action-row button").first();
@@ -149,12 +149,14 @@ export class Reddit extends Base {
     );
   };
 
+  // search for a term on Reddit
   async searcho(text: string) {
     const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
     await this.pressSequentially(locator, text);
     await locator.press("Enter");
   }
 
+  // find an active context
   async findo(funco: () => Promise<unknown>, visited: number[] = [], scope = this.opts.args.scope) {
     const localator =
       scope === "Posts"
@@ -213,7 +215,7 @@ export class Reddit extends Base {
     throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
   }
 
-  // Function to check the member is joined the subreddit or not if not then join the subreddit.
+  // check the member is joined the subreddit or not if not then join the subreddit.
   async joiner() {
     // Click the "Join" button
     await this.click(
@@ -224,14 +226,14 @@ export class Reddit extends Base {
     );
   }
 
-  // Function to check the member is following a user or not if not then follow the user.
+  // check the member is following a user or not if not then follow the user.
   async follower() {
     await this.click(
       this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
     );
   }
 
-  // UpVote / DownVote available
+  // vote on a post
   async voter() {
     await this.scrollabit();
     const ups = this.page.getByRole("button", { name: "Upvote" });
@@ -257,7 +259,7 @@ export class Reddit extends Base {
     };
   }
 
-  // Create Subreddit Post
+  // create a new post
   async poster(contents: () => Promise<{ title: string; content: string }>) {
     await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
 
