@@ -31,7 +31,7 @@ export default class GsitePage extends Base {
     applyButton: Locator;
   };
 
-  constructor(readonly page: Page, readonly opts: Opts) {
+  constructor(readonly page: Page, readonly opts: Opts<undefined>) {
     super(page, opts);
 
     this.gotItButton = page.locator(`//div[@class='docs-homescreen-warmwelcome-sites-gotit-button']`);

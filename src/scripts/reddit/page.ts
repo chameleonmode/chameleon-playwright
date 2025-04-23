@@ -1,10 +1,11 @@
 import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom } from "../../lib/utils.js";
 import Base from "../page.js";
-import configure, { Opts, Scope } from "../types.js";
+import configure, { Opts, Scope } from "./configure.js";
+import { Args } from "./configure.js";
 
 export class Reddit extends Base {
-  constructor(readonly page: Page, readonly opts: Opts) {
+  constructor(readonly page: Page, readonly opts: Opts<Args>) {
     super(page, opts);
   }
 
@@ -244,7 +245,7 @@ export class Reddit extends Base {
   }
 }
 
-export default async function (page: Page, opts?: Partial<Opts>) {
+export default async function (page: Page, opts?: Partial<Opts<Args>>) {
   const options = configure({
     start: {
       feature: "reddit",

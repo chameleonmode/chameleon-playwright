@@ -1,13 +1,13 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { Opts } from "./types.js";
 import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
 import { askAI, scenario, tones } from "../lib/ask.js";
+import { Opts } from "./types.js";
 
 export default class {
-  constructor(readonly page: Page, readonly opts: Opts) {
+  constructor(readonly page: Page, readonly opts: Opts<unknown>) {
     this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
-    this.page.setDefaultTimeout(opts.settings.timeout || 1000 * 30);
+    this.page.setDefaultTimeout(opts.settings.timeout);
   }
 
   async navigate(url: string) {
@@ -89,7 +89,7 @@ export default class {
 
   async ai(background: string, scenario: scenario) {
     const result = await askAI({
-      feature: this.opts.start.feature,
+      feature: this.opts?.start.feature || "unknown",
       background,
       scenario: {
         tone: rando(tones),
