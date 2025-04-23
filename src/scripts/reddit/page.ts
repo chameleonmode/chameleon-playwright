@@ -79,7 +79,7 @@ export class Reddit extends Base {
 
   // post
   readonly post = {
-    title: () => this.locatorTxtContent('h1[id^="post-title-"][slot="title"]'),
+    title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
 
     // Function to find a comment
     getComment: async (nth = -1, random = Math.random() < 0.5) => {
@@ -90,7 +90,7 @@ export class Reddit extends Base {
       );
       await comment.waitFor();
       return {
-        text: await this.locatorTxtContent("div[slot='comment']", comment),
+        text: await this.txtContent("div[slot='comment']", comment),
         locator: comment,
       };
     },
@@ -139,7 +139,7 @@ export class Reddit extends Base {
   };
 
   // get the text content of a locator
-  locatorTxtContent = async (selector: string, locator?: Locator) => {
+  txtContent = async (selector: string, locator?: Locator) => {
     const element = locator?.locator(selector).first() || this.page.locator(selector).first();
     await expect(element).toBeVisible();
 
@@ -225,14 +225,14 @@ export class Reddit extends Base {
   }
 
   // Function to check the member is following a user or not if not then follow the user.
-  async follow() {
+  async follower() {
     await this.click(
       this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
     );
   }
 
   // UpVote / DownVote available
-  async voters() {
+  async voter() {
     await this.scrollabit();
     const ups = this.page.getByRole("button", { name: "Upvote" });
     const downs = this.page.getByRole("button", { name: "Downvote" });

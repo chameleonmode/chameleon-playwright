@@ -11,7 +11,7 @@ export default async function (context: BrowserContext, opts: Options) {
     const expecto = await reddit.findo(
       options.args.scope,
       options.args.scope === "People"
-        ? () => reddit.follow()
+        ? () => reddit.follower()
         : () => reddit.joino(),
       ranno
     );
