@@ -2,15 +2,15 @@ import { random } from "../lib/utils.js";
 import { Base } from "./page.js";
 
 export class Player {
-  constructor(readonly actor: Base, readonly threads: number[] = [], readonly times: number = 1) {}
+  constructor(readonly actor: Base, readonly threads: number[] = [], readonly iterations: number = 1) {}
   async start(dance: (rano: number[]) => Promise<number>) {
-    for (let i = 0; i < this.times; i++) {
+    for (let i = 0; i < this.iterations; i++) {
       console.log(`
-         Step: ${i + 1} of ${this.times}`);
+         Iteration: ${i + 1} of ${this.iterations}`);
 
       if (i > 0) {
-        this.actor.nap();
-        this.actor.page.goBack();
+        await this.actor.nap();
+        await this.actor.page.goBack();
       }
       const resulto = await dance(this.threads);
       this.threads.push(resulto);

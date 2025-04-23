@@ -191,7 +191,7 @@ export class Reddit extends Base {
   }
 
   // Function to reply to a comment
-  async replyToComment(locator: Locator, reply: string) {
+  async replyToComment(locator: Locator, reply: () => Promise<string>) {
     // Click the reply button
     const comment = locator.locator("shreddit-comment-action-row button").first();
     await this.click(comment);
@@ -201,7 +201,7 @@ export class Reddit extends Base {
       "shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
     );
     await replyBox.waitFor();
-    await this.type(reply);
+    await this.type(await reply());
 
     // Click the submit button
     await this.click(replyBox.locator("button[slot='submit-button']").first());
@@ -305,7 +305,7 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
       new: true,
     },
     args: {
-      search: "bobby kennedy",
+      search: "bobby lee",
       scope: "Posts",
       sort: "Relevance",
       filter: "All time",

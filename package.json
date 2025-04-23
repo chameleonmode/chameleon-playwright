@@ -10,7 +10,7 @@
     "reddit:run": "npm run node:ts src/local.ts -- reddit",
     "reddit:login-credentials": "npm run reddit:run login/credentials.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
     "reddit:login-google": "npm run reddit:run login/google.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
-    "reddit:comment-on-comment": "npm run reddit:run post/reply-to-comment.ts '{\"search\":\"playwright\"}'",
+    "reddit:reply": "npm run reddit:run post/reply.ts",
     "reddit:comment": "npm run reddit:run post/comment.ts",
     "reddit:vote": "npm run reddit:run subreddit/vote.ts",
     "reddit:post": "npm run reddit:run subreddit/post.ts",
