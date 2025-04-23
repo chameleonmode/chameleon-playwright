@@ -1,7 +1,7 @@
 import { Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom } from "../../lib/utils.js";
 import Base from "../page.js";
-import configure, { Opts } from "../types.js";
+import configure, { Opts, Scope } from "../types.js";
 
 export class Reddit extends Base {
   constructor(readonly page: Page, readonly opts: Opts) {
@@ -9,7 +9,6 @@ export class Reddit extends Base {
   }
 
   // Locators
-  searchTextBox = () => this.page.locator(`faceplate-search-input`).getByRole("textbox");
   commentButton = () => this.page.getByRole("button", { name: "Add a comment" });
   loginButton = () => this.page.locator("#login-button");
 
@@ -91,22 +90,22 @@ export class Reddit extends Base {
   };
 
   async search(text: string) {
-    await this.pressSequentially(this.searchTextBox(), text);
-    await this.searchTextBox().press("Enter");
+    const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
+    await this.pressSequentially(locator, text);
+    await locator.press("Enter");
   }
 
-  async findRandoThread(func?: () => Promise<void>, scope = "Posts") {
+  async findRandoThread(func?: () => Promise<void>, scope: Scope = "Posts", triedIndices: number[] = []) {
     if (!func) {
       func = () => expect(this.commentButton()).toBeVisible({ timeout: 5000 });
     }
     await this.page.getByRole("button", { name: scope }).click();
 
-    const triedIndices: number[] = [];
     const maxAttempts = 18;
     for (let i = 0; i < maxAttempts; i++) {
       console.debug(`Attempts remaining: ${maxAttempts - i}`);
-      await this.waitForNavigation();
-      await sleepRandom();
+      await this.nap();
+      await this.scrollabit();
 
       // Wait for thread elements to be available
       const { count, locator, id } = await this.find([
@@ -125,7 +124,8 @@ export class Reddit extends Base {
       try {
         const thread = locator.nth(randomIndex);
         await this.click(thread);
-        return await func();
+        await func();
+        return randomIndex;
       } catch (e) {
         console.warn("Func is archived or removed.", e);
         triedIndices.push(randomIndex);
@@ -192,7 +192,8 @@ export class Reddit extends Base {
       this.bang(
         "'Join' button not found",
         this.page.getByRole("button", { name: "Join", exact: true }).first()
-      )
+      ),
+      1
     );
   }
 
@@ -244,13 +245,12 @@ export class Reddit extends Base {
 }
 
 export default async function (page: Page, opts?: Partial<Opts>) {
-  
   const options = configure({
-    ...opts,
     start: {
-      feature: opts?.start?.feature || "reddit",
-      url: opts?.start?.url || "https://www.reddit.com",
+      feature: "reddit",
+      url: "https://www.reddit.com",
     },
+    ...opts,
   });
   const reddit = new Reddit(page, options);
   await reddit.navigate(options.start.url);

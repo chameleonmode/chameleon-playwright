@@ -12,14 +12,14 @@ interface Start {
 interface Search {
   term: string;
   scope: Scope;
-  sort: Sort;
-  filter: Filter;
+  sort?: Sort;
+  filter?: Filter;
 }
 
 interface Settings {
-  timeout: number;
-  wait: number;
-  max: number;
+  timeout?: number;
+  wait?: number;
+  max?: number;
   variations: number;
 }
 
@@ -31,20 +31,20 @@ const defaults: Opts = {
   search: {
     term: "chameleon",
     scope: "Posts",
-    sort: "None",
-    filter: "All",
+    sort: "Relevance",
+    filter: "All time",
   },
   settings: {
-    timeout: 60 * 5,
+    timeout: 1000 * 60 * 1,
     wait: 1000,
     max: 3,
     variations: 1,
   },
 };
 
-type Scope = "Posts" | "Comments" | "Communities" | "Users";
-type Sort = "None" | "Relevance" | "Hot" | "Top" | " New" | "Rising" | "Comments";
-type Filter = "All" | "Hour" | "Day" | "Week" | "Month" | "Year";
+type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
+type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comment count";
+type Filter = "All time" | "Past year" | "Past month" | "Past week" | "Today" | "Past hour";
 
 export default function (opts: Partial<Opts>) {
   return {

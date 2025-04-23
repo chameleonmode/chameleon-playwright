@@ -5,7 +5,7 @@ const [platform, file, json] = process.argv.slice(2);
 const pluginPath = `./scripts/${platform}/plugins/${file}`;
 //const userDataDir = `.cache/${platform}`;
 const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256";
-const opts = JSON.parse(json) || "{}";
+const opts = json ? JSON.parse(json) || "{}" : undefined;
 
 async function main() {
   const { chromium } = await import("@playwright/test");

@@ -6,8 +6,8 @@ import { askAI, scenario, tones } from "../lib/ask.js";
 
 export default class {
   constructor(readonly page: Page, readonly opts: Opts) {
-    this.page.setDefaultNavigationTimeout(1000 * 60);
-    this.page.setDefaultTimeout(opts.settings.timeout);
+    this.page.setDefaultNavigationTimeout(1000 * 60 * 2);
+    this.page.setDefaultTimeout(opts.settings.timeout || 1000 * 30);
   }
 
   async navigate(url: string) {
@@ -53,10 +53,10 @@ export default class {
     return locator.nth(Math.floor(Math.random() * count));
   }
 
-  async click(locator: Locator) {
+  async click(locator: Locator, seconds = 5) {
     await sleepRandom();
     await this.waitForNavigation();
-    const timeout = 1000 * 10;
+    const timeout = 1000 * seconds;
     const { errors } = await tryForEach([
       locator.waitFor({ timeout }),
       locator.scrollIntoViewIfNeeded({ timeout }),
@@ -73,12 +73,18 @@ export default class {
 
   async scrollabit() {
     // Scroll down multiple times with delay to simulate natural scrolling
-    for (let i = 0; i < random(6, 9); i++) {
+    for (let i = 0; i < random(3, 6); i++) {
       // Occasionally scroll up slightly (1 in 8 chance)
       const direction = Math.random() > 0.875 ? -1 : 1;
       await this.page.mouse.wheel(0, direction * random(1024, 2048));
       await sleepRandom();
     }
+  }
+
+  async nap() {
+    await sleepRandom();
+    await this.page.waitForTimeout(random(256, 512) * random(2, 4));
+    await this.waitForNavigation();
   }
 
   async ai(background: string, scenario: scenario) {
