@@ -31,6 +31,6 @@ export default async function (context: BrowserContext, opts: Options) {
       ranno
     );
 
-    return expecto.found;
+    return expecto.index;
   });
 }

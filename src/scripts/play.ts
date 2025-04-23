@@ -24,6 +24,6 @@ export default async function (actor: Base) {
   return new Player(
     actor,
     [],
-    random(actor.opts.settings.variations.min, actor.opts.settings.variations.max)
+    random(actor.opts.settings.iterations.min, actor.opts.settings.iterations.max)
   );
 }

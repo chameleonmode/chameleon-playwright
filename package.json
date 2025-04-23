@@ -11,7 +11,7 @@
     "reddit:login-credentials": "npm run reddit:run login/credentials.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
     "reddit:login-google": "npm run reddit:run login/google.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
     "reddit:comment-on-comment": "npm run reddit:run post/reply-to-comment.ts '{\"search\":\"playwright\"}'",
-    "reddit:comment-on-title": "npm run reddit:run post/comment-on-title.ts '{\"search\":\"playwright\"}'",
+    "reddit:comment": "npm run reddit:run post/comment.ts",
     "reddit:vote": "npm run reddit:run subreddit/vote.ts",
     "reddit:post": "npm run reddit:run subreddit/post.ts",
     "reddit:join": "npm run reddit:run subreddit/join.ts",

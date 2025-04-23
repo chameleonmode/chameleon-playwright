@@ -9,14 +9,10 @@ export class Base {
   page!: Page;
   constructor(readonly context: BrowserContext, readonly opts: Opts<unknown>) {
     this.timeouts = {
+      ...opts.settings.timeouts,
       navigate: 1000 * opts.settings.timeouts.navigate,
       default: 1000 * opts.settings.timeouts.default,
       wait: 1000 * opts.settings.timeouts.wait,
-      rando: {
-        min: 1000 * opts.settings.timeouts.rando.min,
-        max: 1000 * opts.settings.timeouts.rando.max,
-        multiplier: opts.settings.timeouts.rando.multiplier,
-      },
     };
   }
 
@@ -78,20 +74,20 @@ export class Base {
   async click(locator: Locator, timeout = this.timeouts.wait) {
     await this.nap();
 
-    // Expect for the element to be enabled and visible
+    // Expectorations
     const expecto = await tryForEach([
-      locator.click({ timeout, force: true }),
       expect(locator).toBeEnabled({ timeout }),
       expect(locator).toBeVisible({ timeout }),
     ]);
-    this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length); // Added bang for fulfilled check
-
-    // Wait for the element to be in the viewport and scroll into view
+    this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length); // banger
+    
+    // Locatorations
     const locato = await tryForEach([
       locator.waitFor({ timeout }),
       locator.scrollIntoViewIfNeeded({ timeout }),
+      locator.click({ timeout, force: true }),
     ]);
-    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length); // Added bang for errors check
+    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length); // banger
 
     await this.nap();
   }
@@ -126,9 +122,9 @@ export class Base {
 
   async nap(
     args: { min: number; max: number; multiplier?: number } = {
-      min: this.timeouts.rando.min,
-      max: this.timeouts.rando.max,
-      multiplier: this.timeouts.rando.multiplier,
+      min: this.timeouts.naps.min,
+      max: this.timeouts.naps.max,
+      multiplier: this.timeouts.naps.multiplier,
     }
   ) {
     const sleepo = await sleepRandom(args);

@@ -28,7 +28,7 @@ export const defaults: Opts<Args> = {
       default: 36,
       navigate: 72,
       wait: 18,
-      rando: {
+      naps: {
         min: 256,
         max: 512,
         multiplier: undefined,
@@ -38,7 +38,7 @@ export const defaults: Opts<Args> = {
       min: 1,
       max: 3,
     },
-    variations: {
+    iterations: {
       min: 1,
       max: 3,
     },

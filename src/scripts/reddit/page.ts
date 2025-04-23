@@ -96,7 +96,7 @@ export class Reddit extends Base {
     await locator.press("Enter");
   }
 
-  async findo(scope: Scope, funco: () => Promise<unknown>, rano: number[] = []) {
+  async findo(scope: Scope, funco: () => Promise<unknown>, visited: number[] = []) {
     const localator =
       scope === "Posts"
         ? this.page.getByRole("button", { name: "Posts" }).first()
@@ -127,10 +127,10 @@ export class Reddit extends Base {
 
       // Filter out indices we've already tried
       const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
-        (index) => !rano.includes(index)
+        (index) => !visited.includes(index)
       );
       this.bang("No available threads", availableIndices.length > 0, {
-        triedIndices: rano,
+        triedIndices: visited,
         availableIndices,
       });
 
@@ -141,12 +141,12 @@ export class Reddit extends Base {
         await this.click(thread);
         const funky = await funco();
         return {
-          found: index,
+          index,
           funky,
         };
       } catch (e) {
         console.warn("Func is archived or removed.", e);
-        rano.push(index);
+        visited.push(index);
         await this.page.goBack();
       }
     }
@@ -179,12 +179,12 @@ export class Reddit extends Base {
   }
 
   // Function to add a comment to the main thread
-  async addCommentToThread(comment: string) {
+  async addCommentToThread(comment: () => Promise<string>) {
     // Wait for button to be visible and enabled
     await this.click(this.commentButton());
 
     // Continue with comment input
-    await this.pressSequentially(this.page.locator("#subgrid-container").getByRole("textbox"), comment);
+    await this.pressSequentially(this.page.locator("#subgrid-container").getByRole("textbox"), await comment());
 
     // Submit comment
     await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
@@ -305,19 +305,21 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
       new: true,
     },
     args: {
-      search: "tim allen",
+      search: "bobby kennedy",
       scope: "Posts",
       sort: "Relevance",
       filter: "All time",
     },
     settings: {
-      ...defaults.settings,
+      timeouts: {
+        ...defaults.settings.timeouts,
+      },
       rando: {
         min: 3,
         max: 9,
       },
       // use to find variations of search term from ai
-      variations: {
+      iterations: {
         min: 3,
         max: 3,
       },

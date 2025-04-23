@@ -13,14 +13,14 @@ interface Start {
 interface Settings {
   timeouts: Timeouts;
   rando: Rando;
-  variations: Rando;
+  iterations: Rando;
 }
 
 interface Timeouts {
   default: number;
   wait: number;
   navigate: number;
-  rando: Rando;
+  naps: Rando;
 }
 
 interface Rando {

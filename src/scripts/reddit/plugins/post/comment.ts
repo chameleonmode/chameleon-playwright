@@ -7,14 +7,17 @@ export default async function (context: BrowserContext, opts: Options) {
   const { reddit, options, player } = await Reddit(context, opts);
 
   // Step 2 - Dance
-  await player.start(async (ranno) => {
+  await player.start(async (visited) => {
     const expecto = await reddit.findo(
       options.args.scope,
       async () => {
-        const voters = await reddit.voters();
-        await reddit.doVote(voters);
+        // duo
+        const title = await reddit.postTitleText();
+        await reddit.addCommentToThread(
+          () => reddit.ai(`on a reddit post titled '${title}'`, { input: title, type: "comment" })
+        );
       },
-      ranno
+      visited
     );
 
     return expecto.index;
