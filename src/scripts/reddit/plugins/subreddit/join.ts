@@ -12,7 +12,7 @@ export default async function (context: BrowserContext, opts: Options) {
       options.args.scope,
       options.args.scope === "People"
         ? () => reddit.follower()
-        : () => reddit.joino(),
+        : () => reddit.joiner(),
       ranno
     );
 

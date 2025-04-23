@@ -28,7 +28,7 @@ export default async function (context: BrowserContext, opts: Options) {
         );
 
         // Create a new post
-        await reddit.createPostSubreddit(title, content);
+        await reddit.poster(title, content);
       },
       ranno
     );

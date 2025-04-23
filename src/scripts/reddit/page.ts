@@ -214,7 +214,7 @@ export class Reddit extends Base {
   }
 
   // Function to check the member is joined the subreddit or not if not then join the subreddit.
-  async joino() {
+  async joiner() {
     // Click the "Join" button
     await this.click(
       this.bang(
@@ -258,7 +258,7 @@ export class Reddit extends Base {
   }
 
   // Create Subreddit Post
-  async createPostSubreddit(commentTitle: string, commentText: string) {
+  async poster(commentTitle: string, commentText: string) {
     await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
     await this.pressSequentially(this.page.locator("#innerTextArea").first(), commentTitle);
 
