@@ -1,19 +1,19 @@
 interface Opts<T> {
   args: T;
-  start: Start;
   settings: Settings;
+}
+
+interface Settings {
+  start: Start;
+  timeouts: Timeouts;
+  rando: Rando;
+  iterations: Rando;
 }
 
 interface Start {
   feature: string;
   url?: string;
   new?: boolean;
-}
-
-interface Settings {
-  timeouts: Timeouts;
-  rando: Rando;
-  iterations: Rando;
 }
 
 interface Timeouts {

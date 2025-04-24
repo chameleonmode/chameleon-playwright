@@ -8,7 +8,72 @@ export class Reddit extends Base {
   constructor(readonly context: BrowserContext, readonly opts: Options) {
     super(context, opts);
   }
-  
+  // search for a term on Reddit
+  async searcho(text: string) {
+    const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
+    await this.pressSequentially(locator, text);
+    await locator.press("Enter");
+  }
+
+  // find an active context
+  async findo(funco: () => Promise<unknown>, visited: number[] = [], scope = this.opts.args.scope) {
+    const localator =
+      scope === "Posts"
+        ? this.page.getByRole("button", { name: "Posts" }).first()
+        : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first();
+    await this.click(localator);
+
+    const findulator = (() => {
+      const scopeToTestIdsMap: {
+        [key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
+      } = {
+        Posts: { ids: ["search-post-with-content-preview", "search-post-unit"], strat: "testId" },
+        Communities: { ids: ["search-community"], strat: "testId" },
+        Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
+        Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
+        People: { ids: ["search-author"], strat: "testId" },
+      };
+      return scopeToTestIdsMap[scope];
+    })();
+
+    const maxAttempts = random(this.opts.settings.rando.min, this.opts.settings.rando.max);
+    for (let i = 0; i < maxAttempts; i++) {
+      console.debug(`Attempts remaining: ${maxAttempts - i}`);
+      await this.nap();
+      await this.scrollabit();
+
+      // Wait for thread elements to be available
+      const { count, locator, id } = await this.find(findulator.ids, findulator.strat);
+
+      // Filter out indices we've already tried
+      const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
+        (index) => !visited.includes(index)
+      );
+      this.bang("No available threads", availableIndices.length > 0, {
+        triedIndices: visited,
+        availableIndices,
+      });
+
+      // Randomly select an index from the available indices
+      const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      try {
+        const thread = locator.nth(index);
+        await this.click(thread);
+        const funky = await funco();
+        return {
+          index,
+          funky,
+        };
+      } catch (e) {
+        console.warn("Func is archived or removed.", e);
+        visited.push(index);
+        await this.page.goBack();
+      }
+    }
+
+    throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
+  }
+
   // login
   readonly login = {
     // Check authentication
@@ -82,11 +147,19 @@ export class Reddit extends Base {
     title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
 
     // find a comment
-    getComment: async (nth = -1, random = Math.random() < 0.5) => {
+    getComment: async (nth = -1) => {
       const locator = this.page.locator("shreddit-comment");
+      const count = await locator.count();
       const comment = this.bang(
         "Comment not found",
-        random && nth < 0 ? this.randoNth(locator, await locator.count()) : locator.nth(nth)
+        nth < 0
+          ? locator.nth(
+              random(
+                Math.min(count, this.opts.settings.rando.min),
+                Math.min(count, this.opts.settings.rando.max),
+              )
+            )
+          : locator.nth(nth)
       );
       await comment.waitFor();
       return {
@@ -138,83 +211,6 @@ export class Reddit extends Base {
     },
   };
 
-  // get the text content of a locator
-  txtContent = async (selector: string, locator?: Locator) => {
-    const element = locator?.locator(selector).first() || this.page.locator(selector).first();
-    await expect(element).toBeVisible();
-
-    return this.bang(
-      "Element not found in" + selector,
-      await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim())
-    );
-  };
-
-  // search for a term on Reddit
-  async searcho(text: string) {
-    const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
-    await this.pressSequentially(locator, text);
-    await locator.press("Enter");
-  }
-
-  // find an active context
-  async findo(funco: () => Promise<unknown>, visited: number[] = [], scope = this.opts.args.scope) {
-    const localator =
-      scope === "Posts"
-        ? this.page.getByRole("button", { name: "Posts" }).first()
-        : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first();
-    await this.click(localator);
-
-    const findulator = (() => {
-      const scopeToTestIdsMap: {
-        [key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
-      } = {
-        Posts: { ids: ["search-post-with-content-preview", "search-post-unit"], strat: "testId" },
-        Communities: { ids: ["search-community"], strat: "testId" },
-        Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
-        Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
-        People: { ids: ["search-author"], strat: "testId" },
-      };
-      return scopeToTestIdsMap[scope];
-    })();
-
-    const maxAttempts = random(this.opts.settings.rando.min, this.opts.settings.rando.max);
-    for (let i = 0; i < maxAttempts; i++) {
-      console.debug(`Attempts remaining: ${maxAttempts - i}`);
-      await this.nap();
-      await this.scrollabit();
-
-      // Wait for thread elements to be available
-      const { count, locator, id } = await this.find(findulator.ids, findulator.strat);
-
-      // Filter out indices we've already tried
-      const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
-        (index) => !visited.includes(index)
-      );
-      this.bang("No available threads", availableIndices.length > 0, {
-        triedIndices: visited,
-        availableIndices,
-      });
-
-      // Randomly select an index from the available indices
-      const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-      try {
-        const thread = locator.nth(index);
-        await this.click(thread);
-        const funky = await funco();
-        return {
-          index,
-          funky,
-        };
-      } catch (e) {
-        console.warn("Func is archived or removed.", e);
-        visited.push(index);
-        await this.page.goBack();
-      }
-    }
-
-    throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
-  }
-
   // check the member is joined the subreddit or not if not then join the subreddit.
   async joiner() {
     // Click the "Join" button
@@ -240,10 +236,11 @@ export class Reddit extends Base {
     const downs = this.page.getByRole("button", { name: "Downvote" });
     const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
 
-        // Math.min(upCount, downCount) ensure we don't exceed the number of available votes
-    const length = Math.min(
-      random(this.opts.settings.rando.min, this.opts.settings.rando.max),
-      rando(Math.min(upCount, downCount))
+    // ensure we don't exceed the number of available votes
+    const count = Math.min(upCount, downCount);
+    const length = random(
+      Math.min(count, this.opts.settings.rando.min),
+      Math.min(count, this.opts.settings.rando.max)
     );
 
     // Using Array.from with just length
@@ -296,11 +293,6 @@ export class Reddit extends Base {
 
 export default async function (context: BrowserContext, opts?: Partial<Options>) {
   const options = configure({
-    start: {
-      feature: "reddit",
-      url: "https://www.reddit.com",
-      new: true,
-    },
     args: {
       search: "bobby lee",
       scope: "Posts",
@@ -310,6 +302,11 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
     settings: {
       timeouts: {
         ...defaults.settings.timeouts,
+      },
+      start: {
+        feature: "reddit",
+        url: "https://www.reddit.com",
+        new: true,
       },
       rando: {
         min: 3,

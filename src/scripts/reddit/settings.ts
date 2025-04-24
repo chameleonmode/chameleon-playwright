@@ -14,9 +14,6 @@ interface Args {
 interface Options extends Opts<Args> {}
 
 export const defaults: Opts<Args> = {
-  start: {
-    feature: "default",
-  },
   args: {
     search: "chameleon",
     scope: "Posts",
@@ -24,6 +21,9 @@ export const defaults: Opts<Args> = {
     filter: "All time",
   },
   settings: {
+    start: {
+      feature: "default",
+    },
     timeouts: {
       default: 36,
       navigate: 72,

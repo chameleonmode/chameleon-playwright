@@ -25,10 +25,11 @@ export const sleep = (ms: number) => {
  * console.log(randomNum);
  * // => 5
  */
-export function random(min: number, max: number) {
-  const smallest = Math.min(min, max);
-  const largest = Math.max(min, max);
-  return Math.floor(Math.random() * (largest - smallest + 1) + smallest);
+export function random(...values: number[]): number {
+  const smallest = Math.min(...values);
+  const largest = Math.max(...values);
+  const floor = Math.floor(Math.random() * (largest - smallest + 1) + smallest);
+  return floor;
 }
 
 /**

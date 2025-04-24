@@ -7,13 +7,11 @@ export default async function (context: BrowserContext, opts: Options) {
   const { reddit, player } = await Reddit(context, opts);
 
   // Step 2 - Dance
-  await player.start(async (visited) => {
+  await player.start(async () => {
     const expecto = await reddit.findo(
       // Step 3 - Moves
-      reddit.opts.args.scope === "People"
-        ? () => reddit.follower()
-        : () => reddit.joiner(),
-      visited
+      reddit.joiner,
+      player.visited
     );
 
     return expecto.index;

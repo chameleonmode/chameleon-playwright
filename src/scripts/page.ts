@@ -17,7 +17,7 @@ export class Base {
   }
 
   async init() {
-    this.page = this.opts.start.new
+    this.page = this.opts.settings.start.new
       ? await this.context.newPage()
       : this.context.pages()[this.context.pages().length - 1];
     this.page.setDefaultTimeout(this.timeouts.default);
@@ -38,13 +38,23 @@ export class Base {
 
   async getFocusedElement() {
     return this.page.evaluate(() => {
-      const active = document.activeElement;
+      const element = document.activeElement;
       return {
-        element: active,
-        tagName: active?.tagName,
-        ariaLabel: active?.getAttribute("aria-label"),
+        element,
+        tagName: element?.tagName,
+        ariaLabel: element?.ariaLabel,
+        textContent: element?.textContent,
       };
     });
+  }
+
+  async txtContent(selector: string, locator?: Locator) {
+    const element = locator?.locator(selector).first() || this.page.locator(selector).first();
+    await expect(element).toBeVisible();
+    return this.bang(
+      "Element not found in" + selector,
+      await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim())
+    );
   }
 
   async selectAll() {
@@ -63,12 +73,6 @@ export class Base {
     await locator.pressSequentially(text, {
       delay: random(64, 128),
     });
-  }
-
-  randoNth(locator: Locator, count: number) {
-    return locator.nth(
-      Math.min(random(this.opts.settings.rando.min, this.opts.settings.rando.max), rando(count))
-    );
   }
 
   async click(locator: Locator, timeout = this.timeouts.wait) {
@@ -134,7 +138,7 @@ export class Base {
 
   async ai(background: string, scenario: Scenario) {
     const result = await askAI({
-      feature: this.opts.start.feature,
+      feature: this.opts.settings.start.feature,
       background,
       scenario: {
         tone: rando(tones),
@@ -146,7 +150,7 @@ export class Base {
   }
 
   error(message: string, cause?: unknown) {
-    return new Error(`[${this.opts.start.feature}] - [${this.opts.start.url}] ${message}`, { cause });
+    return new Error(`[${this.opts.settings.start.feature}] - [${this.opts.settings.start.url}] ${message}`, { cause });
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {
