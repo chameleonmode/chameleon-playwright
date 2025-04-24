@@ -294,10 +294,10 @@ export class Reddit extends Base {
 export default async function (context: BrowserContext, opts?: Partial<Options>) {
   const options = configure({
     args: {
+      ...defaults.args,
       search: "bobby lee",
       scope: "Posts",
       sort: "Relevance",
-      filter: "All time",
     },
     settings: {
       timeouts: {

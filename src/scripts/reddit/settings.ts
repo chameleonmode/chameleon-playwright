@@ -1,8 +1,8 @@
 import { Opts } from "../types.js";
 
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
-type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comment count";
-type Filter = "All time" | "Past year" | "Past month" | "Past week" | "Today" | "Past hour";
+type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comments";
+type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
 
 interface Args {
   search: string;
@@ -18,7 +18,7 @@ export const defaults: Opts<Args> = {
     search: "chameleon",
     scope: "Posts",
     sort: "Relevance",
-    filter: "All time",
+    filter: "All",
   },
   settings: {
     start: {
