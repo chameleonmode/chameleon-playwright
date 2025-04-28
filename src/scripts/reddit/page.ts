@@ -488,7 +488,7 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
     args: {
       ...defaults.args,
       search: "django",
-      scope: "Posts",
+      scope: "Communities",
       sort: "Relevance",
       filter: "All",
     },
@@ -499,7 +499,7 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
       start: {
         feature: "reddit",
         url: "https://www.reddit.com",
-        new: false,
+        new: true,
       },
       rando: {
         min: 9,
