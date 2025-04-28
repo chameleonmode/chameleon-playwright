@@ -72,6 +72,7 @@ export class Base {
     await this.click(locator);
     await locator.pressSequentially(text, {
       delay: random(64, 128),
+      timeout: 1000 * 60 * 5,
     });
   }
 
@@ -98,7 +99,7 @@ export class Base {
 
   async scrollabit() {
     // Scroll down multiple times with delay to simulate natural scrolling
-    for (let i = 0; i < random(3, 9); i++) {
+    for (let i = 0; i < random(3, 6); i++) {
       await this.nap();
       try {
         // if already scrolled till end break

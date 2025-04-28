@@ -10,9 +10,7 @@ export default async function (context: BrowserContext, opts: Options) {
   await player.start(async () => {
     const expecto = await reddit.findo(
       // Step 3 - Moves
-      async () => {
-        await reddit.voter();
-      },
+      () => reddit.subreddit.voter(),
       player.visited
     );
 

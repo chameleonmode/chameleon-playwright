@@ -10,7 +10,7 @@ export default async function (context: BrowserContext, opts: Options) {
   await player.start(async () => {
     const expecto = await reddit.findo(
       // Step 3 - Moves
-      reddit.follower,
+      ()=>reddit.user.follower(),
       player.visited
     );
 

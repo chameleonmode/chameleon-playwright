@@ -5,8 +5,7 @@ export class Player {
   constructor(readonly actor: Base, readonly iterations: number, readonly visited: number[] = []) {}
   async start(dance: () => Promise<number>) {
     for (let i = 0; i < this.iterations; i++) {
-      console.log(`
-         Iteration: ${i + 1} of ${this.iterations}`);
+      console.log(`Iteration: ${i + 1} of ${this.iterations}`);
 
       if (i > 0) {
         await this.actor.nap();

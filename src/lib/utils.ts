@@ -86,6 +86,73 @@ export async function tryForEach<T>(promises: Promise<T>[]) {
   return { fulfilled, errors };
 }
 
+export async function tryOnFirst<T>(promises: Promise<T>[]) {
+  const errors: unknown[] = [];
+  
+  // Create a race to find the first fulfilled promise
+  // Rejected promises are converted to never-resolving promises
+  // so they don't win the race
+  const racingPromises = promises.map((promise, index) => 
+    promise.catch(error => {
+      errors[index] = error;
+      // Return a never-resolving promise when catching errors
+      return new Promise<never>(() => {});
+    })
+  );
+  
+  // If all promises reject, this will hang, so we need a fallback
+  const fallbackPromise = Promise.all(promises.map((p, index) => 
+    p.catch(err => { 
+      if (!errors[index]) errors[index] = err;
+      return null; 
+    })
+  )).then(() => {
+    // This only resolves when all promises have settled
+    // If we reach here and haven't returned yet, all promises rejected
+    throw new Error("All promises rejected");
+  });
+  
+  try {
+    // Race between the first fulfilled promise and the fallback
+    const result = await Promise.race([...racingPromises, fallbackPromise]);
+    return { fulfilled: result, errors };
+  } catch (error) {
+    // If all promises rejected, we'd end up here
+    return { fulfilled: null, errors };
+  }
+}
+
+
+export async function trySequentially<T>(promises: (() => Promise<T>)[]) {
+  const errors: unknown[] = [];
+  
+  // We need functions that return promises, not promises themselves,
+  // because promises start executing immediately when created
+  
+  for (let i = 0; i < promises.length; i++) {
+    try {
+      // Execute the current promise-returning function
+      const result = await promises[i]();
+      // If we get here, the promise fulfilled successfully
+      return { 
+        fulfilled: result, 
+        errors,
+        fulfilledIndex: i
+      };
+    } catch (error) {
+      // Store the error and continue to the next promise
+      errors.push(error);
+    }
+  }
+  
+  // If we've tried all promises and none succeeded
+  return { 
+    fulfilled: null, 
+    errors,
+    fulfilledIndex: -1
+  };
+}
+
 export function deepMerge(target: any, source: any) {
   if (!source) return target;
   const output = { ...target };

@@ -11,9 +11,11 @@ export default async function (context: BrowserContext, opts: Options) {
     const expecto = await reddit.findo(
       // Step 3 - Moves
       async () => {
+        await reddit.post.assert();
+
         const title = await reddit.post.title();
         const { locator, text } = await reddit.post.getComment();
-
+        
         await reddit.post.replyToComment(locator, () =>
           reddit.ai(`on a a reddit post titled '${title}'`, { input: text, type: "reply" })
         );

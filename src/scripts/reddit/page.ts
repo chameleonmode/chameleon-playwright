@@ -1,5 +1,5 @@
 import { BrowserContext, Locator, expect } from "@playwright/test";
-import { random, rando } from "../../lib/utils.js";
+import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../page.js";
 import Player from "../player.js";
 import configure, { Options, Scope, defaults } from "./settings.js";
@@ -16,12 +16,136 @@ export class Reddit extends Base {
   }
 
   // find an active context
-  async findo(funco: () => Promise<unknown>, visited: number[] = [], scope = this.opts.args.scope) {
+  async findo(
+    funco: () => Promise<unknown>,
+    visited: number[] = [], 
+    scope = this.opts.args.scope, 
+    retry: () => Promise<unknown> = () => this.page.goBack()) {
     const localator =
       scope === "Posts"
         ? this.page.getByRole("button", { name: "Posts" }).first()
         : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first();
     await this.click(localator);
+
+    // TODO: refactor
+    if (scope !== "Communities" && this.opts.args.sort !== "Relevance" && visited.length === 0) {
+      const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
+      await this.click(sortLocator);
+
+      // Function to click a sort option by its text
+      const clickSortOptionByText = async () => {
+        // Normalize the text to handle spacing differences
+        const normalizedText =
+          scope === "Comments" && (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+            ? "Top"
+            : this.opts.args.sort.trim();
+        const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
+
+        try {
+          // Locate the option by its display text
+          const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
+
+          // First scroll the option into view
+          await sortOption.scrollIntoViewIfNeeded();
+
+          // Wait a brief moment to ensure it's properly visible
+          await this.page.waitForTimeout(200);
+
+          // Get the parent 'a' element which is the actual clickable link
+          const parentLink = sortOption.locator("xpath=./ancestor::a");
+
+          // Click the link
+          await parentLink.click();
+
+          console.log(`Successfully clicked on the "${normalizedOption}" sort option`);
+        } catch (error) {
+          console.error(`Failed to click sort option "${normalizedOption}":`, error);
+
+          // Alternative approach using evaluate if the above fails
+          try {
+            await this.page.evaluate((text) => {
+              const elements = Array.from(document.querySelectorAll("li a span"));
+              const targetElement = elements.find((el) => el.textContent?.includes(text));
+              if (targetElement) {
+                targetElement.closest("a")?.click();
+                return true;
+              }
+              return false;
+            }, normalizedOption);
+            console.log(`Clicked on "${normalizedOption}" using evaluate method`);
+          } catch (evalError) {
+            console.error(`Alternative method also failed:`, evalError);
+          }
+        }
+      };
+      await clickSortOptionByText();
+    }
+
+    // TODO: refactor
+    if (
+      (scope === "Posts" || scope === "Media") &&
+      this.opts.args.filter !== "All" &&
+      visited.length === 0
+    ) {
+      const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
+      await this.click(sortLocator.nth(1));
+
+      // Function to click a time range option by its text
+      const clickTimeRangeByText = async () => {
+        // Now find and click the option
+        const optionText =
+          this.opts.args.filter === "Today"
+            ? this.opts.args.filter.trim()
+            : "Past " + this.opts.args.filter.trim().toLowerCase();
+        try {
+          // First approach - target by the exact text
+          const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
+
+          // Get the containing link element
+          const linkElement = exactOption.locator("xpath=./ancestor::a");
+
+          // Scroll into view and click
+          await linkElement.scrollIntoViewIfNeeded();
+          await this.page.waitForTimeout(200);
+          await linkElement.click();
+
+          console.log(`Clicked on "${optionText}" time range option`);
+          return true;
+        } catch (error) {
+          console.error(`Failed to click time range "${optionText}":`, error);
+
+          // Try alternative approach using the specific structure
+          try {
+            // Find all list items in the dropdown
+            const listItems = this.page.locator("search-sort-dropdown-menu#search_modifier_time_range li");
+            const count = await listItems.count();
+
+            for (let i = 0; i < count; i++) {
+              const item = listItems.nth(i);
+              const text = await item.locator("span span.text-14").textContent();
+
+              if (text?.trim().includes(optionText)) {
+                // Find the link within this item
+                const link = item.locator("a");
+                await link.scrollIntoViewIfNeeded();
+                await this.page.waitForTimeout(200);
+                await link.click();
+
+                console.log(`Clicked on "${optionText}" time range option (alternative method)`);
+                return true;
+              }
+            }
+
+            console.error(`Could not find time range option "${optionText}" among ${count} options`);
+            return false;
+          } catch (alternativeError) {
+            console.error(`Alternative method also failed:`, alternativeError);
+            return false;
+          }
+        }
+      };
+      await clickTimeRangeByText();
+    }
 
     const findulator = (() => {
       const scopeToTestIdsMap: {
@@ -38,7 +162,7 @@ export class Reddit extends Base {
 
     const maxAttempts = random(this.opts.settings.rando.min, this.opts.settings.rando.max);
     for (let i = 0; i < maxAttempts; i++) {
-      console.debug(`Attempts remaining: ${maxAttempts - i}`);
+      console.debug(`Attempts remaining: ${maxAttempts}`, i);
       await this.nap();
       await this.scrollabit();
 
@@ -67,7 +191,7 @@ export class Reddit extends Base {
       } catch (e) {
         console.warn("Func is archived or removed.", e);
         visited.push(index);
-        await this.page.goBack();
+        await retry();
       }
     }
 
@@ -145,23 +269,45 @@ export class Reddit extends Base {
   // post
   readonly post = {
     title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
+    joinConversation: async () => {
+      const { count, locator, id } = await this.find(
+        [
+          'comment-composer-host slot[name="ready"] faceplate-textarea-input[data-testid="trigger-button"]',
+          'comment-composer-host[slot="ready"] faceplate-tracker faceplate-textarea-input[data-testid="trigger-button"]',
+        ],
+        "selector"
+      );
+      return locator.first();
+    },
+
+    // find a post
+    assert: async () => {
+      if (this.opts.args.scope === "Communities") {
+        const posts = this.page.locator("a[slot='title']");
+        const count = await posts.count();
+        const index = random(
+          Math.min(count, this.opts.settings.rando.min),
+          Math.min(count, this.opts.settings.rando.max)
+        );
+        const randomPost = posts.nth(index);
+        await this.click(randomPost);
+      }
+    },
 
     // find a comment
     getComment: async (nth = -1) => {
+      await this.scrollabit();
       const locator = this.page.locator("shreddit-comment");
       const count = await locator.count();
-      const comment = this.bang(
-        "Comment not found",
+      const index =
         nth < 0
-          ? locator.nth(
-              random(
-                Math.min(count, this.opts.settings.rando.min),
-                Math.min(count, this.opts.settings.rando.max),
-              )
+          ? random(
+              random(0, Math.min(count, this.opts.settings.rando.min)),
+              Math.min(count, this.opts.settings.rando.max)
             )
-          : locator.nth(nth)
-      );
-      await comment.waitFor();
+          : nth;
+      const comment = this.bang("Comment not found", locator.nth(index));
+      await comment.waitFor({ timeout: this.timeouts.wait });
       return {
         text: await this.txtContent("div[slot='comment']", comment),
         locator: comment,
@@ -170,10 +316,32 @@ export class Reddit extends Base {
 
     // add a comment to the main thread
     addComment: async (comment: () => Promise<string>) => {
-      const locato = this.page.getByRole("button", { name: "Add a comment" });
+      try {
+        const seeFullDiscussionLink = this.page.locator('a:has-text("See full discussion")');
+        if ((await seeFullDiscussionLink.count()) > 0) await this.click(seeFullDiscussionLink.first());
+      } catch (error) {
+        console.warn("Error clicking 'See full discussion' link:", error);
+      }
 
-      // Wait for button to be visible and enabled
-      await this.click(locato);
+      // Click the comment button
+      const result = await trySequentially([
+        async () => await this.click(await this.post.joinConversation()),
+        async () => await this.click(this.page.getByRole("button", { name: "Add a comment" })),
+        async () => {
+          const triggers = this.page.getByTestId("trigger-button");
+          const count = await triggers.count();
+          for (let i = count - 1; i >= 0; i--) {
+            const trigger = triggers.nth(i);
+            try {
+              await this.click(trigger);
+              break;
+            } catch (error) {
+              console.error(`Error clicking trigger button ${i}:`, error);
+            }
+          }
+        },
+      ]);
+      this.bang("Comment button not found", result);
 
       // Continue with comment input
       await this.pressSequentially(
@@ -211,83 +379,107 @@ export class Reddit extends Base {
     },
   };
 
-  // check the member is joined the subreddit or not if not then join the subreddit.
-  async joiner() {
-    // Click the "Join" button
-    await this.click(
-      this.bang(
-        "'Join' button not found",
-        this.page.getByRole("button", { name: "Join", exact: true }).first()
-      )
-    );
-  }
+  // user
+  readonly user = {
+    // check the member is following a user or not if not then follow the user.
+    follower: async () => {
+      await this.click(
+        this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
+      );
+    },
+  };
 
-  // check the member is following a user or not if not then follow the user.
-  async follower() {
-    await this.click(
-      this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
-    );
-  }
+  // subreddit
+  readonly subreddit = {
+    // assert can post
+    canPost: async () => {
+      await this.nap();
+      await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+    },
 
-  // vote on a post
-  async voter() {
-    await this.scrollabit();
-    const ups = this.page.getByRole("button", { name: "Upvote" });
-    const downs = this.page.getByRole("button", { name: "Downvote" });
-    const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
+    // vote on a post
+    voter: async () => {
+      await this.scrollabit();
+      const ups = this.page.getByRole("button", { name: "Upvote" });
+      const downs = this.page.getByRole("button", { name: "Downvote" });
+      const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
 
-    // ensure we don't exceed the number of available votes
-    const count = Math.min(upCount, downCount);
-    const length = random(
-      Math.min(count, this.opts.settings.rando.min),
-      Math.min(count, this.opts.settings.rando.max)
-    );
+      // ensure we don't exceed the number of available votes
+      const count = Math.min(upCount, downCount);
+      const length = random(
+        Math.min(count, this.opts.settings.rando.min),
+        Math.min(count, this.opts.settings.rando.max)
+      );
 
-    // Using Array.from with just length
-    for (let i = 0; i < length; i++) {
-      await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
-    }
-    return {
-      ups: {
-        locator: ups,
-        count: upCount,
-      },
-      downs: { locator: downs, count: downCount },
-    };
-  }
+      // Using Array.from with just length
+      for (let i = 0; i < length; i++) {
+        await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
+      }
+      return {
+        ups: {
+          locator: ups,
+          count: upCount,
+        },
+        downs: { locator: downs, count: downCount },
+      };
+    },
+
+    // check the member is joined the subreddit or not if not then join the subreddit.
+    joiner: async () => {
+      // Click the "Join" button
+      await this.click(
+        this.bang(
+          "'Join' button not found",
+          this.page.getByRole("button", { name: "Join", exact: true }).first()
+        )
+      );
+    },
+  };
 
   // create a new post
   async poster(contents: () => Promise<{ title: string; content: string }>) {
-    await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+    await this.nap();
+    const titleLocator = this.page.locator("#innerTextArea").first();
+    const bodyLocator = this.page.locator('div[slot="rte"][aria-label="Post body text field"]');
+
+    const postTypeValue = await this.page.locator('r-post-type-select[name="type"]').getAttribute("value");
+    this.bang("Post type not found", postTypeValue === "TEXT");
+    this.bang("Post body text field not found", await bodyLocator.innerText());
+    this.bang("Post title text field not found", await titleLocator.count());
 
     const { title, content } = await contents();
-    await this.pressSequentially(this.page.locator("#innerTextArea").first(), title);
+    await this.pressSequentially(titleLocator, title);
+    await this.pressSequentially(bodyLocator, content);
 
-    const traverse = async (
-      condition: (ele: {
-        element: Element | null;
-        tagName: string | undefined;
-        ariaLabel: string | null | undefined;
-      }) => boolean
-    ) => {
-      while (condition(await this.getFocusedElement())) {
-        this.page.keyboard.press("Tab");
-      }
-    };
+    const submitButton = this.page
+      .locator("r-post-form-submit-button#submit-post-button")
+      .getByRole("button");
+    await this.click(submitButton);
 
-    // enter comment
-    await traverse((ele) => {
-      return ele.ariaLabel !== "Post body text field";
-    });
-    await this.type(content);
+    // const traverse = async (
+    //   condition: (ele: {
+    //     element: Element | null;
+    //     tagName: string | undefined;
+    //     ariaLabel: string | null | undefined;
+    //   }) => boolean
+    // ) => {
+    //   while (condition(await this.getFocusedElement())) {
+    //     this.page.keyboard.press("Tab");
+    //   }
+    // };
 
-    // submit
-    await traverse((ele) => {
-      return ele.tagName !== "R-POST-FORM-SUBMIT-BUTTON";
-    });
+    // // enter comment
+    // // await traverse((ele) => {
+    // //   return ele.ariaLabel !== "Post body text field";
+    // // });
+    // // await this.type(content);
+    // // submit
+    // await traverse((ele) => {
+    //   return ele.tagName !== "R-POST-FORM-SUBMIT-BUTTON";
+    // });
 
-    await this.page.keyboard.press("Enter");
-    await this.nap();
+    // await this.page.keyboard.press("Enter");
+    // await this.nap();
   }
 }
 
@@ -295,9 +487,10 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
   const options = configure({
     args: {
       ...defaults.args,
-      search: "bobby lee",
+      search: "django",
       scope: "Posts",
       sort: "Relevance",
+      filter: "All",
     },
     settings: {
       timeouts: {
@@ -306,11 +499,11 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
       start: {
         feature: "reddit",
         url: "https://www.reddit.com",
-        new: true,
+        new: false,
       },
       rando: {
-        min: 3,
-        max: 9,
+        min: 9,
+        max: 18,
       },
       // use to find variations of search term from ai
       iterations: {
@@ -320,10 +513,11 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
     },
     ...opts,
   });
-  const reddit = new Reddit(context, options);
-  const player = await Player(reddit, () => reddit.searcho(options.args.search));
+  const actor = new Reddit(context, options);
+  // const player = await Player(actor, async () => new Promise((resolve) => setTimeout(resolve, 1000)));
+  const player = await Player(actor, () => actor.searcho(options.args.search));
   return {
-    reddit,
+    reddit: actor,
     player,
   };
 }
