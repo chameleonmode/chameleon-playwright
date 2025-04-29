@@ -4,7 +4,7 @@
 const [platform, file, json] = process.argv.slice(2);
 const pluginPath = `./scripts/${platform}/plugins/${file}`;
 //const userDataDir = `.cache/${platform}`;
-const userDataDir = "/Users/Bharat Chauhan/Library/Application Support/Chameleon/Chrome/29256";
+const userDataDir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256";
 const opts = json ? JSON.parse(json) || "{}" : undefined;
 
 async function main() {

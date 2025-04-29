@@ -20,6 +20,8 @@
     "x:login-google": "npm run x:run login/google.ts  '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
     "x:retweet-post": "npm run x:run post/retweet-post.ts",
     "x:reply-tweet": "npm run x:run post/reply-tweet.ts",
+    "x:like": "npm run x:run post/like.ts",
+    "x:post": "npm run x:run post/post.ts",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",

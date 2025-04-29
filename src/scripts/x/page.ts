@@ -203,6 +203,26 @@ export class X extends Base {
             await this.click(passwordNextButton);
         },
     };
+
+    // like on a post
+    async like() {
+        await this.scrollabit();
+        const likeButtons = this.page.locator('button[data-testid*="like"]');
+        const count = rando((await likeButtons.count()));
+        const length = random(
+            Math.min(count, this.opts.settings.rando.min),
+            Math.min(count, this.opts.settings.rando.max)
+        );
+        for (let i = 0; i <= length; i++) {
+            await this.click(likeButtons.nth(i));
+        }
+    }
+
+    // create a new post
+    poster = async (tweet: string) => {
+        await this.pressSequentially(this.page.locator(`div[data-testid="tweetTextarea_0RichTextInputContainer"]`), tweet);
+        await this.page.locator(`button[data-testid="tweetButtonInline"]`).first().click();
+    }
 }
 
 export default async function (context: BrowserContext, opts?: Partial<Options>) {
