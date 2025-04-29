@@ -1,24 +1,18 @@
 import { Opts } from "../types.js";
 
-type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
-type Sort = "Relevance" | "Hot" | "Top" | "New" | "Rising" | "Comments";
-type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
+type Scope = "Top" | "Latest" | "People" | "Media" | "Lists";
 
 interface Args {
   search: string;
   scope: Scope;
-  sort: Sort;
-  filter: Filter;
 }
 
-interface Options extends Opts<Args> {}
+interface Options extends Opts<Args> { }
 
 export const defaults: Opts<Args> = {
   args: {
     search: "chameleon",
-    scope: "Posts",
-    sort: "Relevance",
-    filter: "All",
+    scope: "Top",
   },
   settings: {
     start: {
@@ -50,5 +44,4 @@ export default function (opts: Partial<Opts<Args>>) {
     ...opts,
   };
 }
-
-export type { Args, Options, Sort, Filter, Scope };
+export type { Args, Options, Scope };

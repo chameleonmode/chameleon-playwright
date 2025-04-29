@@ -18,6 +18,8 @@
     "x:run": "npm run node:ts src/local.ts -- x",
     "x:login-credentials": "npm run x:run login/credentials.ts  '{\"email\":\"example@gmail.com\", \"userName\":\"example\", \"password\":\"pass@word\"}'",
     "x:login-google": "npm run x:run login/google.ts  '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",
+    "x:retweet-post": "npm run x:run post/retweet-post.ts",
+    "x:reply-tweet": "npm run x:run post/reply-tweet.ts",
     "build": "tsc",
     "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run bundle && npm run prepare-dist",
     "clean": "rm -rf dist",
