@@ -12,6 +12,7 @@ interface Settings {
 
 interface Start {
   feature: string;
+  attempts: number;
   url?: string;
   new?: boolean;
 }

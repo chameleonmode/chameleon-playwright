@@ -5,9 +5,13 @@ import { askAI, Scenario, tones } from "../lib/ask.js";
 import { Opts, Timeouts } from "./types.js";
 
 export class Base {
-  timeouts: Timeouts;
   page!: Page;
+  timeouts: Timeouts;
+  iterations: number;
+  rando: number;
   constructor(readonly context: BrowserContext, readonly opts: Opts<unknown>) {
+    this.rando = random(opts.settings.rando.min, opts.settings.rando.max);
+    this.iterations = random(opts.settings.iterations.min, opts.settings.iterations.max);
     this.timeouts = {
       ...opts.settings.timeouts,
       navigate: 1000 * opts.settings.timeouts.navigate,
@@ -15,13 +19,12 @@ export class Base {
       wait: 1000 * opts.settings.timeouts.wait,
     };
   }
-  async onTry() : Promise<void | Error> {
+  async onTry(): Promise<void | Error> {
     throw this.error("onTry not implemented");
-  };
-  async onRetry(){
+  }
+  async onRetry() {
     throw this.error("onRetry not implemented");
-  };
-
+  }
 
   async init() {
     this.page = this.opts.settings.start.new
@@ -29,13 +32,13 @@ export class Base {
       : this.context.pages()[this.context.pages().length - 1];
     this.page.setDefaultTimeout(this.timeouts.default);
     this.page.setDefaultNavigationTimeout(this.timeouts.navigate);
-    
+
     await this.navigate(this.opts.settings.start.url); // Added navigation to the start URL
     await this.nap();
   }
 
   async navigate(url: string | undefined) {
-    if(url) await this.page.goto(url);
+    if (url) await this.page.goto(url);
     await this.waitForNavigation();
   }
 
@@ -79,7 +82,7 @@ export class Base {
   }
 
   async pressSequentially(locator: Locator, text: string, click = true) {
-    if(click) await this.click(locator);
+    if (click) await this.click(locator);
     await locator.pressSequentially(text, {
       delay: random(64, 128),
       timeout: 1000 * 60 * 5,
@@ -95,7 +98,7 @@ export class Base {
       expect(locator).toBeVisible({ timeout }),
     ]);
     this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length); // banger
-    
+
     // Locatorations
     const locato = await tryForEach([
       locator.waitFor({ timeout }),
@@ -161,7 +164,10 @@ export class Base {
   }
 
   error(message: string, cause?: unknown) {
-    return new Error(`[${this.opts.settings.start.feature}] - [${this.opts.settings.start.url}] ${message}`, { cause });
+    return new Error(
+      `[${this.opts.settings.start.feature}] - [${this.opts.settings.start.url}] ${message}`,
+      { cause }
+    );
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {

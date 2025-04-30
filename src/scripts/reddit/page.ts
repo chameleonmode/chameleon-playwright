@@ -10,12 +10,22 @@ export class Reddit extends Base {
     super(context, opts);
   }
 
+  // on every try
   override async onTry() {
-    if (!this.opts.args.search.length) return this.error("No search terms provided");
-    if (this.searched.length) await this.onRetry();
+    const todo = this.opts.args.search.length;
+    const done = this.searched.length;
+    console.log(`onTry: ${done} of ${todo} search terms completed`);
+
+    // check if we have completed all search terms
+    if (todo === 0) return this.error("No search terms provided");
+    else if (done > 0) await this.onRetry();
+
+    // check if we are on the right page
     await this.nap();
     await this.searcho();
   }
+
+  // on every retry
   override async onRetry(starts = "https://www.reddit.com/search/") {
     await this.nap();
     while (!this.page.url().startsWith(starts)) {
@@ -26,6 +36,7 @@ export class Reddit extends Base {
       });
     }
   }
+
   // search for a term on Reddit
   async searcho(text: string | undefined = this.opts.args.search.pop()) {
     text = this.bang("Search term", text);
@@ -183,9 +194,8 @@ export class Reddit extends Base {
       return scopeToTestIdsMap[scope];
     })();
 
-    const maxAttempts = random(this.opts.settings.rando.min, this.opts.settings.rando.max);
-    for (let i = 0; i < maxAttempts; i++) {
-      console.debug(`Attempts remaining: ${maxAttempts}`, i);
+    for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+      console.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
       await this.nap();
       await this.scrollabit();
 
@@ -218,7 +228,7 @@ export class Reddit extends Base {
       }
     }
 
-    throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
+    throw this.error(`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`);
   }
 
   // login
@@ -309,10 +319,7 @@ export class Reddit extends Base {
         await this.scrollabit();
         const posts = this.page.locator("a[slot='title']");
         const count = await posts.count();
-        const index = random(
-          Math.min(count, this.opts.settings.rando.min),
-          Math.min(count, this.opts.settings.rando.max)
-        );
+        const index = random(0, count);
         const randomPost = posts.nth(index);
         await this.click(randomPost);
       }
@@ -430,21 +437,21 @@ export class Reddit extends Base {
 
       // ensure we don't exceed the number of available votes
       const count = Math.min(upCount, downCount);
-      const length = random(
-        Math.min(count, this.opts.settings.rando.min),
-        Math.min(count, this.opts.settings.rando.max)
-      );
-
-      // Using Array.from with just length
+      const length = Math.min(count, this.rando);
       for (let i = 0; i < length; i++) {
-        await (rando() ? this.click(ups.nth(i)) : this.click(downs.nth(i)));
+        const index = random(0, count);
+        await (rando() ? this.click(ups.nth(index)) : this.click(downs.nth(index)));
       }
+
       return {
         ups: {
           locator: ups,
           count: upCount,
         },
-        downs: { locator: downs, count: downCount },
+        downs: {
+          locator: downs,
+          count: downCount,
+        },
       };
     },
 
@@ -521,8 +528,9 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
         ...defaults.settings.timeouts,
       },
       start: {
-        feature: "reddit",
         url: "https://www.reddit.com",
+        feature: "reddit",
+        attempts: 9,
         new: true,
       },
       rando: {

@@ -23,6 +23,7 @@ export const defaults: Opts<Args> = {
   settings: {
     start: {
       feature: "default",
+      attempts: 9,
     },
     timeouts: {
       default: 36,
