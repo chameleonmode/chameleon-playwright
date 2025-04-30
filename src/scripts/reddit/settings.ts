@@ -5,7 +5,7 @@ type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments";
 type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
 
 interface Args {
-  search: string;
+  search: string[];
   scope: Scope;
   sort: Sort;
   filter: Filter;
@@ -15,7 +15,7 @@ interface Options extends Opts<Args> {}
 
 export const defaults: Opts<Args> = {
   args: {
-    search: "chameleon",
+    search: ["chameleon"],
     scope: "Posts",
     sort: "Relevance",
     filter: "All",

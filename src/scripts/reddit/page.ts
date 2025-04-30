@@ -5,22 +5,45 @@ import Player from "../player.js";
 import configure, { Options, Scope, defaults } from "./settings.js";
 
 export class Reddit extends Base {
+  searched: string[] = [];
   constructor(readonly context: BrowserContext, readonly opts: Options) {
     super(context, opts);
   }
+
+  override async onTry() {
+    if (!this.opts.args.search.length) return this.error("No search terms provided");
+    if (this.searched.length) await this.onRetry();
+    await this.nap();
+    await this.searcho();
+  }
+  override async onRetry(starts = "https://www.reddit.com/search/") {
+    await this.nap();
+    while (!this.page.url().startsWith(starts)) {
+      await this.page.goBack();
+      await this.nap({
+        ...this.timeouts.naps,
+        multiplier: random(3, 9),
+      });
+    }
+  }
   // search for a term on Reddit
-  async searcho(text: string) {
+  async searcho(text: string | undefined = this.opts.args.search.pop()) {
+    text = this.bang("Search term", text);
+    this.searched.push(text);
     const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
-    await this.pressSequentially(locator, text);
+    await locator.dblclick();
+    await this.pressSequentially(locator, text, false);
     await locator.press("Enter");
+    await this.nap();
   }
 
   // find an active context
   async findo(
     funco: () => Promise<unknown>,
-    visited: number[] = [], 
-    scope = this.opts.args.scope, 
-    retry: () => Promise<unknown> = () => this.page.goBack()) {
+    visited: number[] = [],
+    scope = this.opts.args.scope,
+    retry: () => Promise<unknown> = () => this.page.goBack()
+  ) {
     const localator =
       scope === "Posts"
         ? this.page.getByRole("button", { name: "Posts" }).first()
@@ -283,6 +306,7 @@ export class Reddit extends Base {
     // find a post
     assert: async () => {
       if (this.opts.args.scope === "Communities") {
+        await this.scrollabit();
         const posts = this.page.locator("a[slot='title']");
         const count = await posts.count();
         const index = random(
@@ -487,8 +511,8 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
   const options = configure({
     args: {
       ...defaults.args,
-      search: "django",
-      scope: "Communities",
+      search: ["reddit", "chameleon"],
+      scope: "Posts",
       sort: "Relevance",
       filter: "All",
     },
@@ -502,22 +526,21 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
         new: true,
       },
       rando: {
-        min: 9,
-        max: 18,
+        min: 3,
+        max: 6,
       },
       // use to find variations of search term from ai
       iterations: {
-        min: 3,
-        max: 3,
+        min: 1,
+        max: 1,
       },
     },
     ...opts,
   });
-  const actor = new Reddit(context, options);
-  // const player = await Player(actor, async () => new Promise((resolve) => setTimeout(resolve, 1000)));
-  const player = await Player(actor, () => actor.searcho(options.args.search));
+  const reddit = new Reddit(context, options);
+  const player = await Player(reddit);
   return {
-    reddit: actor,
+    reddit,
     player,
   };
 }

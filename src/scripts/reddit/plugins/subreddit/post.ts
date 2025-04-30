@@ -6,13 +6,6 @@ export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
   const { reddit, player } = await Reddit(context, opts);
 
-  const onRetry = async () => {
-    await reddit.nap();
-    while (!reddit.page.url().startsWith("https://www.reddit.com/search/")) {
-      await reddit.page.goBack();
-      await reddit.nap();
-    }
-  };
   // Step 2 - Dance
   await player.start(
     async () => {
@@ -38,7 +31,7 @@ export default async function (context: BrowserContext, opts: Options) {
             // Ask ai to create a new post title and content
             const title = await reddit.ai(
               `Based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-              { input: reddit.opts.args.search, type: "title", range: "3-9" }
+              { input: reddit.searched[reddit.searched.length - 1]!, type: "title", range: "3-9" }
             );
             return {
               title,
@@ -51,11 +44,9 @@ export default async function (context: BrowserContext, opts: Options) {
           await reddit.nap();
         },
         player.visited,
-        reddit.opts.args.scope,
-        () => onRetry()
+        reddit.opts.args.scope
       );
       return expecto.index;
-    },
-    () => onRetry()
+    }
   );
 }
