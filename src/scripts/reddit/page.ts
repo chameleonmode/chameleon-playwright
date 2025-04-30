@@ -43,7 +43,10 @@ export class Reddit extends Base {
     text = this.bang("Search term", text);
     this.searched.push(text);
     const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
-    await locator.dblclick();
+    await this.click(locator);
+    await this.selectAll(locator);
+    await this.nap();
+    await locator.press("Backspace");
     await this.pressSequentially(locator, text, false);
     await locator.press("Enter");
     await this.nap();
@@ -312,6 +315,7 @@ export class Reddit extends Base {
       } catch (error) {
         console.warn("Error clicking 'See full discussion' link:", error);
       }
+      await this.scrollabit();
       const { count, locator, id } = await this.find(
         [
           'comment-composer-host slot[name="ready"] faceplate-textarea-input[data-testid="trigger-button"]',

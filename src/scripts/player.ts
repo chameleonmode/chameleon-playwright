@@ -3,11 +3,12 @@ import { Base } from "./base.js";
 export class Player {
   constructor(
     readonly actor: Base, 
-    readonly visited: number[] = []
+    public visited: number[] = []
   ) {}
   
   async start(dance: () => Promise<number>) {
     while (await this.actor.onTry() === undefined) {
+      this.visited = [];
       for (let i = 0; i < this.actor.iterations; i++) {
         console.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
 

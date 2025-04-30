@@ -72,9 +72,10 @@ export class Base {
     );
   }
 
-  async selectAll() {
+  async selectAll(locator?: Locator) {
     const modifierKey = process.platform === "win32" ? "Control" : "Meta";
-    await this.page.keyboard.press(`${modifierKey}+A`);
+    if(locator) await locator.press(`${modifierKey}+A`);
+    else await this.page.keyboard.press(`${modifierKey}+A`);
   }
 
   async type(text: string) {

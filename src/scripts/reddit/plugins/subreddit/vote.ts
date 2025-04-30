@@ -11,7 +11,8 @@ export default async function (context: BrowserContext, opts: Options) {
     const expecto = await reddit.findo(
       // Step 3 - Moves
       async () => {
-        reddit.bang("vote", await reddit.post.joinConversation());
+        const banger = await reddit.post.joinConversation();
+        reddit.bang("vote", banger);
         await reddit.subreddit.voter()
       },
       player.visited
