@@ -1,5 +1,4 @@
-import { random } from "../lib/utils.js";
-import { Base } from "./page.js";
+import { Base } from "./base.js";
 
 export class Player {
   constructor(

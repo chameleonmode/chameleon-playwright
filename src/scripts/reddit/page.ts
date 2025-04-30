@@ -1,6 +1,6 @@
-import { BrowserContext, Locator, expect } from "@playwright/test";
+import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
-import { Base } from "../page.js";
+import { Base } from "../base.js";
 import Player from "../player.js";
 import configure, { Options, Scope, defaults } from "./settings.js";
 
