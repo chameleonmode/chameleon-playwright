@@ -6,15 +6,16 @@ interface Opts<T> {
 interface Settings {
   start: Start;
   timeouts: Timeouts;
-  rando: Rando;
-  iterations: Rando;
 }
 
 interface Start {
   feature: string;
   attempts: number;
+  variations: Rando;
+  iterations: Rando;
+  rando: Rando;
+  new: boolean;
   url?: string;
-  new?: boolean;
 }
 
 interface Timeouts {

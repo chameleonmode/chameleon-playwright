@@ -8,10 +8,12 @@ export class Base {
   page!: Page;
   timeouts: Timeouts;
   iterations: number;
+  variations: number;
   rando: number;
   constructor(readonly context: BrowserContext, readonly opts: Opts<unknown>) {
-    this.rando = random(opts.settings.rando.min, opts.settings.rando.max);
-    this.iterations = random(opts.settings.iterations.min, opts.settings.iterations.max);
+    this.rando = random(opts.settings.start.rando.min, opts.settings.start.rando.max);
+    this.iterations = random(opts.settings.start.iterations.min, opts.settings.start.iterations.max);
+    this.variations = random(opts.settings.start.variations.min, opts.settings.start.variations.max);
     this.timeouts = {
       ...opts.settings.timeouts,
       navigate: 1000 * opts.settings.timeouts.navigate,

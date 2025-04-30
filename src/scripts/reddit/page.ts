@@ -2,7 +2,8 @@ import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
-import configure, { Options, Scope, defaults } from "./settings.js";
+import configure, { Options, Scope } from "./settings.js";
+import { generation } from "../../lib/ask.js";
 
 export class Reddit extends Base {
   searched: string[] = [];
@@ -228,7 +229,9 @@ export class Reddit extends Base {
       }
     }
 
-    throw this.error(`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`);
+    throw this.error(
+      `Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
+    );
   }
 
   // login
@@ -303,6 +306,12 @@ export class Reddit extends Base {
   readonly post = {
     title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
     joinConversation: async () => {
+      try {
+        const seeFullDiscussionLink = this.page.locator('a:has-text("See full discussion")');
+        if ((await seeFullDiscussionLink.count()) > 0) await this.click(seeFullDiscussionLink.first());
+      } catch (error) {
+        console.warn("Error clicking 'See full discussion' link:", error);
+      }
       const { count, locator, id } = await this.find(
         [
           'comment-composer-host slot[name="ready"] faceplate-textarea-input[data-testid="trigger-button"]',
@@ -330,13 +339,7 @@ export class Reddit extends Base {
       await this.scrollabit();
       const locator = this.page.locator("shreddit-comment");
       const count = await locator.count();
-      const index =
-        nth < 0
-          ? random(
-              random(0, Math.min(count, this.opts.settings.rando.min)),
-              Math.min(count, this.opts.settings.rando.max)
-            )
-          : nth;
+      const index = nth < 0 ? random(0, count) : nth;
       const comment = this.bang("Comment not found", locator.nth(index));
       await comment.waitFor({ timeout: this.timeouts.wait });
       return {
@@ -347,13 +350,6 @@ export class Reddit extends Base {
 
     // add a comment to the main thread
     addComment: async (comment: () => Promise<string>) => {
-      try {
-        const seeFullDiscussionLink = this.page.locator('a:has-text("See full discussion")');
-        if ((await seeFullDiscussionLink.count()) > 0) await this.click(seeFullDiscussionLink.first());
-      } catch (error) {
-        console.warn("Error clicking 'See full discussion' link:", error);
-      }
-
       // Click the comment button
       const result = await trySequentially([
         async () => await this.click(await this.post.joinConversation()),
@@ -517,35 +513,59 @@ export class Reddit extends Base {
 export default async function (context: BrowserContext, opts?: Partial<Options>) {
   const options = configure({
     args: {
-      ...defaults.args,
-      search: ["reddit", "chameleon"],
+      search: ["chameleon"],
       scope: "Posts",
       sort: "Relevance",
       filter: "All",
     },
     settings: {
-      timeouts: {
-        ...defaults.settings.timeouts,
-      },
       start: {
-        url: "https://www.reddit.com",
-        feature: "reddit",
-        attempts: 9,
         new: true,
+        attempts: 9,
+        feature: "reddit",
+        url: "https://www.reddit.com",
+        variations: {
+          min: 1,
+          max: 3,
+        },
+        iterations: {
+          min: 3,
+          max: 6,
+        },
+        rando: {
+          min: 6,
+          max: 9,
+        },
       },
-      rando: {
-        min: 3,
-        max: 6,
-      },
-      // use to find variations of search term from ai
-      iterations: {
-        min: 1,
-        max: 1,
+      timeouts: {
+        navigate: 60,
+        default: 30,
+        wait: 15,
+        naps: {
+          min: 256,
+          max: 512,
+          multiplier: undefined,
+        },
       },
     },
     ...opts,
   });
   const reddit = new Reddit(context, options);
+  if (reddit.variations > 1) {
+    // loop through the search terms and generate new ones
+    const addedTerms: string[] = [];
+    for (const term of reddit.opts.args.search) {
+      const generatedTerms = await generation({
+        type: "search",
+        amount: reddit.variations,
+        keyword: term,
+        feature: reddit.opts.settings.start.feature,
+      });
+      addedTerms.push(...generatedTerms);
+    }
+    // add the generated terms to the search array
+    reddit.opts.args.search.push(...addedTerms);
+  }
   const player = await Player(reddit);
   return {
     reddit,
