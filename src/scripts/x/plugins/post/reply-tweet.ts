@@ -10,10 +10,10 @@ export default async function (context: BrowserContext, opts: Options) {
         const expecto = await x.findo(
             // Step 2 - Open the profile matching with the keyword.
             async () => {
-                const { locator, text } = await x.getTweet();
+                const { locator, text } = await x.post.getTweet();
 
                 // Step 3 - Reply to the tweet.
-                await x.replyToTweet(
+                await x.post.replyToTweet(
                     locator,
                     await x.ai(`on a x post titled `, { input: text, type: "reply" })
                 );

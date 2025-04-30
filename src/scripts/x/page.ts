@@ -8,27 +8,17 @@ export class X extends Base {
     constructor(readonly context: BrowserContext, readonly opts: Options) {
         super(context, opts);
     }
+
     retweetButton = () => this.page.locator(`button[data-testid="retweet"]`);
     articles = () => this.page.locator(`main[role="main"] section article`);
     replyBtnSelector = () => this.page.locator('div[data-testid="toolBar"] button[data-testid="tweetButton"]');
     locator = (selector: string) => { return this.page.locator(selector) }
-
 
     // Search for a keyword on X
     async searcho(text: string) {
         const locator = this.page.locator('input[placeholder="Search"]');
         await this.pressSequentially(locator, text);
         await locator.press("Enter");
-    }
-
-    // Retweet the top most relevant tweet on X
-    async retweetTopTweet() {
-        const retweetButton = this.retweetButton().first();
-        await this.bang("Retweet button not found or not visible", retweetButton.isVisible(), retweetButton);
-        await retweetButton.click();
-
-        const confirmSelector = ("retweetConfirm");
-        await this.click(this.page.getByTestId(confirmSelector))
     }
 
     // Find a random tweet on X
@@ -97,32 +87,6 @@ export class X extends Base {
         throw this.error(`Failed to find a thread with open comments after ${maxAttempts} attempts.`);
     }
 
-    // Function to get a comment
-    async getTweet(nth = 2, random = Math.random() < 0.5) {
-        const comment = this.bang(
-            "Comment not found",
-            random
-                ? this.articles().nth(Math.floor(Math.random() * (await this.articles().count())))
-                : this.articles().nth(nth)
-        );
-        // Use a more specific selector to avoid nested matches
-        const commentContent = comment.locator('div[data-testid="tweetText"]').first();
-        commentContent.scrollIntoViewIfNeeded();
-        return {
-            text: await commentContent.innerText(),
-            locator: comment,
-        };
-    }
-
-    // Function to reply to the tweet
-    async replyToTweet(locator: Locator, reply: string) {
-        locator.locator('button[data-testid="reply"]').click();
-        const replySelector = 'div[data-viewportview="true"] div.DraftEditor-editorContainer';
-        const replyBox = this.page.locator(replySelector);
-        await this.bang("Reply box not found", replyBox.click(), replyBox);
-        await replyBox.type(reply, { delay: random(50, 100) });
-        await this.click(this.replyBtnSelector());
-    }
     // login
     readonly login = {
         // Check authentication
@@ -204,19 +168,57 @@ export class X extends Base {
         },
     };
 
-    // like on a post
-    async like() {
-        await this.scrollabit();
-        const likeButtons = this.page.locator('button[data-testid*="like"]');
-        const count = rando((await likeButtons.count()));
-        const length = random(
-            Math.min(count, this.opts.settings.rando.min),
-            Math.min(count, this.opts.settings.rando.max)
-        );
-        for (let i = 0; i <= length; i++) {
-            await this.click(likeButtons.nth(i));
+    readonly post = {
+        // Retweet the top most relevant tweet on X
+        retweetTopTweet: async () => {
+            const retweetButton = this.retweetButton().first();
+            await this.bang("Retweet button not found or not visible", retweetButton.isVisible(), retweetButton);
+            await retweetButton.click();
+            const confirmSelector = ("retweetConfirm");
+            await this.click(this.page.getByTestId(confirmSelector))
+        },
+
+        // Function to get a comment
+        getTweet: async (nth = 2, random = Math.random() < 0.5) => {
+            const comment = this.bang(
+                "Comment not found",
+                random
+                    ? this.articles().nth(Math.floor(Math.random() * (await this.articles().count())))
+                    : this.articles().nth(nth)
+            );
+            // Use a more specific selector to avoid nested matches
+            const commentContent = comment.locator('div[data-testid="tweetText"]').first();
+            commentContent.scrollIntoViewIfNeeded();
+            return {
+                text: await commentContent.innerText(),
+                locator: comment,
+            };
+        },
+
+        // Function to reply to the tweet
+        replyToTweet: async (locator: Locator, reply: string) => {
+            locator.locator('button[data-testid="reply"]').click();
+            const replySelector = 'div[data-viewportview="true"] div.DraftEditor-editorContainer';
+            const replyBox = this.page.locator(replySelector);
+            await this.bang("Reply box not found", replyBox.click(), replyBox);
+            await replyBox.type(reply, { delay: random(50, 100) });
+            await this.click(this.replyBtnSelector());
+        },
+
+        // like on a post
+        like: async () => {
+            await this.scrollabit();
+            const likeButtons = this.page.locator('button[data-testid*="like"]');
+            const count = rando((await likeButtons.count()));
+            const length = random(
+                Math.min(count, this.opts.settings.rando.min),
+                Math.min(count, this.opts.settings.rando.max)
+            );
+            for (let i = 0; i <= length; i++) {
+                await this.click(likeButtons.nth(i));
+            }
         }
-    }
+    };
 
     // create a new post
     poster = async (tweet: string) => {

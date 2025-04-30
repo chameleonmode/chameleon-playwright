@@ -12,7 +12,7 @@ export default async function (context: BrowserContext, opts: Options) {
     const expecto = await x.findo(
       // Step 3 - Moves
       async () => {
-        await x.like();
+        await x.post.like();
       },
       player.visited
     );
