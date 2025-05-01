@@ -539,27 +539,37 @@ export default async function (
 ) {
   const options = configure({
     args: {
-      search: opts?.settings?.start.urls ? [] : opts?.args?.search ?? ["undefined"],
       scope: "Posts",
       sort: "Relevance",
       filter: "All",
+      ...opts?.args,
+      search:
+        opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
+          ? []
+          : opts?.args?.search ?? ["undefined"],
     },
     settings: {
       start: {
         new: true,
         attempts: 9,
         feature: "reddit",
-        urls: opts?.settings?.start.urls ?? ["https://www.reddit.com"],
-        variations: opts?.settings?.start.urls
-          ? { min: 1, max: 1 }
-          : opts?.settings?.start.variations ?? { min: 1, max: 3 },
-        iterations: opts?.settings?.start.urls
-          ? { min: 1, max: 1 }
-          : opts?.settings?.start.variations ?? { min: 1, max: 3 },
         rando: {
           min: 6,
           max: 9,
         },
+        ...opts?.settings?.start,
+        urls:
+          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
+            ? opts?.settings?.start.urls
+            : ["https://www.reddit.com"],
+        variations:
+          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
+            ? { min: 1, max: 1 }
+            : opts?.settings?.start.variations ?? { min: 1, max: 3 },
+        iterations:
+          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
+            ? { min: 1, max: 1 }
+            : opts?.settings?.start.variations ?? { min: 1, max: 3 },
       },
       timeouts: {
         navigate: 60,
@@ -570,9 +580,9 @@ export default async function (
           max: 512,
           multiplier: 0,
         },
+        ...opts?.settings?.timeouts,
       },
     },
-    ...opts,
   });
   const scenario = async (url: string) => {
     if (action && url.startsWith("https://www.reddit.com/r/")) {
