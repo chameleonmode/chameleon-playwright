@@ -1,26 +1,31 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
+import { random, rando, sleepRandom, tryForEach, Rando } from "../lib/utils.js";
 import { askAI, Scenario, tones } from "../lib/ask.js";
 import { Opts, Timeouts } from "./types.js";
 
 export class Base {
   page!: Page;
-  timeouts: Timeouts;
-  iterations: number;
-  variations: number;
-  rando: number;
-  constructor(readonly context: BrowserContext, readonly opts: Opts<unknown>) {
-    this.rando = random(opts.settings.start.rando.min, opts.settings.start.rando.max);
-    this.iterations = random(opts.settings.start.iterations.min, opts.settings.start.iterations.max);
-    this.variations = random(opts.settings.start.variations.min, opts.settings.start.variations.max);
-    this.timeouts = {
+  constructor(
+    readonly ctx: BrowserContext,
+    readonly opts: Opts<unknown>,
+    readonly scenario: (url: string) => Promise<number | unknown>,
+    readonly rando: number = random(opts.settings.start.rando.min, opts.settings.start.rando.max),
+    readonly iterations: number = random(
+      opts.settings.start.iterations.min,
+      opts.settings.start.iterations.max
+    ),
+    readonly variations: number = random(
+      opts.settings.start.variations.min,
+      opts.settings.start.variations.max
+    ),
+    readonly timeouts: Timeouts = {
       ...opts.settings.timeouts,
       navigate: 1000 * opts.settings.timeouts.navigate,
       default: 1000 * opts.settings.timeouts.default,
       wait: 1000 * opts.settings.timeouts.wait,
-    };
-  }
+    }
+  ) {}
   async onTry(): Promise<void | Error> {
     throw this.error("onTry not implemented");
   }
@@ -30,13 +35,10 @@ export class Base {
 
   async init() {
     this.page = this.opts.settings.start.new
-      ? await this.context.newPage()
-      : this.context.pages()[this.context.pages().length - 1];
+      ? await this.ctx.newPage()
+      : this.ctx.pages()[this.ctx.pages().length - 1];
     this.page.setDefaultTimeout(this.timeouts.default);
     this.page.setDefaultNavigationTimeout(this.timeouts.navigate);
-
-    await this.navigate(this.opts.settings.start.url); // Added navigation to the start URL
-    await this.nap();
   }
 
   async navigate(url: string | undefined) {
@@ -74,7 +76,7 @@ export class Base {
 
   async selectAll(locator?: Locator) {
     const modifierKey = process.platform === "win32" ? "Control" : "Meta";
-    if(locator) await locator.press(`${modifierKey}+A`);
+    if (locator) await locator.press(`${modifierKey}+A`);
     else await this.page.keyboard.press(`${modifierKey}+A`);
   }
 
@@ -142,7 +144,7 @@ export class Base {
   }
 
   async nap(
-    args: { min: number; max: number; multiplier?: number } = {
+    args: Rando = {
       min: this.timeouts.naps.min,
       max: this.timeouts.naps.max,
       multiplier: this.timeouts.naps.multiplier,
@@ -168,7 +170,7 @@ export class Base {
 
   error(message: string, cause?: unknown) {
     return new Error(
-      `[${this.opts.settings.start.feature}] - [${this.opts.settings.start.url}] ${message}`,
+      `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts.settings.start)}] ${message}`,
       { cause }
     );
   }

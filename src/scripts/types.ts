@@ -1,3 +1,5 @@
+import { Rando } from "../lib/utils.js";
+
 interface Opts<T> {
   args: T;
   settings: Settings;
@@ -9,26 +11,20 @@ interface Settings {
 }
 
 interface Start {
+  rando: Rando;
+  new: boolean;
+  urls: string[];
   feature: string;
   attempts: number;
   variations: Rando;
   iterations: Rando;
-  rando: Rando;
-  new: boolean;
-  url?: string;
 }
 
 interface Timeouts {
+  navigate: number;
   default: number;
   wait: number;
-  navigate: number;
   naps: Rando;
-}
-
-interface Rando {
-  min: number;
-  max: number;
-  multiplier?: number;
 }
 
 export type { Opts, Start, Settings, Timeouts, Rando };

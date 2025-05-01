@@ -6,14 +6,19 @@ import configure, { Options, Scope } from "./settings.js";
 import { generation } from "../../lib/ask.js";
 
 export class Reddit extends Base {
-  searched: string[] = [];
-  constructor(readonly context: BrowserContext, readonly opts: Options) {
-    super(context, opts);
+  constructor(
+    readonly ctx: BrowserContext,
+    readonly opts: Options,
+    readonly scenario: (url: string) => Promise<number | unknown>,
+    readonly searched: string[] = []
+  ) {
+    super(ctx, opts, scenario);
   }
 
   // on every try
   override async onTry() {
-    const todo = this.opts.args.search.length;
+    const todo =
+      this.opts.args.search.length || this.opts.settings.start.urls.length - this.searched.length;
     const done = this.searched.length;
     console.log(`onTry: ${done} of ${todo} search terms completed`);
 
@@ -27,21 +32,32 @@ export class Reddit extends Base {
   }
 
   // on every retry
-  override async onRetry(starts = "https://www.reddit.com/search/") {
+  override async onRetry() {
     await this.nap();
-    while (!this.page.url().startsWith(starts)) {
-      await this.page.goBack();
+    while (
+      !this.page
+        .url()
+        .startsWith(
+          this.opts.args.search.length
+            ? "https://www.reddit.com/search/"
+            : this.opts.settings.start.urls[this.searched.length]
+        )
+    ) {
+      await this.page.goBack({ waitUntil: "load" });
       await this.nap({
         ...this.timeouts.naps,
-        multiplier: random(3, 9),
+        multiplier: random(3, 6),
       });
     }
   }
 
   // search for a term on Reddit
   async searcho(text: string | undefined = this.opts.args.search.pop()) {
-    text = this.bang("Search term", text);
-    this.searched.push(text);
+    if (text === undefined) {
+      this.searched.push(this.opts.settings.start.urls[this.searched.length]);
+      return;
+    }
+
     const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
     await this.click(locator);
     await this.selectAll(locator);
@@ -53,20 +69,19 @@ export class Reddit extends Base {
   }
 
   // find an active context
-  async findo(
-    funco: () => Promise<unknown>,
-    visited: number[] = [],
-    scope = this.opts.args.scope,
-    retry: () => Promise<unknown> = () => this.page.goBack()
-  ) {
+  async findo(funco: () => Promise<unknown>, visited: number[] = []) {
     const localator =
-      scope === "Posts"
+      this.opts.args.scope === "Posts"
         ? this.page.getByRole("button", { name: "Posts" }).first()
-        : this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first();
+        : this.page.locator(`#search-results-page-tab-${this.opts.args.scope.toLowerCase()}`).first();
     await this.click(localator);
 
     // TODO: refactor
-    if (scope !== "Communities" && this.opts.args.sort !== "Relevance" && visited.length === 0) {
+    if (
+      this.opts.args.scope !== "Communities" &&
+      this.opts.args.sort !== "Relevance" &&
+      visited.length === 0
+    ) {
       const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
       await this.click(sortLocator);
 
@@ -74,7 +89,8 @@ export class Reddit extends Base {
       const clickSortOptionByText = async () => {
         // Normalize the text to handle spacing differences
         const normalizedText =
-          scope === "Comments" && (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+          this.opts.args.scope === "Comments" &&
+          (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
             ? "Top"
             : this.opts.args.sort.trim();
         const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
@@ -121,7 +137,7 @@ export class Reddit extends Base {
 
     // TODO: refactor
     if (
-      (scope === "Posts" || scope === "Media") &&
+      (this.opts.args.scope === "Posts" || this.opts.args.scope === "Media") &&
       this.opts.args.filter !== "All" &&
       visited.length === 0
     ) {
@@ -195,7 +211,7 @@ export class Reddit extends Base {
         Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
         People: { ids: ["search-author"], strat: "testId" },
       };
-      return scopeToTestIdsMap[scope];
+      return scopeToTestIdsMap[this.opts.args.scope];
     })();
 
     for (let i = 0; i < this.opts.settings.start.attempts; i++) {
@@ -228,7 +244,7 @@ export class Reddit extends Base {
       } catch (e) {
         console.warn("Func is archived or removed.", e);
         visited.push(index);
-        await retry();
+        await this.onRetry();
       }
     }
 
@@ -328,7 +344,7 @@ export class Reddit extends Base {
 
     // find a post
     assert: async () => {
-      if (this.opts.args.scope === "Communities") {
+      if (!this.opts.args.search || this.opts.args.scope === "Communities") {
         await this.scrollabit();
         const posts = this.page.locator("a[slot='title']");
         const count = await posts.count();
@@ -386,6 +402,8 @@ export class Reddit extends Base {
 
     // reply to a comment
     replyToComment: async (locator: Locator, reply: () => Promise<string>) => {
+      await locator.scrollIntoViewIfNeeded();
+      await this.nap();
       // Click the reply button
       const comment = locator.locator("shreddit-comment-action-row button").first();
       await this.click(comment);
@@ -514,10 +532,14 @@ export class Reddit extends Base {
   }
 }
 
-export default async function (context: BrowserContext, opts?: Partial<Options>) {
+export default async function (
+  ctx: BrowserContext,
+  opts?: Partial<Options>,
+  action?: (url?: string) => Promise<unknown>
+) {
   const options = configure({
     args: {
-      search: ["chameleon"],
+      search: opts?.settings?.start.urls ? [] : opts?.args?.search ?? ["undefined"],
       scope: "Posts",
       sort: "Relevance",
       filter: "All",
@@ -527,15 +549,13 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
         new: true,
         attempts: 9,
         feature: "reddit",
-        url: "https://www.reddit.com",
-        variations: {
-          min: 1,
-          max: 3,
-        },
-        iterations: {
-          min: 3,
-          max: 6,
-        },
+        urls: opts?.settings?.start.urls ?? ["https://www.reddit.com"],
+        variations: opts?.settings?.start.urls
+          ? { min: 1, max: 1 }
+          : opts?.settings?.start.variations ?? { min: 1, max: 3 },
+        iterations: opts?.settings?.start.urls
+          ? { min: 1, max: 1 }
+          : opts?.settings?.start.variations ?? { min: 1, max: 3 },
         rando: {
           min: 6,
           max: 9,
@@ -548,14 +568,32 @@ export default async function (context: BrowserContext, opts?: Partial<Options>)
         naps: {
           min: 256,
           max: 512,
-          multiplier: undefined,
+          multiplier: 0,
         },
       },
     },
     ...opts,
   });
-  const reddit = new Reddit(context, options);
-  if (reddit.variations > 1) {
+  const scenario = async (url: string) => {
+    if (action && url.startsWith("https://www.reddit.com/r/")) {
+      for (let i = 0; i < options.settings.start.attempts; i++) {
+        try {
+          return await action(url);
+        } catch (e) {
+          console.warn("Error in action function:", e);
+          await reddit.page.reload({ waitUntil: "load" });
+        }
+      }
+    } else if (action) {
+      const expecto = await reddit.findo(async () => await action(), player.visited);
+      return expecto.index;
+    } else {
+      console.warn("No action provided");
+      return undefined;
+    }
+  };
+  const reddit = new Reddit(ctx, options, scenario);
+  if (reddit.opts.args.search && reddit.variations > 1) {
     // loop through the search terms and generate new ones
     const addedTerms: string[] = [];
     for (const term of reddit.opts.args.search) {

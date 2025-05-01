@@ -4,16 +4,10 @@ import Reddit from "../../page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
-  const { reddit, player } = await Reddit(context, opts);
-
-  // Step 2 - Dance
-  await player.start(async () => {
-    const expecto = await reddit.findo(
-      // Step 3 - Moves
-      () => reddit.subreddit.joiner(),
-      player.visited
-    );
-
-    return expecto.index;
+  const { reddit, player } = await Reddit(context, opts, async (_) => {
+    await reddit.subreddit.joiner();
   });
+
+  // Step 3 - Play
+  await player.play();
 }

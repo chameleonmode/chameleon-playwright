@@ -1,7 +1,8 @@
-/**
- * Utility functions for various tasks.
- * @module utils
- */
+export interface Rando {
+  min: number;
+  max: number;
+  multiplier?: number;
+}
 
 /**
  * sleeps for a specified number of milliseconds.
@@ -14,16 +15,25 @@
  * @returns A promise that resolves after the specified time.
  */
 export const sleep = (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise<number>((resolve) => {
+    setTimeout(() => resolve(ms), ms);
+  });
 };
 
+
 /**
- * Generates a random number between min and max.
+ * Generates a random integer between the smallest and largest values provided.
  * @example
- * // Returns a random number between 1 and 10
+ * // Returns a random integer between 1 and 10 (inclusive)
  * const randomNum = random(1, 10);
  * console.log(randomNum);
  * // => 5
+ * 
+ * // Works with any number of arguments
+ * const randomNum = random(5, 10, 3); // Returns random integer between 3 and 10
+ * 
+ * @param values - One or more numbers from which to determine the range
+ * @returns A random integer between the smallest and largest values (inclusive)
  */
 export function random(...values: number[]): number {
   const smallest = Math.min(...values);
@@ -61,12 +71,10 @@ export function rando<T>(list?: T[] | number): T | boolean | number {
     : Math.random() < 0.5;
 }
 
-
-export async function sleepRandom(args: { min?: number; max?: number; multiplier?: number } = {}) {
-  const { min = 256, max = 512, multiplier = random(2, 4) } = args;
-  const delay = random(min, max) * multiplier;
-  await sleep(delay);
-  return delay;
+export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }: Rando) {
+  const ms = random(min, max);
+  const delay = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
+  return await sleep(delay);
 }
 
 export async function tryForEach<T>(promises: Promise<T>[]) {
@@ -88,30 +96,32 @@ export async function tryForEach<T>(promises: Promise<T>[]) {
 
 export async function tryOnFirst<T>(promises: Promise<T>[]) {
   const errors: unknown[] = [];
-  
+
   // Create a race to find the first fulfilled promise
   // Rejected promises are converted to never-resolving promises
   // so they don't win the race
-  const racingPromises = promises.map((promise, index) => 
-    promise.catch(error => {
+  const racingPromises = promises.map((promise, index) =>
+    promise.catch((error) => {
       errors[index] = error;
       // Return a never-resolving promise when catching errors
       return new Promise<never>(() => {});
     })
   );
-  
+
   // If all promises reject, this will hang, so we need a fallback
-  const fallbackPromise = Promise.all(promises.map((p, index) => 
-    p.catch(err => { 
-      if (!errors[index]) errors[index] = err;
-      return null; 
-    })
-  )).then(() => {
+  const fallbackPromise = Promise.all(
+    promises.map((p, index) =>
+      p.catch((err) => {
+        if (!errors[index]) errors[index] = err;
+        return null;
+      })
+    )
+  ).then(() => {
     // This only resolves when all promises have settled
     // If we reach here and haven't returned yet, all promises rejected
     throw new Error("All promises rejected");
   });
-  
+
   try {
     // Race between the first fulfilled promise and the fallback
     const result = await Promise.race([...racingPromises, fallbackPromise]);
@@ -122,48 +132,47 @@ export async function tryOnFirst<T>(promises: Promise<T>[]) {
   }
 }
 
-
 export async function trySequentially<T>(promises: (() => Promise<T>)[]) {
   const errors: unknown[] = [];
-  
+
   // We need functions that return promises, not promises themselves,
   // because promises start executing immediately when created
-  
+
   for (let i = 0; i < promises.length; i++) {
     try {
       // Execute the current promise-returning function
       const result = await promises[i]();
       // If we get here, the promise fulfilled successfully
-      return { 
-        fulfilled: result, 
+      return {
+        fulfilled: result,
         errors,
-        fulfilledIndex: i
+        fulfilledIndex: i,
       };
     } catch (error) {
       // Store the error and continue to the next promise
       errors.push(error);
     }
   }
-  
+
   // If we've tried all promises and none succeeded
-  return { 
-    fulfilled: null, 
+  return {
+    fulfilled: null,
     errors,
-    fulfilledIndex: -1
+    fulfilledIndex: -1,
   };
 }
 
 export function deepMerge(target: any, source: any) {
   if (!source) return target;
   const output = { ...target };
-  
-  Object.keys(source).forEach(key => {
+
+  Object.keys(source).forEach((key) => {
     if (source[key] instanceof Object && key in target) {
       output[key] = deepMerge(target[key], source[key]);
     } else {
       output[key] = source[key];
     }
   });
-  
+
   return output;
 }
