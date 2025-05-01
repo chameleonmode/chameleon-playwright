@@ -11,7 +11,7 @@ export class Base {
     readonly opts: Opts<unknown>,
     readonly scenario: (url: string) => Promise<number | unknown>,
     readonly rando: number = random(opts.settings.start.rando.min, opts.settings.start.rando.max),
-    readonly iterations: number = random(
+    public iterations: number = random(
       opts.settings.start.iterations.min,
       opts.settings.start.iterations.max
     ),
@@ -26,10 +26,10 @@ export class Base {
       wait: 1000 * opts.settings.timeouts.wait,
     }
   ) {}
-  async onTry(): Promise<void | Error> {
+  async onTry(url: string): Promise<void | Error> {
     throw this.error("onTry not implemented");
   }
-  async onRetry() {
+  async onRetry(url?: string) {
     throw this.error("onRetry not implemented");
   }
 

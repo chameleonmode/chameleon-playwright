@@ -10,7 +10,8 @@
     "reddit:run": "npm run node:ts src/local.ts -- reddit",
     "reddit:reply": "npm run reddit:run post/reply.ts",
     "reddit:comment": "npm run reddit:run post/comment.ts",
-    "reddit:vote": "npm run reddit:run subreddit/vote.ts '{\"args\":{\"search\":[\"twddle\"],\"scope\":\"Posts\",\"sort\":\"Relevance\",\"filter\":\"All\"},\"settings\":{\"start\":{\"feature\":\"Reddit\",\"attempts\":9,\"variations\":{\"min\":1,\"max\":3},\"iterations\":{\"min\":3,\"max\":6},\"rando\":{\"min\":6,\"max\":9},\"new\":true,\"url\":\"\",\"urls\":[]},\"timeouts\":{\"default\":30,\"wait\":15,\"navigate\":60,\"naps\":{\"min\":256,\"max\":512}}}}'",
+    "reddit:vote": 
+    "npm run reddit:run subreddit/vote.ts '{\"args\":{\"search\":[\"bobo\"],\"scope\":\"Posts\",\"sort\":\"Relevance\",\"filter\":\"All\"},\"settings\":{\"start\":{\"feature\":\"Reddit\",\"attempts\":9,\"variations\":{\"min\":1,\"max\":1},\"iterations\":{\"min\":1,\"max\":1},\"rando\":{\"min\":2,\"max\":2},\"new\":true,\"url\":\"https://www.reddit.com/r/FashionReps/comments/1h06qba/has_anyone_bought_these_from_yolo_if_so_can_you/\\nhttps://www.reddit.com/r/FashionReps/comments/1i14jwh/about_yolo_and_other_sellers/\",\"all\":false,\"urls\":[\"https://www.reddit.com/r/FashionReps/comments/1h06qba/has_anyone_bought_these_from_yolo_if_so_can_you/\",\"https://www.reddit.com/r/FashionReps/comments/1i14jwh/about_yolo_and_other_sellers/\"]},\"timeouts\":{\"default\":30,\"wait\":15,\"navigate\":60,\"naps\":{\"min\":256,\"max\":512,\"multiplier\":2}}}}'",
     "reddit:post": "npm run reddit:run subreddit/post.ts",
     "reddit:join": "npm run reddit:run subreddit/join.ts",
     "reddit:login-credentials": "npm run reddit:run login/credentials.ts '{\"email\":\"example@gmail.com\", \"password\":\"pass@word\"}'",

@@ -24,7 +24,7 @@ export default async function (context: BrowserContext, opts: Options) {
       // Ask ai to create a new post title and content
       const title = await reddit.ai(
         `Based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-        { input: reddit.searched[reddit.searched.length - 1]!, type: "title", range: "3-9" }
+        { input: reddit.searched[reddit.searched.length - 1], type: "title", range: "3-9" }
       );
       return {
         title,

@@ -13,6 +13,7 @@ interface Settings {
 interface Start {
   rando: Rando;
   new: boolean;
+  all: boolean;
   urls: string[];
   feature: string;
   attempts: number;

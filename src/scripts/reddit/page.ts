@@ -16,14 +16,17 @@ export class Reddit extends Base {
   }
 
   // on every try
-  override async onTry() {
+  // TODO: refactoroo
+  override async onTry(url: string) {
     const todo =
-      this.opts.args.search.length || this.opts.settings.start.urls.length - this.searched.length;
+      url === "https://www.reddit.com"
+        ? this.opts.args.search.length
+        : this.opts.settings.start.urls.length;
     const done = this.searched.length;
     console.log(`onTry: ${done} of ${todo} search terms completed`);
 
     // check if we have completed all search terms
-    if (todo === 0) return this.error("No search terms provided");
+    if (todo === 0 || (url !== "https://www.reddit.com" && this.page.url().startsWith(url))) return this.error("No more todos");
     else if (done > 0) await this.onRetry();
 
     // check if we are on the right page
@@ -32,15 +35,16 @@ export class Reddit extends Base {
   }
 
   // on every retry
-  override async onRetry() {
+  // TODO: refactoroo
+  override async onRetry(url?: string) {
     await this.nap();
     while (
       !this.page
         .url()
         .startsWith(
-          this.opts.args.search.length
+          this.opts.args.search.length > 0
             ? "https://www.reddit.com/search/"
-            : this.opts.settings.start.urls[this.searched.length]
+            : url ?? "https://www.reddit.com/r/"
         )
     ) {
       await this.page.goBack({ waitUntil: "load" });
@@ -54,7 +58,12 @@ export class Reddit extends Base {
   // search for a term on Reddit
   async searcho(text: string | undefined = this.opts.args.search.pop()) {
     if (text === undefined) {
-      this.searched.push(this.opts.settings.start.urls[this.searched.length]);
+      const url = this.opts.settings.start.urls.shift();
+      if (url) {
+        await this.navigate(url);
+        await this.nap();
+        this.searched.push(url);
+      }
       return;
     }
 
@@ -66,6 +75,7 @@ export class Reddit extends Base {
     await this.pressSequentially(locator, text, false);
     await locator.press("Enter");
     await this.nap();
+    this.searched.push(text);
   }
 
   // find an active context
@@ -138,6 +148,8 @@ export class Reddit extends Base {
     // TODO: refactor
     if (
       (this.opts.args.scope === "Posts" || this.opts.args.scope === "Media") &&
+      this.opts.args.sort !== "Hot" &&
+      this.opts.args.sort !== "New" &&
       this.opts.args.filter !== "All" &&
       visited.length === 0
     ) {
@@ -537,20 +549,20 @@ export default async function (
   opts?: Partial<Options>,
   action?: (url?: string) => Promise<unknown>
 ) {
+  const bypass =
+    !opts?.settings?.start.all && opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0;
   const options = configure({
     args: {
       scope: "Posts",
       sort: "Relevance",
       filter: "All",
       ...opts?.args,
-      search:
-        opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
-          ? []
-          : opts?.args?.search ?? ["undefined"],
+      search: bypass ? [] : opts?.args?.search ?? ["undefined"],
     },
     settings: {
       start: {
         new: true,
+        all: false,
         attempts: 9,
         feature: "reddit",
         rando: {
@@ -558,18 +570,9 @@ export default async function (
           max: 9,
         },
         ...opts?.settings?.start,
-        urls:
-          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
-            ? opts?.settings?.start.urls
-            : ["https://www.reddit.com"],
-        variations:
-          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
-            ? { min: 1, max: 1 }
-            : opts?.settings?.start.variations ?? { min: 1, max: 3 },
-        iterations:
-          opts?.settings?.start.urls && opts?.settings?.start.urls.length > 0
-            ? { min: 1, max: 1 }
-            : opts?.settings?.start.variations ?? { min: 1, max: 3 },
+        urls: !bypass ? ["https://www.reddit.com", ...(opts?.settings?.start.urls ?? [])] : opts?.settings?.start.urls ?? ["https://www.reddit.com"],
+        variations: bypass ? { min: 1, max: 1 } : opts?.settings?.start.variations ?? { min: 1, max: 3 },
+        iterations: bypass ? { min: 1, max: 1 } : opts?.settings?.start.iterations ?? { min: 1, max: 3 },
       },
       timeouts: {
         navigate: 60,
@@ -585,13 +588,23 @@ export default async function (
     },
   });
   const scenario = async (url: string) => {
+    console.log("Scenario URL:", url);
+    // TODO: refactoroo
+    // const searches: string[] = [...reddit.opts.args.search];
+    // const iterations = { ...reddit.opts.settings.start.iterations };
     if (action && url.startsWith("https://www.reddit.com/r/")) {
       for (let i = 0; i < options.settings.start.attempts; i++) {
         try {
+          reddit.opts.args.search.length = 0;
+          reddit.opts.settings.start.iterations = { min: 1, max: 1 };
           return await action(url);
         } catch (e) {
           console.warn("Error in action function:", e);
           await reddit.page.reload({ waitUntil: "load" });
+        } finally {
+          // TODO: refactoroo
+          // reddit.opts.args.search.push(...searches);
+          // reddit.opts.settings.start.iterations = iterations;
         }
       }
     } else if (action) {
@@ -603,7 +616,7 @@ export default async function (
     }
   };
   const reddit = new Reddit(ctx, options, scenario);
-  if (reddit.opts.args.search && reddit.variations > 1) {
+  if ((reddit.opts.settings.start.all || reddit.opts.args.search) && reddit.variations > 1) {
     // loop through the search terms and generate new ones
     const addedTerms: string[] = [];
     for (const term of reddit.opts.args.search) {

@@ -4,17 +4,20 @@ export class Player {
   constructor(readonly actor: Base, public visited: number[] = []) {}
 
   async play() {
-    for (let j = 0; j < this.actor.opts.settings.start.urls.length; j++) {
-      const url = this.actor.opts.settings.start.urls[j];
-      await this.actor.navigate(url);
-      await this.actor.nap();
-      while ((await this.actor.onTry()) === undefined) {
+    const length = this.actor.opts.settings.start.urls.length;
+    for (let j = 0; j < length; j++) {
+      const url = this.actor.opts.settings.start.urls[0];
+      if(!url) continue;
+
+      // if on next variation
+      console.log(`Variation: ${j + 1} of ${length}`, url);
+      while ((await this.actor.onTry(url)) === undefined) {
         this.visited = [];
         for (let i = 0; i < this.actor.iterations; i++) {
           console.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
 
           // if on next iteration
-          if (i > 0) await this.actor.onRetry();
+          if (i > 0) await this.actor.onRetry(url);
 
           // on each iteration
           const resulto = await this.actor.scenario(url);
