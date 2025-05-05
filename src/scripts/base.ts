@@ -5,7 +5,8 @@ import { askAI, Scenario, tones } from "../lib/ask.js";
 import { Opts, Timeouts } from "./types.js";
 
 export class Base {
-  page!: Page;
+  readonly visited: string[] = [];
+  public page!: Page;
   constructor(
     readonly ctx: BrowserContext,
     readonly opts: Opts<unknown>,
@@ -15,7 +16,7 @@ export class Base {
       opts.settings.start.iterations.min,
       opts.settings.start.iterations.max
     ),
-    readonly variations: number = random(
+    public variations: number = random(
       opts.settings.start.variations.min,
       opts.settings.start.variations.max
     ),
@@ -26,10 +27,15 @@ export class Base {
       wait: 1000 * opts.settings.timeouts.wait,
     }
   ) {}
+  status() {
+    const todo = this.opts.settings.start.urls.length;
+    const done = this.visited.length;
+    return { todo, done };
+  }
   async onTry(url: string): Promise<void | Error> {
     throw this.error("onTry not implemented");
   }
-  async onRetry(url?: string) {
+  async onIteration(url: string) {
     throw this.error("onRetry not implemented");
   }
 
@@ -42,8 +48,19 @@ export class Base {
   }
 
   async navigate(url: string | undefined) {
-    if (url) await this.page.goto(url);
-    await this.waitForNavigation();
+    try {
+      if (url) await this.page.goto(url, { waitUntil: "load" });
+      await this.waitForNavigation();
+      await this.nap();
+    } catch (e) {
+      console.error("Error navigating to URL:", e);
+      await sleepRandom({
+        min: 1000 * 7,
+        max: 1000 * 14,
+        multiplier: 1,
+      });
+      await this.navigate(url);
+    }
   }
 
   async waitForNavigation(timeout = this.timeouts.navigate) {
@@ -74,10 +91,13 @@ export class Base {
     );
   }
 
-  async selectAll(locator?: Locator) {
+  async selectAll(locator?: Locator, clear = false) {
     const modifierKey = process.platform === "win32" ? "Control" : "Meta";
-    if (locator) await locator.press(`${modifierKey}+A`);
-    else await this.page.keyboard.press(`${modifierKey}+A`);
+    await (locator ? locator.press(`${modifierKey}+A`) : this.page.keyboard.press(`${modifierKey}+A`));
+    if (clear) {
+      await this.nap();
+      await (locator ? locator.press("Backspace") : this.page.keyboard.press("Backspace"));
+    }
   }
 
   async type(text: string) {

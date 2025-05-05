@@ -1,23 +1,23 @@
 import { Base } from "./base.js";
 
 export class Player {
-  constructor(readonly actor: Base, public visited: number[] = []) {}
+  constructor(readonly actor: Base, readonly visited: number[] = []) {}
 
   async play() {
     const length = this.actor.opts.settings.start.urls.length;
     for (let j = 0; j < length; j++) {
-      const url = this.actor.opts.settings.start.urls[0];
+      const url = this.actor.opts.settings.start.urls[j];
       if(!url) continue;
 
       // if on next variation
-      console.log(`Variation: ${j + 1} of ${length}`, url);
-      while ((await this.actor.onTry(url)) === undefined) {
-        this.visited = [];
+      console.log(`Url: ${j + 1} of ${length}`, url);
+      while (!((await this.actor.onTry(url)) instanceof Error)) {
+        this.visited.length = 0;
         for (let i = 0; i < this.actor.iterations; i++) {
           console.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
 
           // if on next iteration
-          if (i > 0) await this.actor.onRetry(url);
+          if (i > 0) await this.actor.onIteration(url);
 
           // on each iteration
           const resulto = await this.actor.scenario(url);

@@ -2,52 +2,62 @@ import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
-import configure, { Options, Scope } from "./settings.js";
+import configure, { Args, Options, Scope, Sort } from "./settings.js";
 import { generation } from "../../lib/ask.js";
 
+export const BASE_URL: string = "https://www.reddit.com";
+
 export class Reddit extends Base {
+  readonly searched: string[] = [];
   constructor(
     readonly ctx: BrowserContext,
     readonly opts: Options,
-    readonly scenario: (url: string) => Promise<number | unknown>,
-    readonly searched: string[] = []
+    readonly scenario: (url: string) => Promise<number | unknown>
   ) {
     super(ctx, opts, scenario);
   }
 
-  // on every try
-  // TODO: refactoroo
-  override async onTry(url: string) {
-    const todo =
-      url === "https://www.reddit.com"
-        ? this.opts.args.search.length
-        : this.opts.settings.start.urls.length;
-    const done = this.searched.length;
-    console.log(`onTry: ${done} of ${todo} search terms completed`);
-
-    // check if we have completed all search terms
-    if (todo === 0 || (url !== "https://www.reddit.com" && this.page.url().startsWith(url)))
-      return this.error("No more todos");
-    else if (done > 0) await this.onRetry();
-
-    // check if we are on the right page
-    await this.nap();
-    await this.searcho(undefined, url === "https://www.reddit.com" ? url : undefined);
+  // check todo's and done
+  override status() {
+    const done = this.visited.length + this.searched.length;
+    const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
+    const visit = this.opts.settings.start.urls.length - this.visited.length;
+    const search = this.opts.args.search.length - this.searched.length;
+    const searched = search === 0 && this.opts.args.search.length > 0;
+    console.log(`Todo: ${todo} of ${done} completed`);
+    console.log(`Search: ${this.opts.args.search.length} of ${this.searched.length} completed`);
+    console.log(`Visit: ${this.opts.settings.start.urls.length} of ${this.visited.length} completed`);
+    return { todo, done, visit, search, searched };
   }
 
-  // on every retry
-  // TODO: refactoroo
-  override async onRetry(url?: string) {
+  // on every try
+  override async onTry(url: string): Promise<void | Error> {
+    const { todo, done, visit, search, searched } = this.status();
+    const basic = this.scopeulation.community(url) || url === BASE_URL;
+    // check if we have completed all urls we need to also search on
+    if (searched && !this.visited.includes(url) && basic) {
+      this.searched.length = 0;
+      return await this.onTry(url);
+    }
+
+    // check if we have completed all terms
+    return search > 0 && basic
+      ? await this.searcho()
+      : visit > 0 && !this.visited.includes(url)
+      ? await this.navigato(url)
+      : this.error(`All terms completed.`);
+  }
+
+  // on every retry/iteration
+  override async onIteration(url: string) {
     await this.nap();
-    while (
-      !this.page
-        .url()
-        .startsWith(
-          this.opts.args.search.length > 0
-            ? "https://www.reddit.com/search/"
-            : url ?? "https://www.reddit.com/r/"
-        )
-    ) {
+    const started =
+      this.scopeulation.comments(url) || this.scopeulation.search(url)
+        ? url
+        : url.endsWith("/")
+        ? url + "search"
+        : url + "/search";
+    while (!this.page.url().startsWith(started)) {
       await this.page.goBack({ waitUntil: "load" });
       await this.nap({
         ...this.timeouts.naps,
@@ -57,175 +67,200 @@ export class Reddit extends Base {
   }
 
   // search for a term on Reddit
-  async searcho(text: string | undefined = this.opts.args.search.pop(), goTo?: string) {
-    if (text === undefined || goTo) {
-      const url = this.opts.settings.start.urls.shift();
-      if (url) {
-        await this.navigate(url);
-        await this.nap();
-        this.searched.push(url);
-      }
-      if (!goTo || text === undefined) return;
+  async navigato(url: string) {
+    await this.navigate(url);
+    this.visited.push(url);
+  }
+
+  async searcho() {
+    const url = this.opts.settings.start.urls[this.visited.length];
+    const navigate = this.searched.length === 0 && !this.visited.includes(url);
+    if (navigate) await this.navigato(url);
+    else await this.onIteration(this.visited[this.visited.length - 1]);
+
+    const text = this.opts.args.search[this.searched.length];
+    const locator = this.page.locator(`faceplate-search-input`);
+    const textbox = locator.getByRole("textbox");
+    await this.click(textbox);
+
+    try {
+      const clearButton = locator.getByRole("button", { name: "Clear search" });
+      await this.click(clearButton);
+    } catch (e) {
+      console.warn("Error clicking clear button:", e);
+      await this.selectAll(textbox);
     }
 
-    const locator = this.page.locator(`faceplate-search-input`).getByRole("textbox");
-    await this.click(locator);
-    await this.selectAll(locator);
+    await this.pressSequentially(textbox, text, false);
+    await textbox.press("Enter");
     await this.nap();
-    await locator.press("Backspace");
-    await this.pressSequentially(locator, text, false);
-    await locator.press("Enter");
-    await this.nap();
-    this.searched.push(text);
   }
 
   // find an active context
   async findo(funco: () => Promise<unknown>, visited: number[] = []) {
-    const localator =
-      this.opts.args.scope === "Posts"
-        ? this.page.getByRole("button", { name: "Posts" }).first()
-        : this.page.locator(`#search-results-page-tab-${this.opts.args.scope.toLowerCase()}`).first();
-    await this.click(localator);
-
-    // TODO: refactor
-    if (
-      this.opts.args.scope !== "Communities" &&
-      this.opts.args.sort !== "Relevance" &&
-      visited.length === 0
-    ) {
-      const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
-      await this.click(sortLocator);
-
-      // Function to click a sort option by its text
-      const clickSortOptionByText = async () => {
-        // Normalize the text to handle spacing differences
-        const normalizedText =
-          this.opts.args.scope === "Comments" &&
-          (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
-            ? "Top"
-            : this.opts.args.sort.trim();
-        const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
-
-        try {
-          // Locate the option by its display text
-          const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
-
-          // First scroll the option into view
-          await sortOption.scrollIntoViewIfNeeded();
-
-          // Wait a brief moment to ensure it's properly visible
-          await this.page.waitForTimeout(200);
-
-          // Get the parent 'a' element which is the actual clickable link
-          const parentLink = sortOption.locator("xpath=./ancestor::a");
-
-          // Click the link
-          await parentLink.click();
-
-          console.log(`Successfully clicked on the "${normalizedOption}" sort option`);
-        } catch (error) {
-          console.error(`Failed to click sort option "${normalizedOption}":`, error);
-
-          // Alternative approach using evaluate if the above fails
-          try {
-            await this.page.evaluate((text) => {
-              const elements = Array.from(document.querySelectorAll("li a span"));
-              const targetElement = elements.find((el) => el.textContent?.includes(text));
-              if (targetElement) {
-                targetElement.closest("a")?.click();
-                return true;
-              }
-              return false;
-            }, normalizedOption);
-            console.log(`Clicked on "${normalizedOption}" using evaluate method`);
-          } catch (evalError) {
-            console.error(`Alternative method also failed:`, evalError);
-          }
-        }
-      };
-      await clickSortOptionByText();
-    }
-
-    // TODO: refactor
-    if (
-      (this.opts.args.scope === "Posts" || this.opts.args.scope === "Media") &&
-      this.opts.args.sort !== "Hot" &&
-      this.opts.args.sort !== "New" &&
-      this.opts.args.filter !== "All" &&
-      visited.length === 0
-    ) {
-      const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
-      await this.click(sortLocator.nth(1));
-
-      // Function to click a time range option by its text
-      const clickTimeRangeByText = async () => {
-        // Now find and click the option
-        const optionText =
-          this.opts.args.filter === "Today"
-            ? this.opts.args.filter.trim()
-            : "Past " + this.opts.args.filter.trim().toLowerCase();
-        try {
-          // First approach - target by the exact text
-          const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
-
-          // Get the containing link element
-          const linkElement = exactOption.locator("xpath=./ancestor::a");
-
-          // Scroll into view and click
-          await linkElement.scrollIntoViewIfNeeded();
-          await this.page.waitForTimeout(200);
-          await linkElement.click();
-
-          console.log(`Clicked on "${optionText}" time range option`);
-          return true;
-        } catch (error) {
-          console.error(`Failed to click time range "${optionText}":`, error);
-
-          // Try alternative approach using the specific structure
-          try {
-            // Find all list items in the dropdown
-            const listItems = this.page.locator("search-sort-dropdown-menu#search_modifier_time_range li");
-            const count = await listItems.count();
-
-            for (let i = 0; i < count; i++) {
-              const item = listItems.nth(i);
-              const text = await item.locator("span span.text-14").textContent();
-
-              if (text?.trim().includes(optionText)) {
-                // Find the link within this item
-                const link = item.locator("a");
-                await link.scrollIntoViewIfNeeded();
-                await this.page.waitForTimeout(200);
-                await link.click();
-
-                console.log(`Clicked on "${optionText}" time range option (alternative method)`);
-                return true;
-              }
-            }
-
-            console.error(`Could not find time range option "${optionText}" among ${count} options`);
-            return false;
-          } catch (alternativeError) {
-            console.error(`Alternative method also failed:`, alternativeError);
-            return false;
-          }
-        }
-      };
-      await clickTimeRangeByText();
-    }
-
+    const scopeulator = this.scopeulation.tranform();
     const findulator = (() => {
-      const scopeToTestIdsMap: {
+      const mapper: {
         [key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
       } = {
         Posts: { ids: ["search-post-with-content-preview", "search-post-unit"], strat: "testId" },
-        Communities: { ids: ["search-community"], strat: "testId" },
         Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
         Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
         People: { ids: ["search-author"], strat: "testId" },
+        Communities: { ids: ["search-community"], strat: "testId" },
       };
-      return scopeToTestIdsMap[this.opts.args.scope];
+
+      // If not a user provided URL, we might need a different scope
+      return mapper[scopeulator.scope];
     })();
+    // TODO: refactor
+    try {
+      if (!scopeulator.type) {
+        await this.click(
+          scopeulator.scope === "Posts"
+            ? this.page.getByRole("button", { name: scopeulator.scope }).first()
+            : this.page.locator(`#search-results-page-tab-${scopeulator.scope.toLowerCase()}`).first()
+        );
+      }
+
+      if (visited.length === 0) {
+        // Function to click a sort option by its text
+        const clickSortOptionByText = async () => {
+          const scopes: Scope[] = ["Posts", "Comments", "Media"];
+          const sorts: Sort[] = ["Hot", "Top", "New", "Comments"];
+          if (
+            scopeulator.sort ||
+            !scopes.includes(scopeulator.scope) ||
+            !sorts.includes(this.opts.args.sort)
+          ) {
+            return;
+          }
+
+          // Click the sort dropdown
+          const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
+          await this.click(sortLocator);
+
+          // Normalize the text to handle spacing differences
+          const normalizedText =
+            this.opts.args.scope === "Comments" &&
+            (this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+              ? "Top"
+              : this.opts.args.sort.trim();
+          const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
+
+          try {
+            // Locate the option by its display text
+            const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
+
+            // First scroll the option into view
+            await sortOption.scrollIntoViewIfNeeded();
+
+            // Wait a brief moment to ensure it's properly visible
+            // await this.page.waitForTimeout(200);
+
+            // Get the parent 'a' element which is the actual clickable link
+            const parentLink = sortOption.locator("xpath=./ancestor::a");
+            // Click the link
+            await this.click(parentLink);
+
+            console.log(`Successfully clicked on the "${normalizedOption}" sort option`);
+          } catch (error) {
+            console.error(`Failed to click sort option "${normalizedOption}":`, error);
+
+            // Alternative approach using evaluate if the above fails
+            try {
+              await this.page.evaluate((text) => {
+                const elements = Array.from(document.querySelectorAll("li a span"));
+                const targetElement = elements.find((el) => el.textContent?.includes(text));
+                if (targetElement) {
+                  targetElement.closest("a")?.click();
+                  return true;
+                }
+                return false;
+              }, normalizedOption);
+              console.log(`Clicked on "${normalizedOption}" using evaluate method`);
+            } catch (evalError) {
+              console.error(`Alternative method also failed:`, evalError);
+            }
+          }
+        };
+        await clickSortOptionByText();
+        await this.nap();
+
+        // Function to click a time range option by its text
+        const clickTimeRangeByText = async () => {
+          const scopes: Scope[] = ["Posts", "Media"];
+          const sorts: Sort[] = ["Relevance", "Top", "Comments"];
+          if (
+            scopeulator.t ||
+            scopeulator.sort === "communities" ||
+            !scopes.includes(scopeulator.scope) ||
+            !sorts.includes(this.opts.args.sort)
+          ) {
+            return;
+          }
+          // Click the time range dropdown
+          const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
+          await this.click(sortLocator.nth(1));
+
+          // Now find and click the option
+          const optionText =
+            this.opts.args.filter === "Today"
+              ? this.opts.args.filter.trim()
+              : "Past " + this.opts.args.filter.trim().toLowerCase();
+          try {
+            // First approach - target by the exact text
+            const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
+
+            // Get the containing link element
+            const linkElement = exactOption.locator("xpath=./ancestor::a");
+
+            // Scroll into view and click
+            await linkElement.scrollIntoViewIfNeeded();
+            await this.click(linkElement);
+
+            console.log(`Clicked on "${optionText}" time range option`);
+            return true;
+          } catch (error) {
+            console.error(`Failed to click time range "${optionText}":`, error);
+
+            // Try alternative approach using the specific structure
+            try {
+              // Find all list items in the dropdown
+              const listItems = this.page.locator(
+                "search-sort-dropdown-menu#search_modifier_time_range li"
+              );
+              const count = await listItems.count();
+
+              for (let i = 0; i < count; i++) {
+                const item = listItems.nth(i);
+                const text = await item.locator("span span.text-14").textContent();
+
+                if (text?.trim().includes(optionText)) {
+                  // Find the link within this item
+                  const link = item.locator("a");
+                  await link.scrollIntoViewIfNeeded();
+                  await this.page.waitForTimeout(200);
+                  await link.click();
+
+                  console.log(`Clicked on "${optionText}" time range option (alternative method)`);
+                  return true;
+                }
+              }
+
+              console.error(`Could not find time range option "${optionText}" among ${count} options`);
+              return false;
+            } catch (alternativeError) {
+              console.error(`Alternative method also failed:`, alternativeError);
+              return false;
+            }
+          }
+        };
+        await clickTimeRangeByText();
+      }
+    } catch (e) {
+      console.warn("Error in findo function:", e);
+    }
 
     for (let i = 0; i < this.opts.settings.start.attempts; i++) {
       console.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
@@ -253,11 +288,13 @@ export class Reddit extends Base {
         return {
           index,
           funky,
+          visited,
         };
       } catch (e) {
         console.warn("Func is archived or removed.", e);
         visited.push(index);
-        await this.onRetry();
+        await this.page.reload({ waitUntil: "load" });
+        await this.onIteration(this.visited[this.visited.length - 1]);
       }
     }
 
@@ -265,6 +302,45 @@ export class Reddit extends Base {
       `Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
     );
   }
+
+  // patterns scopeulation
+  readonly scopeulation = {
+    community(url: string) {
+      const pattern = /\/r\/[^/]+\/?$/;
+      return pattern.test(url);
+    },
+
+    comments(url: string) {
+      const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
+      return pattern.test(url);
+    },
+
+    search(url: string) {
+      const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
+      return pattern.test(url);
+    },
+
+    tranform: () => {
+      const scopes: Scope[] = ["People", "Communities"];
+      const url = this.visited[this.visited.length - 1];
+      const Url = new URL(url);
+      const scope =
+        scopes.includes(this.opts.args.scope) &&
+        (this.scopeulation.community(url) ||
+          this.scopeulation.comments(url) ||
+          this.scopeulation.search(url))
+          ? "Posts"
+          : this.opts.args.scope;
+      return {
+        scope,
+        url,
+        Url,
+        type: Url.searchParams.get("type"),
+        sort: Url.searchParams.get("sort"),
+        t: Url.searchParams.get("t"),
+      };
+    },
+  };
 
   // login
   readonly login = {
@@ -357,7 +433,8 @@ export class Reddit extends Base {
 
     // find a post
     assert: async () => {
-      if (!this.opts.args.search || this.opts.args.scope === "Communities") {
+      const scopeulator = this.scopeulation.tranform();
+      if (scopeulator.scope === "Communities" || scopeulator.type === "communities") {
         await this.scrollabit();
         const posts = this.page.locator("a[slot='title']");
         const count = await posts.count();
@@ -372,7 +449,7 @@ export class Reddit extends Base {
       await this.scrollabit();
       const locator = this.page.locator("shreddit-comment");
       const count = await locator.count();
-      const index = nth < 0 ? random(0, count) : nth;
+      const index = nth < 0 ? random(0, count - 1) : nth;
       const comment = this.bang("Comment not found", locator.nth(index));
       await comment.waitFor({ timeout: this.timeouts.wait });
       return {
@@ -461,14 +538,21 @@ export class Reddit extends Base {
 
     // vote on a post
     voter: async () => {
-      await this.scrollabit();
+      const scopeulator = this.scopeulation.tranform();
+      if (scopeulator.scope === "Communities" || scopeulator.type === "communities") {
+        await this.scrollabit();
+      } else {
+        const banger = await this.post.joinConversation();
+        this.bang("vote", banger);
+      }
       const ups = this.page.getByRole("button", { name: "Upvote" });
       const downs = this.page.getByRole("button", { name: "Downvote" });
       const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
 
       // ensure we don't exceed the number of available votes
-      const count = Math.min(upCount, downCount);
+      const count = Math.min(upCount, downCount) - 1;
       const length = Math.min(count, this.rando);
+      this.bang("Vote count", length > 0, { upCount, downCount, count });
       for (let i = 0; i < length; i++) {
         const index = random(0, count);
         await (rando() ? this.click(ups.nth(index)) : this.click(downs.nth(index)));
@@ -550,29 +634,34 @@ export default async function (
   opts?: Partial<Options>,
   action?: (url?: string) => Promise<unknown>
 ) {
-  const bypass =
-    opts?.settings?.start.all || (opts?.args?.search && opts?.args?.search?.length > 0);
+  // const bypass = opts?.settings?.start.bypass;
+  const args: Args = {
+    scope: "Communities",
+    sort: "Comments",
+    filter: "Year",
+    search: ["pop"],
+    ...opts?.args,
+  };
+  // Determine URLs based on args.search and settings
+  const urls = opts?.settings?.start.urls || [
+    // "https://www.reddit.com/search/?q=ai+stuff&type=communities",
+    // "https://www.reddit.com/r/popculturechat/comments/1kemub3/sydney_sweeney_with_machine_gun_kelly_yesterday/",
+    // "https://www.reddit.com/r/mildlyinteresting/comments/1kepdzk/how_orange_my_hands_are_im_normally_paler_than_my/",
+  ];
+  const all = opts?.settings?.start.all || true; 
   const options = configure({
-    args: {
-      scope: "Posts",
-      sort: "Relevance",
-      filter: "All",
-      ...opts?.args,
-      search: bypass ? opts?.args?.search ?? ["undefined"] : [],
-    },
+    args,
     settings: {
       start: {
+        all,
         new: true,
-        all: false,
         attempts: 9,
         feature: "reddit",
-        rando: { min: 6, max: 9 },
-        iterations: { min: 3, max: 6 },
-        variations: { min: 1, max: 3 },
+        rando: { min: 1, max: 3 },
+        iterations: { min: 1, max: 1 },
+        variations: { min: 1, max: 1 },
         ...opts?.settings?.start,
-        urls: bypass
-          ? ["https://www.reddit.com", ...(opts?.settings?.start.urls ?? [])]
-          : opts?.settings?.start.urls ?? ["https://www.reddit.com"],
+        urls: all && args.search.length > 0 ? [BASE_URL, ...urls] : urls,
       },
       timeouts: {
         navigate: 60,
@@ -587,17 +676,14 @@ export default async function (
       },
     },
   });
-  const scenario = async (url: string) => {
+  const reddit = new Reddit(ctx, options, async (url: string): Promise<unknown> => {
     console.log("Scenario URL:", url);
-    // TODO: refactoroo
-    // const searches: string[] = [...reddit.opts.args.search];
-    // const iterations = { ...reddit.opts.settings.start.iterations };
-    if (action && url.startsWith("https://www.reddit.com/r/")) {
+
+    if (action && reddit.scopeulation.comments(url)) {
       for (let i = 0; i < options.settings.start.attempts; i++) {
         try {
-          reddit.opts.args.search.length = 0;
-          reddit.opts.settings.start.iterations = { min: 1, max: 1 };
-          reddit.opts.settings.start.variations = { min: 1, max: 1 };
+          reddit.iterations = 1;
+          reddit.variations = 1;
           return await action(url);
         } catch (e) {
           console.warn("Error in action function:", e);
@@ -609,14 +695,20 @@ export default async function (
         }
       }
     } else if (action) {
-      const expecto = await reddit.findo(async () => await action(), player.visited);
-      return expecto.index;
+      try {
+        const expecto = await reddit.findo(async () => await action(), player.visited);
+        return expecto.index;
+      } catch (e) {
+        console.warn("Error in action function:", e);
+      } finally {
+        const text = reddit.opts.args.search[reddit.searched.length];
+        reddit.searched.push(text);
+      }
     } else {
       console.warn("No action provided");
-      return undefined;
     }
-  };
-  const reddit = new Reddit(ctx, options, scenario);
+    return undefined;
+  });
   if ((reddit.opts.settings.start.all || reddit.opts.args.search) && reddit.variations > 1) {
     // loop through the search terms and generate new ones
     const addedTerms: string[] = [];
