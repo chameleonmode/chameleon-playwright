@@ -21,7 +21,22 @@ export default async function run(args: { file: string; port: number; options: u
     const browser = await (
       await import("@playwright/test")
     ).chromium.connectOverCDP(`http://localhost:${args.port}`);
-    await script(browser.contexts()[0], args.options);
+
+    const ctx = browser.contexts()[0];
+    // Add stealth features to avoid detection
+    await ctx.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+
+      // Add more stealth features as needed
+      const originalQuery = window.navigator.permissions.query;
+      // @ts-ignore
+      window.navigator.permissions.query = (parameters) => {
+        parameters.name === "notifications"
+          ? Promise.resolve({ state: Notification.permission })
+          : originalQuery(parameters);
+      };
+    });
+    await script(ctx, args.options);
     console.log(`Try: ${args.file} success`);
   } catch (error: unknown) {
     console.error(`Catch: ${args.file} ${error instanceof Error ? error.message : String(error)}`);

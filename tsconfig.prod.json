@@ -8,6 +8,10 @@
     "inlineSources": false,
     "importHelpers": true,     // Use shared runtime helpers
     "noEmitHelpers": true,     // Don't emit helper functions in every file
-    "stripInternal": true      // Strip @internal comments
+    "stripInternal": true,     // Strip @internal comments
+    "moduleResolution": "node16", // Use Node16 module resolution
+    "allowImportingTsExtensions": false, // Don't allow importing .ts files directly
+    "resolveJsonModule": true, // Allow importing JSON files
+    "verbatimModuleSyntax": true // Preserve import specifiers
   }
 }

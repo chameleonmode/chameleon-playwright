@@ -2,7 +2,7 @@ import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
-import configure, { Args, Options, Scope, Sort } from "./settings.js";
+import configure, { Args, Options, Scope, Sort } from "./reddit.js";
 import { generation } from "../../lib/ask.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
@@ -514,16 +514,6 @@ export class Reddit extends Base {
       // Click the "Join" button
       await this.click(
         this.bang("'visit' button not found", this.page.locator('span.avatar a[href^="/r/"]').first())
-      );
-    },
-  };
-
-  // user
-  readonly user = {
-    // check the member is following a user or not if not then follow the user.
-    follower: async () => {
-      await this.click(
-        this.bang("'Follow' button not found", this.page.locator("div[slot='button-follow']").first())
       );
     },
   };

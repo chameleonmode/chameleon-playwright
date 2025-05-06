@@ -9,7 +9,7 @@ const opts = json ? JSON.parse(json) || "{}" : undefined;
 
 async function main() {
   const { chromium } = await import("@playwright/test");
-  const context = await (async function () {
+  const ctx = await (async function () {
     try {
       // Try to connect to an already running Chrome instance
       return (await chromium.connectOverCDP("http://localhost:9613")).contexts()[0];
@@ -36,14 +36,27 @@ async function main() {
       });
     }
   })();
+  // Add stealth features to avoid detection
+  await ctx.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => false });
+
+    // Add more stealth features as needed
+    const originalQuery = window.navigator.permissions.query;
+    // @ts-ignore
+    window.navigator.permissions.query = (parameters) => {
+      parameters.name === "notifications"
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters);
+    };
+  });
 
   const { default: plugin } = await import(pluginPath);
-    try {
-      console.log(`Try: ${platform} File: ${file} JSON: ${json}`);
-      await plugin(context, opts);
-    } finally {
-      console.log(`Finally: ${file} completed finally block`);
-    }
+  try {
+    console.log(`Try: ${platform} File: ${file} JSON: ${json}`);
+    await plugin(ctx, opts);
+  } finally {
+    console.log(`Finally: ${file} completed finally block`);
+  }
 }
 
 main().catch(console.error);

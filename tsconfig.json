@@ -19,6 +19,6 @@
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/scripts/reddit/plugins/subreddit/ap.ts"],
   "exclude": ["node_modules", "dist"]
 }

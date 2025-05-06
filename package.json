@@ -7,7 +7,7 @@
     "node:ts": "node --loader ts-node/esm",
     "dev": "npm run node:ts src/index.ts",
     "dev:watch": "nodemon --watch 'src/**/*.ts' --exec 'npm run node:ts' src/index.ts",
-    "reddit:run": "npm run node:ts src/local.ts -- reddit",
+    "reddit:run": "node --loader ts-node/esm src/local.ts -- reddit",
     "reddit:reply": "npm run reddit:run post/reply.ts",
     "reddit:comment": "npm run reddit:run post/comment.ts",
     "reddit:vote": "npm run reddit:run subreddit/vote.ts",
@@ -20,7 +20,8 @@
     "clean": "rm -rf dist",
     "bundle": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bundle.js --external:@playwright/* --external:playwright* --external:chromium-bidi/* --external:*.node",
     "prepare-dist": "cp package.json dist/ && cd dist && npm install --omit=dev --no-package-lock --no-bin-links",
-    "examples:ask": "npm run node:ts tests/examples/ask.ts"
+    "examples:ask": "npm run node:ts tests/examples/ask.ts",
+    "examples:scrape": "npm run node:ts tests/examples/scrape.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1"
