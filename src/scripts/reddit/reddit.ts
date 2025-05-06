@@ -1,4 +1,4 @@
-
+// File: reddit.ts
 import { Opts } from "../types.js";
 
 export interface Article {
@@ -14,8 +14,8 @@ export interface Article {
   permalink?: string;
   url?: string;
   domain?: string;
-  thumbnail?: string;
-  image?: string;
+  thumbnail?: string | null;
+  image?: string | null;
   post?: Post;
 }
 
@@ -23,9 +23,20 @@ export interface Artifact {
   [string: string]: any;
 }
 
+export interface Attribution {
+  tag: string;
+  text: string | undefined;
+  attributes: Record<string, string>;
+}
+
+export interface ElementalNode {
+  attributes: Attribution;
+  elementals: ElementalNode[];
+}
+
 // Type definitions for Post
 export interface Post {
-  container?: Artifact;
+  container?: ElementalNode;
   comments?: Comment[];
 }
 

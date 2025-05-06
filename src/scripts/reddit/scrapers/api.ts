@@ -113,6 +113,15 @@ async function navigateToPost(page: Page, permalink: string) {
  * @returns Array of Article objects
  */
 export async function scrapeSubreddit(page: Page, maxPosts: number = 5): Promise<Article[]> {
+  for (let i = 0; i < 3; i++) {
+    // Scroll down to load more articles
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight);
+    });
+    
+    // Wait for potential new content to load
+    await page.waitForTimeout(1000);
+  }
   await page.waitForSelector(SELECTORS.subreddit.feed, { timeout: 30000 });
   await page.waitForTimeout(1000);
 
