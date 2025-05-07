@@ -4,7 +4,7 @@ import { random, rando, sleepRandom, tryForEach, Rando } from "../lib/utils.js";
 import { askAI, Scenario, tones } from "../lib/ask.js";
 import { Opts, Timeouts } from "./types.js";
 
-export class Base {
+export abstract class Base {
   readonly visited: string[] = [];
   public page!: Page;
   constructor(
@@ -32,12 +32,8 @@ export class Base {
     const done = this.visited.length;
     return { todo, done };
   }
-  async onTry(url: string): Promise<void | Error> {
-    throw this.error("onTry not implemented");
-  }
-  async onIteration(url: string) {
-    throw this.error("onRetry not implemented");
-  }
+  abstract onTry(url: string): Promise<void | Error>;
+  abstract onIteration(url: string): Promise<void | Error>;
 
   async init() {
     this.page = this.opts.settings.start.new

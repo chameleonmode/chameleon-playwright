@@ -1,5 +1,5 @@
 // File: reddit.ts
-import { Opts } from "../types.js";
+import { Opts, Artifact } from "../types.js";
 
 export interface Article {
   postType: "text" | "image" | "video" | "link" | "unknown";
@@ -17,10 +17,6 @@ export interface Article {
   thumbnail?: string | null;
   image?: string | null;
   post?: Post;
-}
-
-export interface Artifact {
-  [string: string]: any;
 }
 
 export interface Attribution {
@@ -59,8 +55,10 @@ export const SELECTORS = {
     subredditName: 'a.subreddit-name, [data-testid="subreddit-name"], a[href^="/r/"]',
     // flair: '[slot="post-flair"], .post-flair, .flair',
     mediaContainer: '[slot="post-media-container"], .media-container, [data-testid="post-media"]',
-    externalLink: 'a[href^="http"]:not([href*="reddit.com"]), .external-link, [data-testid="external-link"]',
-    commentSection: 'faceplate-partial[name^="TopComments_"], .comments-container, [data-testid="comments-section"]',
+    externalLink:
+      'a[href^="http"]:not([href*="reddit.com"]), .external-link, [data-testid="external-link"]',
+    commentSection:
+      'faceplate-partial[name^="TopComments_"], .comments-container, [data-testid="comments-section"]',
     // sidebarRules: '.rules-section, [data-testid="rules-section"]',
     // moderators: '.moderators-section, [data-testid="moderators-section"]',
   },
@@ -78,11 +76,11 @@ export const SELECTORS = {
     collapsed: '.collapsed, [data-testid="collapsed-comment"]',
   },
   subreddit: {
-    feed: 'shreddit-feed article',
+    feed: "shreddit-feed article",
     postTitle: 'a[slot="title"], a[id^="post-title-"], [slot="title"]',
     authorName: '[slot="authorName"] a, .advertiser-name',
     flair: '[slot="post-flair"] .flair-content',
-    mediaImage: 'img.preview-image, img.preview-img, img.media-lightbox-img',
+    mediaImage: "img.preview-image, img.preview-img, img.media-lightbox-img",
     thumbnail: '[slot="thumbnail"] img, .thumbnail img',
     commentLink: [
       'a[data-testid="comment-link"]',
@@ -90,11 +88,10 @@ export const SELECTORS = {
       'span:has-text("comments")',
       'a:has-text("comments")',
       '[slot="comments-button"]',
-    ].join(', '),
+    ].join(", "),
     titleLink: 'h1 a, h3 a, a[data-click-id="body"]',
-  }
+  },
 };
-
 
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments";
@@ -109,11 +106,9 @@ interface Args {
 
 interface Options extends Opts<Args> {}
 
-
 export default function (opts: Options) {
-  return {
-    ...opts,
-  };
+  return { ...opts };
 }
 
-export type { Args, Options, Sort, Filter, Scope };
+export type { Sort, Filter, Scope };
+export { Artifact, Args, Options };

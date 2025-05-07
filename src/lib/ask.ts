@@ -1,23 +1,17 @@
+import { State } from "../app";
+import { AI } from "../scripts/types";
+
+export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
+export type Kind = "comment" | "post" | "reply" | "title" | "search";
+export type Range = "3-9" | "10-20" | "10-30" | "10-40" | "10-50" | "20-30" | "20-40" | "20-50" | "50-100" | "100-250" | "200-500" | "500-1000";
 export type Scenario = {
   input: string;
-  type: "comment" | "post" | "reply" | "title";
-  tone?: "sarcastic" | "informative" | "relatable" | "straightforward";
-  range?:
-    | "3-9"
-    | "10-20"
-    | "10-30"
-    | "10-40"
-    | "10-50"
-    | "20-30"
-    | "20-40"
-    | "20-50"
-    | "50-100"
-    | "100-250"
-    | "200-500"
-    | "500-1000";
+  type: Kind;
+  tone?: Tone;
+  range?: Range;
 };
-export const tones: Scenario["tone"][] = ["sarcastic", "informative", "relatable", "straightforward"];
-export type Generate = "search";
+export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
+export const state: State = { api: undefined };
 
 export async function askConsole(input: string): Promise<string> {
   console.log(`Ask:${input}`); // must remain ask for seperate process to intercept
@@ -68,7 +62,7 @@ export async function askAI(opts: {
 
 export async function generation(opts: {
   ai?: string;
-  type: Generate;
+  type: Kind;
   amount: number;
   keyword: string;
   feature: string;
@@ -90,8 +84,23 @@ export async function generation(opts: {
   return queries as string[]; // Return the generated keywords
 }
 
+export async function prompteer(ai: AI) {
+  const body = JSON.stringify(ai);
+  const res = await fetch(`${await endpoint()}/prompteer`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ai: "domo",
+    },
+    body,
+  });
+
+  const { text, queries } = await res.json();
+  return queries as string[]; // Return the generated keywords
+}
+
 async function endpoint() {
-  return process.env.API ||= await (async () => {
+  return state.api ||= await (async () => {
     try {
       // Simple fetch check with AbortController for timeout
       const controller = new AbortController();

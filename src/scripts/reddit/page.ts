@@ -4,6 +4,7 @@ import { Base } from "../base.js";
 import Player from "../player.js";
 import configure, { Args, Options, Scope, Sort } from "./reddit.js";
 import { generation } from "../../lib/ask.js";
+import { AI } from "../types.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
 
@@ -632,14 +633,47 @@ export default async function (
     search: ["pop"],
     ...opts?.args,
   };
+
+  const ai: AI = {
+    task: "What is the best comment?",
+    decorators: {
+      tone: "friendly",
+      prefix: "You are a social media copywriting guru who knows how to craft perfect replies.",
+      suffix: "Please respond as creative and concisely as possible.",
+      human: "You are a Reddit user.",
+      system: "You are a Reddit bot.",
+      audience: "reddit website users",
+      background: "",
+    },
+    generations: {
+      terms: [
+        {
+          term: "reddit comments",
+          reason: "i like reddit",
+        },
+      ],
+      range: {
+        min: 0,
+        max: 0
+      },
+      input: {
+        type: "title",
+        data: "",
+        reason: ""
+      }
+    },
+    ...opts?.ai,
+  };
   // Determine URLs based on args.search and settings
   const urls = opts?.settings?.start.urls || [
-    // "https://www.reddit.com/search/?q=ai+stuff&type=communities",
-    // "https://www.reddit.com/r/popculturechat/comments/1kemub3/sydney_sweeney_with_machine_gun_kelly_yesterday/",
-    // "https://www.reddit.com/r/mildlyinteresting/comments/1kepdzk/how_orange_my_hands_are_im_normally_paler_than_my/",
+    "https://www.reddit.com/r/AITAH/",
+    "https://www.reddit.com/r/AITAH/search/?q=wtf&cId=065ac19a-7e1a-4ddc-a2bf-f265b37fe0cc&iId=828cb1c6-875a-48e7-be07-96ae622a9200",
+    "https://www.reddit.com/search/?q=ai+stuff&type=communities",
+    "https://www.reddit.com/r/mildlyinteresting/comments/1kepdzk/how_orange_my_hands_are_im_normally_paler_than_my/",
   ];
-  const all = opts?.settings?.start.all || true; 
+  const all = opts?.settings?.start.all || true;
   const options = configure({
+    ai,
     args,
     settings: {
       start: {
