@@ -1,11 +1,13 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
 import { random, rando, sleepRandom, tryForEach, Rando } from "../lib/utils.js";
-import { askAI, Scenario, tones } from "../lib/ask.js";
-import { Opts, Timeouts } from "./types.js";
+import { promptee, tones } from "../lib/ask.js";
+import { Decorations, Generators, Opts, Timeouts } from "./types.js";
 
 export abstract class Base {
   readonly visited: string[] = [];
+  readonly toner = tones;
+  readonly propter = promptee;
   public page!: Page;
   constructor(
     readonly ctx: BrowserContext,
@@ -171,17 +173,20 @@ export abstract class Base {
     await this.waitForNavigation();
   }
 
-  async ai(background: string, scenario: Scenario) {
-    const result = await askAI({
-      feature: this.opts.settings.start.feature,
-      background,
-      scenario: {
-        tone: rando(tones),
-        range: "10-50",
-        ...scenario,
+  async ask(task: string, generate: Partial<Generators>, decorate: Partial<Decorations> = {}) {
+    const result = await this.propter({
+      ...this.opts.ai,
+      task: task,
+      decorators: {
+        ...this.opts.ai.decorators,
+        ...decorate,
+      },
+      generations: {
+        ...this.opts.ai.generations,
+        ...generate,
       },
     });
-    return result.startsWith('"') && result.endsWith('"') ? result.slice(1, -1) : result;
+    return result;
   }
 
   error(message: string, cause?: unknown) {

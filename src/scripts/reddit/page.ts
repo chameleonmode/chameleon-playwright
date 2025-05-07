@@ -3,7 +3,6 @@ import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
 import configure, { Args, Options, Scope, Sort } from "./reddit.js";
-import { generation } from "../../lib/ask.js";
 import { AI } from "../types.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
@@ -656,11 +655,7 @@ export default async function (
         min: 0,
         max: 0
       },
-      input: {
-        type: "title",
-        data: "",
-        reason: ""
-      }
+      input: [],
     },
     ...opts?.ai,
   };
@@ -737,11 +732,18 @@ export default async function (
     // loop through the search terms and generate new ones
     const addedTerms: string[] = [];
     for (const term of reddit.opts.args.search) {
-      const generatedTerms = await generation({
-        type: "search",
-        amount: reddit.variations,
-        keyword: term,
-        feature: reddit.opts.settings.start.feature,
+      const generatedTerms = await reddit.propter({
+        ...ai,
+        task: `Generate a list of 10 unique terms related to '${term}'`,
+        generations: {
+          ...ai.generations,
+          terms: [
+            {
+              term: term,
+              reason: "engage with humans",
+            },
+          ],
+        }
       });
       addedTerms.push(...generatedTerms);
     }

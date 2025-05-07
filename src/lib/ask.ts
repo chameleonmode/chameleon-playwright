@@ -1,18 +1,8 @@
 import { State } from "../app";
-import { AI } from "../scripts/types";
+import { AI, Kind, Tone } from "../scripts/types";
 
-export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
-export type Kind = "comment" | "post" | "reply" | "title" | "search";
-export type Range = "3-9" | "10-20" | "10-30" | "10-40" | "10-50" | "20-30" | "20-40" | "20-50" | "50-100" | "100-250" | "200-500" | "500-1000";
-export type Scenario = {
-  input: string;
-  type: Kind;
-  tone?: Tone;
-  range?: Range;
-};
 export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
 export const state: State = { api: undefined };
-
 export async function askConsole(input: string): Promise<string> {
   console.log(`Ask:${input}`); // must remain ask for seperate process to intercept
 
@@ -36,71 +26,30 @@ export async function askConsole(input: string): Promise<string> {
   });
 }
 
-export async function askAI(opts: {
-  ai?: string;
-  feature: string;
-  background?: string;
-  scenario: Scenario;
-}) {
-  const { feature, scenario, ai = "gpt", background = "" } = opts;
-  const res = await fetch(`${await endpoint()}/air/ask/${ai}?feature=${feature}`, {
-    method: "POST",
-    headers: {
+export async function promptee(
+  ctx: AI,
+  {
+    method = "POST",
+    path = "/prompter",
+    headers = {
       "Content-Type": "application/json",
+      ai: "origato",
     },
-    body: JSON.stringify({
-      background,
-      scenario,
-    }),
-  });
-
-  const {
-    payload: { response },
-  } = await res.json();
-  return response as string;
-}
-
-export async function generation(opts: {
-  ai?: string;
-  type: Kind;
-  amount: number;
-  keyword: string;
-  feature: string;
-}) {
-  const { ai = "openai", type, amount, keyword, feature } = opts;
-  const res = await fetch(`${await endpoint()}/air/${ai}/gen/${type}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      amount,
-      keyword,
-      feature,
-    }),
-  });
-
-  const { text, queries } = await res.json();
-  return queries as string[]; // Return the generated keywords
-}
-
-export async function prompteer(ai: AI) {
-  const body = JSON.stringify(ai);
-  const res = await fetch(`${await endpoint()}/prompteer`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ai: "domo",
-    },
+  } = {}
+) {
+  const body = JSON.stringify(ctx);
+  const res = await fetch(`${await endpoint()}${path}`, {
+    method,
+    headers,
     body,
   });
 
-  const { text, queries } = await res.json();
-  return queries as string[]; // Return the generated keywords
+  const { text, obj } = await res.json();
+  return text as string; // Return the generated keywords
 }
 
 async function endpoint() {
-  return state.api ||= await (async () => {
+  return (state.api ||= await (async () => {
     try {
       // Simple fetch check with AbortController for timeout
       const controller = new AbortController();
@@ -113,5 +62,5 @@ async function endpoint() {
     } catch (error) {
       return "https://chameleon-ws.onrender.com"; // Use fallback
     }
-  })();
+  })());
 }

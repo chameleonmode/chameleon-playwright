@@ -6,7 +6,7 @@ export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
   const { reddit, player } = await Reddit(context, opts, async (url) => {
     // find post content from a comment
-    if(reddit.opts.args.search || url) await reddit.post.assert();
+    if (reddit.opts.args.search || url) await reddit.post.assert();
 
     // Get the post title and comment text
     const titled = await reddit.post.title();
@@ -22,15 +22,51 @@ export default async function (context: BrowserContext, opts: Options) {
     // Create a new post
     await reddit.poster(async () => {
       // Ask ai to create a new post title and content
-      const title = await reddit.ai(
-        `Based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-        { input: reddit.searched[reddit.searched.length - 1], type: "title", range: "3-9" }
+      // const title = await reddit.ask(
+      //   `Based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
+      //   { input: reddit.searched[reddit.searched.length - 1], type: "title", range: "3-9" }
+      // );
+      const title = await reddit.ask(
+        `Generate a title for a reddit post based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
+        {
+          input: [
+            {
+              type: "title",
+              data: titled,
+              reason: "reddit post title",
+            },
+            {
+              type: "comment",
+              data: comment,
+              reason: "comment on the reddit post",
+            },
+          ],
+        },
+        {
+          background: "You are a reddit user who is browsing the site and wants to create a new post.",
+        }
       );
       return {
         title,
-        content: await reddit.ai(
-          `Based on this '${comment}' comment, on a post titled ${title}, through a search term of ${reddit.opts.args.search}`,
-          { input: comment, type: "post", range: "50-100" }
+        content: await reddit.ask(
+          `Generate a reddit post content based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
+          {
+            input: [
+              {
+                type: "title",
+                data: title,
+                reason: "reddit post title",
+              },
+              {
+                type: "comment",
+                data: comment,
+                reason: "comment on the reddit post",
+              },
+            ],
+          },
+          {
+            background: "You are a reddit user who is browsing the site and wants to create a new post.",
+          }
         ),
       };
     });

@@ -1,5 +1,5 @@
 import { Rando } from "../lib/utils.js";
-import { Tone, Kind } from "../lib/ask.js";
+import { Kind, Range, Tone } from "../lib/ask.d.js";
 
 
 interface Arti<T> {
@@ -49,7 +49,7 @@ type Decorations = {
 type Generators = {
   range: { min: number; max: number };
   terms: { term: string; reason: string }[];
-  input: {type: Kind; data: string, reason: string};
+  input: {type: Kind; data: string, reason: string}[];
 };
 
 type AI = {
@@ -58,5 +58,5 @@ type AI = {
   generations: Generators;
 };
 
-export type { AI, Tone, Kind, Decorations, Generators };
+export type { AI, Kind, Range, Tone, Decorations, Generators };
 export { Opts, Start, Settings, Timeouts, Rando, Artifact };
