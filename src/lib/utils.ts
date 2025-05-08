@@ -1,8 +1,4 @@
-export interface Rando {
-  min: number;
-  max: number;
-  multiplier?: number;
-}
+import { Rando } from "../types.js";
 
 /**
  * sleeps for a specified number of milliseconds.

@@ -1,3 +1,4 @@
+import { Logger } from "../lib/logger.js";
 import { Base } from "./base.js";
 
 export class Player {
@@ -10,11 +11,11 @@ export class Player {
       if(!url) continue;
 
       // if on next variation
-      console.log(`Url: ${j + 1} of ${length}`, url);
+      Logger.log(`Url: ${j + 1} of ${length}`, url);
       while (!((await this.actor.onTry(url)) instanceof Error)) {
         this.visited.length = 0;
         for (let i = 0; i < this.actor.iterations; i++) {
-          console.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
+          Logger.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
 
           // if on next iteration
           if (i > 0) await this.actor.onIteration(url);

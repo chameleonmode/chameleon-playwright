@@ -1,13 +1,13 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { random, rando, sleepRandom, tryForEach, Rando } from "../lib/utils.js";
+import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
 import { promptee, tones } from "../lib/ask.js";
-import { Decorations, Generators, Opts, Timeouts } from "./types.js";
+import { Decorations, Generators, Input, Opts, Rando, Timeouts } from "../types.js";
+import { Logger } from "../lib/logger.js";
 
 export abstract class Base {
   readonly visited: string[] = [];
   readonly toner = tones;
-  readonly propter = promptee;
   public page!: Page;
   constructor(
     readonly ctx: BrowserContext,
@@ -51,7 +51,7 @@ export abstract class Base {
       await this.waitForNavigation();
       await this.nap();
     } catch (e) {
-      console.error("Error navigating to URL:", e);
+      Logger.error("Error navigating to URL:", e);
       await sleepRandom({
         min: 1000 * 7,
         max: 1000 * 14,
@@ -173,31 +173,32 @@ export abstract class Base {
     await this.waitForNavigation();
   }
 
-  async ask(task: string, generate: Partial<Generators>, decorate: Partial<Decorations> = {}) {
-    const result = await this.propter({
+  async ask(opts: { task: string; generate: Generators; decorate: Partial<Decorations> }) {
+    const result = await promptee<Input[]>({
       ...this.opts.ai,
-      task: task,
+      task: opts.task,
       decorators: {
         ...this.opts.ai.decorators,
-        ...decorate,
+        ...opts.decorate,
       },
       generations: {
-        ...this.opts.ai.generations,
-        ...generate,
+        ...opts.generate,
       },
     });
     return result;
   }
 
   error(message: string, cause?: unknown) {
-    return new Error(
+    const error = new Error(
       `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts.settings.start)}] ${message}`,
       { cause }
     );
+    Logger.error(`${message}`, cause);
+    return error
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {
-    console.log(`[Banger] Message: ${message}`, expect, source);
+    Logger.debug(`[Banger] ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }
@@ -234,7 +235,7 @@ export abstract class Base {
         }
       } catch (e) {
         // Continue to next selector if this one failed
-        console.warn(`Failed to find frame for selector: ${selector}`, e);
+        Logger.warn(`Failed to find frame for selector: ${selector}`, e);
         continue;
       }
     }

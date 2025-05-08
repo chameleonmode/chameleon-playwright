@@ -1,51 +1,8 @@
 // File: reddit.ts
-import { Opts, Artifact } from "../types.js";
+import { Opts, Artifact, AI, Settings } from "../../types.js";
 
-export interface Article {
-  postType: "text" | "image" | "video" | "link" | "unknown";
-  id?: string;
-  title?: string;
-  author?: string;
-  authorId?: string;
-  created?: string;
-  score?: string;
-  comments?: string;
-  flair?: string;
-  permalink?: string;
-  url?: string;
-  domain?: string;
-  thumbnail?: string | null;
-  image?: string | null;
-  post?: Post;
-}
+export const BASE_URL: string = "https://www.reddit.com";
 
-export interface Attribution {
-  tag: string;
-  text: string | undefined;
-  attributes: Record<string, string>;
-}
-
-export interface ElementalNode {
-  attributes: Attribution;
-  elementals: ElementalNode[];
-}
-
-// Type definitions for Post
-export interface Post {
-  container?: ElementalNode;
-  comments?: Comment[];
-}
-
-// Comment interface represents an individual comment
-export interface Comment {
-  author: string;
-  score: number;
-  timestamp: string;
-  text: string;
-  depth: number;
-}
-
-// File: src/utils/selectors.ts - Centralized selectors
 export const SELECTORS = {
   post: {
     container: 'shreddit-post, .Post, [data-testid="post-container"]',
@@ -93,6 +50,51 @@ export const SELECTORS = {
   },
 };
 
+export interface Article {
+  postType: "text" | "image" | "video" | "link" | "unknown";
+  id?: string;
+  title?: string;
+  author?: string;
+  authorId?: string;
+  created?: string;
+  score?: string;
+  comments?: string;
+  flair?: string;
+  permalink?: string;
+  url?: string;
+  domain?: string;
+  thumbnail?: string | null;
+  image?: string | null;
+  post?: Post;
+}
+
+export interface Attribution {
+  tag: string;
+  text: string | undefined;
+  attributes: Record<string, string>;
+}
+
+export interface ElementalNode {
+  attributes: Attribution;
+  elementals: ElementalNode[];
+}
+
+// Type definitions for Post
+export interface Post {
+  container?: ElementalNode;
+  comments?: Comment[];
+}
+
+// Comment interface represents an individual comment
+export interface Comment {
+  author: string;
+  score: number;
+  timestamp: string;
+  text: string;
+  depth: number;
+}
+
+//
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments";
 type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
@@ -106,8 +108,86 @@ interface Args {
 
 interface Options extends Opts<Args> {}
 
-export default function (opts: Options) {
-  return { ...opts };
+export function configure(opts: Partial<Options>) {
+  const settings: Settings = {
+    start: {
+      all: opts.settings?.start?.all || true,
+      new: true,
+      attempts: 9,
+      feature: "reddit",
+      rando: { min: 1, max: 3 },
+      iterations: { min: 1, max: 1 },
+      variations: { min: 1, max: 3 },
+      urls: opts?.settings?.start.urls || [
+        "https://www.reddit.com/r/mildlyinteresting/",
+      ],
+    },
+    timeouts: {
+      navigate: 60,
+      default: 30,
+      wait: 15,
+      naps: {
+        min: 256,
+        max: 512,
+        multiplier: 0,
+      },
+    },
+  };
+  const args: Args = {
+    scope: "Communities",
+    sort: "Relevance",
+    filter: "All",
+    search: ["popeye"],
+  };
+
+  const ai: AI = {
+    task: "",
+    decorators: {
+      tone: null,
+      system: "You are a Reddit bot.",
+      prefix: "You are a social media copywriting guru who knows how to craft perfect replies.",
+      human: "I am Reddit user.",
+      audience: "reddit website users",
+      background: "",
+      suffix: "Please respond as creative and concisely as possible.",
+    },
+    generations: {
+      type: "",
+      terms: args.search.length > 0 ? args.search.map((data) => ({ data, type: "term", reason: "to search reddit contextually" })) : [],
+      input: {
+        type: "",
+        data: "",
+        reason: "",
+      },
+      range: {
+        min: 0,
+        max: 0,
+      },
+    },
+  };
+
+  const options: Options = {
+    args: {
+      ...args,
+      ...opts.args,
+    },
+    ai: {
+      ...ai,
+      ...opts.ai,
+    },
+    settings: {
+      start: {
+        ...settings.start,
+        ...opts?.settings?.start,
+        urls: settings.start.all && args.search.length > 0 ? [BASE_URL, ...settings.start.urls] : settings.start.urls,
+      },
+      timeouts: {
+        ...settings.timeouts,
+        ...opts?.settings?.timeouts,
+      },
+    },
+  };
+  return options;
 }
 
 export type { Sort, Filter, Scope };

@@ -6,70 +6,74 @@ export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
   const { reddit, player } = await Reddit(context, opts, async (url) => {
     // find post content from a comment
-    if (reddit.opts.args.search || url) await reddit.post.assert();
+    await reddit.post.assert();
 
     // Get the post title and comment text
+    const system = "Your a reddit user creating a post on a subreddit community page";
     const titled = await reddit.post.title();
-    const { text: comment } = await reddit.post.getComment();
+    const comments = await reddit.post.getComments(3);
+    const audience = `reddit users reading ${reddit.page.url()}`;
+    const terms = reddit.opts.ai.generations.terms;
+    const background = `The post will be about a different post title is ${titled}.
+      Some of the comments on that post are ${comments.join(", ")}`;
 
     // Check if the user is on the right page
-    if (reddit.opts.args.scope === "Communities") await reddit.page.goBack();
-    else await reddit.post.visitCommunity();
+    // if (reddit.scopeulation.tranform().community) await reddit.page.goBack();
+    await reddit.post.visitCommunity();
 
     // Check if the user is on the right page
     await reddit.subreddit.canPost();
 
     // Create a new post
     await reddit.poster(async () => {
-      // Ask ai to create a new post title and content
-      // const title = await reddit.ask(
-      //   `Based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-      //   { input: reddit.searched[reddit.searched.length - 1], type: "title", range: "3-9" }
-      // );
-      const title = await reddit.ask(
-        `Generate a title for a reddit post based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-        {
-          input: [
-            {
-              type: "title",
-              data: titled,
-              reason: "reddit post title",
-            },
-            {
-              type: "comment",
-              data: comment,
-              reason: "comment on the reddit post",
-            },
-          ],
-        },
-        {
-          background: "You are a reddit user who is browsing the site and wants to create a new post.",
-        }
-      );
-      return {
-        title,
-        content: await reddit.ask(
-          `Generate a reddit post content based on this '${comment}' comment, on a post titled ${titled}, through a search term of ${reddit.opts.args.search}`,
-          {
-            input: [
-              {
-                type: "title",
-                data: title,
-                reason: "reddit post title",
-              },
-              {
-                type: "comment",
-                data: comment,
-                reason: "comment on the reddit post",
-              },
-            ],
+      const titlee = await reddit.ask({
+        task: `generate a post title on a subreddit community`,
+        decorate: { system, audience, background },
+        generate: {
+          terms,
+          type: "title",
+          input: {
+            type: "title",
+            data: titled,
+            reason: "this is the post title i want to base the new post on",
           },
-          {
-            background: "You are a reddit user who is browsing the site and wants to create a new post.",
-          }
-        ),
-      };
+          range: { min: 3, max: 9 },
+        },
+      });
+      const titler = reddit.bang(
+        "post title response",
+        titlee.find((data) => {
+          if (data.type === "title") return data;
+        })
+      );
+
+      const contentlee = await reddit.ask({
+        task: `create the reddit post content`,
+        decorate: {
+          system,
+          audience,
+          background: `${background}
+            The post title of your content will be ${titler.data} and the reason is ${titler.reason}`,
+        },
+        generate: {
+          terms,
+          type: "post",
+          input: titler,
+          range: { min: 18, max: 54 },
+        },
+      });
+      const contentler = reddit.bang(
+        "post content response",
+        contentlee.find((data) => {
+          if (data.type === "post") return data;
+        })
+      );
+
+      // Return the title and content
+      return { title: titler.data, content: contentler.data };
     });
+
+    // nap
     await reddit.nap();
   });
 

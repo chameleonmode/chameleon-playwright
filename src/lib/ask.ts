@@ -1,13 +1,13 @@
-import { State } from "../app";
-import { AI, Kind, Tone } from "../scripts/types";
+import { AI, App, Tone } from "../types.js";
+import { Logger } from "./logger.js";
+import { rando } from "./utils.js";
 
+
+export const state: App = { api: undefined };
 export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
-export const state: State = { api: undefined };
-export async function askConsole(input: string): Promise<string> {
-  console.log(`Ask:${input}`); // must remain ask for seperate process to intercept
 
-  // Here you would typically call your AI/LLM endpoint with both the input and comSearch parameters
-  // For now, we'll keep the readline interface but enhance it to show the context
+export async function askConsole(input: string): Promise<string> {
+  console.log(`Ask:${input}`); // must remain ask for seperate process to interceptt
 
   // Create a new readline interface for this specific prompt
   const rl = (await import("node:readline")).createInterface({
@@ -17,7 +17,7 @@ export async function askConsole(input: string): Promise<string> {
 
   // Return a promise that resolves when the user enters a response
   return new Promise<string>((resolve) => {
-    rl.question(`> `, async (answer = "Ans:Interesting post about! Thanks for sharing.") => {
+    rl.question(`> `, async (answer) => {
       if (!answer.startsWith("Ans:")) return; // need clarification to proceed
 
       rl.close();
@@ -26,26 +26,36 @@ export async function askConsole(input: string): Promise<string> {
   });
 }
 
-export async function promptee(
+export async function promptee<T>(
   ctx: AI,
   {
     method = "POST",
-    path = "/prompter",
+    path = "/promptee/prompter",
     headers = {
       "Content-Type": "application/json",
       ai: "origato",
+      type: ctx.generations.type,
     },
   } = {}
 ) {
+  ctx.decorators.tone ||= rando(tones);
   const body = JSON.stringify(ctx);
-  const res = await fetch(`${await endpoint()}${path}`, {
+  const from = `${await endpoint()}${path}`
+  Logger.log("Request:", { from, method, headers, body });
+
+  const res = await fetch(from, {
     method,
     headers,
     body,
   });
 
-  const { text, obj } = await res.json();
-  return text as string; // Return the generated keywords
+  const response = await res.json();
+  Logger.log("Generated:", response);
+
+  const reply = response.res as T;
+  Logger.log("Reply:", reply);
+
+  return reply;
 }
 
 async function endpoint() {

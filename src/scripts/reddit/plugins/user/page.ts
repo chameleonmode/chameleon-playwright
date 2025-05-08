@@ -6,7 +6,7 @@ export class User {
   async follow() {
     await this.reddit.click(
       this.reddit.bang(
-        "'Follow' button not found",
+        "'Follow' button",
         this.reddit.page.locator("div[slot='button-follow']").first()
       )
     );

@@ -1,12 +1,12 @@
 import path from "path";
 
-export async function loader(file: string): Promise<any> {
+export async function loader(file: string) {
   // Recreate dirname for ES module
   const __filename = (await import("url")).fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
   // Attempting to load script from the specified file
-  const script = file.endsWith("js") ? file : path.join(__dirname, "scripts", `${file}.js`);
+  const script = file.endsWith(".js") || file.endsWith(".ts") ? file : path.join(__dirname, "scripts", `${file}.js`);
 
   // Use URL object directly instead of pathToFileURL
   const url = new URL(`file://${path.resolve(script)}`);

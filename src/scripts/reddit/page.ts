@@ -2,10 +2,12 @@ import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
-import configure, { Args, Options, Scope, Sort } from "./reddit.js";
-import { AI } from "../types.js";
+import { configure, Args, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
+import { AI } from "../../types.js";
+import { Logger } from "../../lib/logger.js";
+import { promptee } from "../../lib/ask.js";
 
-export const BASE_URL: string = "https://www.reddit.com";
+
 
 export class Reddit extends Base {
   readonly searched: string[] = [];
@@ -24,9 +26,9 @@ export class Reddit extends Base {
     const visit = this.opts.settings.start.urls.length - this.visited.length;
     const search = this.opts.args.search.length - this.searched.length;
     const searched = search === 0 && this.opts.args.search.length > 0;
-    console.log(`Todo: ${todo} of ${done} completed`);
-    console.log(`Search: ${this.opts.args.search.length} of ${this.searched.length} completed`);
-    console.log(`Visit: ${this.opts.settings.start.urls.length} of ${this.visited.length} completed`);
+    Logger.log(`Todo: ${todo} of ${done} completed`);
+    Logger.log(`Search: ${this.opts.args.search.length} of ${this.searched.length} completed`);
+    Logger.log(`Visit: ${this.opts.settings.start.urls.length} of ${this.visited.length} completed`);
     return { todo, done, visit, search, searched };
   }
 
@@ -85,13 +87,16 @@ export class Reddit extends Base {
 
     try {
       const clearButton = locator.getByRole("button", { name: "Clear search" });
-      await this.click(clearButton);
+      await this.click(clearButton, random(3000, 9000));
     } catch (e) {
-      console.warn("Error clicking clear button:", e);
-      await this.selectAll(textbox);
+      Logger.warn("Error clicking clear button:", e);
     }
 
     await this.pressSequentially(textbox, text, false);
+    await this.nap({
+      ...this.timeouts.naps,
+      multiplier: 3,
+    });
     await textbox.press("Enter");
     await this.nap();
   }
@@ -163,9 +168,9 @@ export class Reddit extends Base {
             // Click the link
             await this.click(parentLink);
 
-            console.log(`Successfully clicked on the "${normalizedOption}" sort option`);
+            Logger.log(`Successfully clicked on the "${normalizedOption}" sort option`);
           } catch (error) {
-            console.error(`Failed to click sort option "${normalizedOption}":`, error);
+            Logger.error(`Failed to click sort option "${normalizedOption}":`, error);
 
             // Alternative approach using evaluate if the above fails
             try {
@@ -178,9 +183,9 @@ export class Reddit extends Base {
                 }
                 return false;
               }, normalizedOption);
-              console.log(`Clicked on "${normalizedOption}" using evaluate method`);
+              Logger.log(`Clicked on "${normalizedOption}" using evaluate method`);
             } catch (evalError) {
-              console.error(`Alternative method also failed:`, evalError);
+              Logger.error(`Alternative method also failed:`, evalError);
             }
           }
         };
@@ -191,11 +196,13 @@ export class Reddit extends Base {
         const clickTimeRangeByText = async () => {
           const scopes: Scope[] = ["Posts", "Media"];
           const sorts: Sort[] = ["Relevance", "Top", "Comments"];
+          const filters: Filter[] = ["Year", "Month", "Week", "Today", "Hour"];
           if (
             scopeulator.t ||
             scopeulator.sort === "communities" ||
             !scopes.includes(scopeulator.scope) ||
-            !sorts.includes(this.opts.args.sort)
+            !sorts.includes(this.opts.args.sort) ||
+            !filters.includes(this.opts.args.filter)
           ) {
             return;
           }
@@ -219,10 +226,10 @@ export class Reddit extends Base {
             await linkElement.scrollIntoViewIfNeeded();
             await this.click(linkElement);
 
-            console.log(`Clicked on "${optionText}" time range option`);
+            Logger.log(`Clicked on "${optionText}" time range option`);
             return true;
           } catch (error) {
-            console.error(`Failed to click time range "${optionText}":`, error);
+            Logger.error(`Failed to click time range "${optionText}":`, error);
 
             // Try alternative approach using the specific structure
             try {
@@ -243,15 +250,15 @@ export class Reddit extends Base {
                   await this.page.waitForTimeout(200);
                   await link.click();
 
-                  console.log(`Clicked on "${optionText}" time range option (alternative method)`);
+                  Logger.log(`Clicked on "${optionText}" time range option (alternative method)`);
                   return true;
                 }
               }
 
-              console.error(`Could not find time range option "${optionText}" among ${count} options`);
+              Logger.error(`Could not find time range option "${optionText}" among ${count} options`);
               return false;
             } catch (alternativeError) {
-              console.error(`Alternative method also failed:`, alternativeError);
+              Logger.error(`Alternative method also failed:`, alternativeError);
               return false;
             }
           }
@@ -259,11 +266,11 @@ export class Reddit extends Base {
         await clickTimeRangeByText();
       }
     } catch (e) {
-      console.warn("Error in findo function:", e);
+      Logger.warn("Error in findo function:", e);
     }
 
     for (let i = 0; i < this.opts.settings.start.attempts; i++) {
-      console.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
+      Logger.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
       await this.nap();
       await this.scrollabit();
 
@@ -274,7 +281,7 @@ export class Reddit extends Base {
       const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
         (index) => !visited.includes(index)
       );
-      this.bang("No available threads", availableIndices.length > 0, {
+      this.bang("available threads", availableIndices.length > 0, {
         triedIndices: visited,
         availableIndices,
       });
@@ -291,7 +298,7 @@ export class Reddit extends Base {
           visited,
         };
       } catch (e) {
-        console.warn("Func is archived or removed.", e);
+        Logger.warn("Func is archived or removed.", e);
         visited.push(index);
         await this.page.reload({ waitUntil: "load" });
         await this.onIteration(this.visited[this.visited.length - 1]);
@@ -324,6 +331,7 @@ export class Reddit extends Base {
       const scopes: Scope[] = ["People", "Communities"];
       const url = this.visited[this.visited.length - 1];
       const Url = new URL(url);
+      const type = Url.searchParams.get("type");
       const scope =
         scopes.includes(this.opts.args.scope) &&
         (this.scopeulation.community(url) ||
@@ -335,9 +343,10 @@ export class Reddit extends Base {
         scope,
         url,
         Url,
-        type: Url.searchParams.get("type"),
+        type,
         sort: Url.searchParams.get("sort"),
         t: Url.searchParams.get("t"),
+        community: scope === "Communities" || type === "communities",
       };
     },
   };
@@ -347,7 +356,7 @@ export class Reddit extends Base {
     // Check authentication
     checkLoginAuthentication: async () => {
       const locato = this.page.locator("#login-button").first();
-      this.bang("Login button not found", await locato.isVisible(), locato);
+      this.bang("Login button", await locato.isVisible(), locato);
       await this.click(locato);
     },
 
@@ -418,7 +427,7 @@ export class Reddit extends Base {
         const seeFullDiscussionLink = this.page.locator('a:has-text("See full discussion")');
         if ((await seeFullDiscussionLink.count()) > 0) await this.click(seeFullDiscussionLink.first());
       } catch (error) {
-        console.warn("Error clicking 'See full discussion' link:", error);
+        Logger.warn("Error clicking 'See full discussion' link:", error);
       }
       await this.scrollabit();
       const { count, locator, id } = await this.find(
@@ -445,12 +454,24 @@ export class Reddit extends Base {
     },
 
     // find a comment
+    getComments: async (max = 3) => {
+      await this.scrollabit();
+      const locator = this.page.locator("shreddit-comment");
+      const count = await locator.count();
+      const comments: string[] = [];
+      for (let i = 0; i < Math.min(max, count); i++) {
+        comments.push(await this.txtContent("div[slot='comment']", locator.nth(i)));
+      }
+      return comments;
+    },
+
+    // find a comment
     getComment: async (nth = -1) => {
       await this.scrollabit();
       const locator = this.page.locator("shreddit-comment");
       const count = await locator.count();
       const index = nth < 0 ? random(0, count - 1) : nth;
-      const comment = this.bang("Comment not found", locator.nth(index));
+      const comment = this.bang("Comment", locator.nth(index));
       await comment.waitFor({ timeout: this.timeouts.wait });
       return {
         text: await this.txtContent("div[slot='comment']", comment),
@@ -473,12 +494,12 @@ export class Reddit extends Base {
               await this.click(trigger);
               break;
             } catch (error) {
-              console.error(`Error clicking trigger button ${i}:`, error);
+              Logger.error(`Error clicking trigger button ${i}:`, error);
             }
           }
         },
       ]);
-      this.bang("Comment button not found", result);
+      this.bang("Comment button", result);
 
       // Continue with comment input
       await this.pressSequentially(
@@ -513,7 +534,7 @@ export class Reddit extends Base {
     visitCommunity: async () => {
       // Click the "Join" button
       await this.click(
-        this.bang("'visit' button not found", this.page.locator('span.avatar a[href^="/r/"]').first())
+        this.bang("'visit' button", this.page.locator('span.avatar a[href^="/r/"]').first())
       );
     },
   };
@@ -579,9 +600,9 @@ export class Reddit extends Base {
     const bodyLocator = this.page.locator('div[slot="rte"][aria-label="Post body text field"]');
 
     const postTypeValue = await this.page.locator('r-post-type-select[name="type"]').getAttribute("value");
-    this.bang("Post type not found", postTypeValue === "TEXT");
-    this.bang("Post body text field not found", await bodyLocator.innerText());
-    this.bang("Post title text field not found", await titleLocator.count());
+    this.bang("Post type", postTypeValue === "TEXT");
+    this.bang("Post body text field", await bodyLocator.innerText());
+    this.bang("Post title text field", await titleLocator.count());
 
     const { title, content } = await contents();
     await this.pressSequentially(titleLocator, title);
@@ -624,79 +645,15 @@ export default async function (
   opts?: Partial<Options>,
   action?: (url?: string) => Promise<unknown>
 ) {
-  // const bypass = opts?.settings?.start.bypass;
-  const args: Args = {
-    scope: "Communities",
-    sort: "Comments",
-    filter: "Year",
-    search: ["pop"],
-    ...opts?.args,
-  };
-
-  const ai: AI = {
-    task: "What is the best comment?",
-    decorators: {
-      tone: "friendly",
-      prefix: "You are a social media copywriting guru who knows how to craft perfect replies.",
-      suffix: "Please respond as creative and concisely as possible.",
-      human: "You are a Reddit user.",
-      system: "You are a Reddit bot.",
-      audience: "reddit website users",
-      background: "",
-    },
-    generations: {
-      terms: [
-        {
-          term: "reddit comments",
-          reason: "i like reddit",
-        },
-      ],
-      range: {
-        min: 0,
-        max: 0
-      },
-      input: [],
-    },
-    ...opts?.ai,
-  };
   // Determine URLs based on args.search and settings
-  const urls = opts?.settings?.start.urls || [
-    "https://www.reddit.com/r/AITAH/",
-    "https://www.reddit.com/r/AITAH/search/?q=wtf&cId=065ac19a-7e1a-4ddc-a2bf-f265b37fe0cc&iId=828cb1c6-875a-48e7-be07-96ae622a9200",
-    "https://www.reddit.com/search/?q=ai+stuff&type=communities",
-    "https://www.reddit.com/r/mildlyinteresting/comments/1kepdzk/how_orange_my_hands_are_im_normally_paler_than_my/",
-  ];
-  const all = opts?.settings?.start.all || true;
   const options = configure({
-    ai,
-    args,
-    settings: {
-      start: {
-        all,
-        new: true,
-        attempts: 9,
-        feature: "reddit",
-        rando: { min: 1, max: 3 },
-        iterations: { min: 1, max: 1 },
-        variations: { min: 1, max: 1 },
-        ...opts?.settings?.start,
-        urls: all && args.search.length > 0 ? [BASE_URL, ...urls] : urls,
-      },
-      timeouts: {
-        navigate: 60,
-        default: 30,
-        wait: 15,
-        naps: {
-          min: 256,
-          max: 512,
-          multiplier: 0,
-        },
-        ...opts?.settings?.timeouts,
-      },
-    },
+    ai: opts?.ai,
+    args: opts?.args,
+    settings: opts?.settings,
   });
+
   const reddit = new Reddit(ctx, options, async (url: string): Promise<unknown> => {
-    console.log("Scenario URL:", url);
+    Logger.log("Scenario URL:", url);
 
     if (action && reddit.scopeulation.comments(url)) {
       for (let i = 0; i < options.settings.start.attempts; i++) {
@@ -705,9 +662,10 @@ export default async function (
           reddit.variations = 1;
           return await action(url);
         } catch (e) {
-          console.warn("Error in action function:", e);
+          Logger.warn("Error in action function:", e);
           await reddit.page.reload({ waitUntil: "load" });
         } finally {
+          Logger.log("Action function completed");
           // TODO: refactoroo
           // reddit.opts.args.search.push(...searches);
           // reddit.opts.settings.start.iterations = iterations;
@@ -718,38 +676,18 @@ export default async function (
         const expecto = await reddit.findo(async () => await action(), player.visited);
         return expecto.index;
       } catch (e) {
-        console.warn("Error in action function:", e);
+        Logger.warn("Error in action function:", e);
       } finally {
         const text = reddit.opts.args.search[reddit.searched.length];
         reddit.searched.push(text);
+        Logger.log("Action function completed");
       }
     } else {
-      console.warn("No action provided");
+      Logger.warn("No action provided");
     }
     return undefined;
   });
-  if ((reddit.opts.settings.start.all || reddit.opts.args.search) && reddit.variations > 1) {
-    // loop through the search terms and generate new ones
-    const addedTerms: string[] = [];
-    for (const term of reddit.opts.args.search) {
-      const generatedTerms = await reddit.propter({
-        ...ai,
-        task: `Generate a list of 10 unique terms related to '${term}'`,
-        generations: {
-          ...ai.generations,
-          terms: [
-            {
-              term: term,
-              reason: "engage with humans",
-            },
-          ],
-        }
-      });
-      addedTerms.push(...generatedTerms);
-    }
-    // add the generated terms to the search array
-    reddit.opts.args.search.push(...addedTerms);
-  }
+
   const player = await Player(reddit);
   return {
     reddit,
