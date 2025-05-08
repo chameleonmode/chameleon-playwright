@@ -9,7 +9,6 @@ export default async function (context: BrowserContext, opts: Options) {
 
     const title = await reddit.post.title();
     const comments = await reddit.post.getComments(3);
-    const audience = `reddit users reading ${reddit.page.url()}`;
     const { locator, text } = await reddit.post.getComment();
 
     // Step 1.5 - define the scenario
@@ -17,13 +16,11 @@ export default async function (context: BrowserContext, opts: Options) {
     await reddit.post.replyToComment(locator, async () => {
       const result = await reddit.ask({
         task: `create a reply to a reddit comment `,
-        decorate: {
-          system: "Your a reddit user replying to a comment",
-          background: `the post title is ${title}, some of the comments on the post are ${comments.join(", ")}`,
-          audience,
-        },
         generate: {
+          sys: "Your replying to a comment",
+          terms: reddit.opts.ai.generations.terms,
           type: "reply",
+          context: `the post at ${reddit.page.url()} is titled ${title}, some of the comments on the post are ${comments.join(", ")}`,
           input: {
             type: "comment",
             data: text,
@@ -33,7 +30,6 @@ export default async function (context: BrowserContext, opts: Options) {
             min: 9,
             max: 54,
           },
-          terms: reddit.opts.ai.generations.terms,
         },
       });
       return result[0].data;

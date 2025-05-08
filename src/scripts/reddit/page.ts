@@ -3,7 +3,7 @@ import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
 import { configure, Args, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
-import { AI } from "../../types.js";
+import { AI, Input } from "../../types.js";
 import { Logger } from "../../lib/logger.js";
 import { promptee } from "../../lib/ask.js";
 
@@ -651,6 +651,32 @@ export default async function (
     args: opts?.args,
     settings: opts?.settings,
   });
+
+  if ((options.settings.start.all || options.ai.generations.terms.length > 0) && options.settings.start.variations.max > 1) {
+    // loop through the search terms and generate new ones
+    const result = await promptee<Input[]>({
+      task: `generate search terms to browse reddit`,
+      decorators: options.ai.decorators,
+      generations: {
+        sys: "you are creating variations of search terms",
+        type: "search",
+        context: "",
+        terms: options.ai.generations.terms,
+        input: {
+          type: "search",
+          data: JSON.stringify(options.args.search),
+          reason: "these are the search terms i want to use",
+        },
+        range: {
+          min: options.settings.start.variations.min,
+          max: options.settings.start.variations.max,
+        },
+      },
+    });
+    const terms = result.map((i) => i.data);
+    options.args.search.push(...terms);
+    Logger.log("Generated search terms:", terms);
+  }
 
   const reddit = new Reddit(ctx, options, async (url: string): Promise<unknown> => {
     Logger.log("Scenario URL:", url);

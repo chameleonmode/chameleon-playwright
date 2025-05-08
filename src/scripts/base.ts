@@ -173,17 +173,11 @@ export abstract class Base {
     await this.waitForNavigation();
   }
 
-  async ask(opts: { task: string; generate: Generators; decorate: Partial<Decorations> }) {
+  async ask(opts: { task: string; generate: Generators; }) {
     const result = await promptee<Input[]>({
       ...this.opts.ai,
       task: opts.task,
-      decorators: {
-        ...this.opts.ai.decorators,
-        ...opts.decorate,
-      },
-      generations: {
-        ...opts.generate,
-      },
+      generations: opts.generate,
     });
     return result;
   }

@@ -1,4 +1,5 @@
 // File: reddit.ts
+import { Logger } from "../../lib/logger.js";
 import { Opts, Artifact, AI, Settings } from "../../types.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
@@ -138,43 +139,40 @@ export function configure(opts: Partial<Options>) {
     sort: "Relevance",
     filter: "All",
     search: ["popeye"],
+    ...opts.args
   };
 
   const ai: AI = {
     task: "",
     decorators: {
-      tone: null,
-      system: "You are a Reddit bot.",
-      prefix: "You are a social media copywriting guru who knows how to craft perfect replies.",
-      human: "I am Reddit user.",
-      audience: "reddit website users",
-      background: "",
-      suffix: "Please respond as creative and concisely as possible.",
+      tone: opts.ai?.decorators.tone || null,
+      system: opts.ai?.decorators.system || "You are a helpful reddit assistant.",
+      prefix:opts.ai?.decorators.prefix || "As a social media expert you know how to make perfect decisions so consider the following:",
+      human: opts.ai?.decorators.human || "I am a reddit content creator, who creates interesting content",
+      audience: opts.ai?.decorators.audience || "The target audience are reddit website users",
+      background: opts.ai?.decorators.background || "I currently am on reddit.com and looking for content",
+      suffix: opts.ai?.decorators.suffix || "Respond as creative as possible.",
     },
     generations: {
-      type: "",
       terms: args.search.length > 0 ? args.search.map((data) => ({ data, type: "term", reason: "to search reddit contextually" })) : [],
+      sys: "",
+      type: "",
+      context: "",
+      range: {
+        min: 0,
+        max: 0,
+      },
       input: {
         type: "",
         data: "",
         reason: "",
       },
-      range: {
-        min: 0,
-        max: 0,
-      },
     },
   };
 
   const options: Options = {
-    args: {
-      ...args,
-      ...opts.args,
-    },
-    ai: {
-      ...ai,
-      ...opts.ai,
-    },
+    args,
+    ai,
     settings: {
       start: {
         ...settings.start,
@@ -187,6 +185,8 @@ export function configure(opts: Partial<Options>) {
       },
     },
   };
+  Logger.debug("reddit", "Options", JSON.stringify(options, null, 2));
+  
   return options;
 }
 

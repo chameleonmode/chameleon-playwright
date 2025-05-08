@@ -33,6 +33,8 @@ import { Logger } from "../../src/lib/logger.js";
         min: 0,
         max: 0,
       },
+      sys: "",
+      context: ""
     },
   };
 
@@ -91,6 +93,8 @@ import { Logger } from "../../src/lib/logger.js";
           min: options.settings.start.variations.min,
           max: options.settings.start.variations.max,
         },
+        sys: "",
+        context: ""
       },
     });
     const terms = result.map((term) => term.term);

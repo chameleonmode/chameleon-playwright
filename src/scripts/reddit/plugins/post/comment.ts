@@ -10,17 +10,14 @@ export default async function (context: BrowserContext, opts: Options) {
 
     const title = await reddit.post.title();
     const comments = await reddit.post.getComments(3);
-    const audience = `reddit users reading ${reddit.page.url()}`;
     await reddit.post.addComment(async () => {
       const result = await reddit.ask({
         task: `respond to a reddit post with a comment`,
-        decorate: {
-          system: "Your a reddit user commenting on a post",
-          background: `some of the comments on the post are ${comments.join(", ")}`,
-          audience,
-        },
         generate: {
+          sys: "Your commenting on a post",
+          terms: reddit.opts.ai.generations.terms,
           type: "comment",
+          context: `some of the comments on the post at ${reddit.page.url()} are ${comments.join(", ")}`,
           input: {
             type: "title",
             data: title,
@@ -30,7 +27,6 @@ export default async function (context: BrowserContext, opts: Options) {
             min: 9,
             max: 54,
           },
-          terms: reddit.opts.ai.generations.terms,
         },
       });
       return result[0].data;

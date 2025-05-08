@@ -41,15 +41,14 @@ interface Timeouts {
   naps: Rando;
 }
 
-
 type Decorations = {
+  system: string;
   prefix: string;
-  background: string;
   human: string;
   audience: string;
-  suffix: string;
+  background: string;
   tone: Tone | string | null;
-  system: string;
+  suffix: string;
 };
 
 type Ranger = {
@@ -67,6 +66,8 @@ type Input = {
 };
 type Generators = {
   type: Kind;
+  sys: string;
+  context: string;
   range: Ranger;
   input: Input;
   terms: Input[];
@@ -82,22 +83,5 @@ type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
 type Kind = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term" | "";
 type Range = { min: number; max: number };
 
-export {
-  Arti,
-  Opts,
-  Start,
-  Settings,
-  Timeouts,
-  Artifact,
-  App,
-  Term,
-  Rando,
-  AI,
-  Kind,
-  Range,
-  Tone,
-  Decorations,
-  Generators,
-  Input,
-  Ranger,
-};
+export { Arti, Opts, Start, Settings, Timeouts, Artifact };
+export type { Ranger, App, Term, Rando, AI, Kind, Range, Tone, Decorations, Generators, Input };
