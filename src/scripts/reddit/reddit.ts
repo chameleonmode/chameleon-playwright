@@ -4,96 +4,6 @@ import { Opts, Artifact, AI, Settings } from "../../types.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
 
-export const SELECTORS = {
-  post: {
-    container: 'shreddit-post, .Post, [data-testid="post-container"]',
-    title: 'h1[slot="title"], h1[id^="post-title-"], .post-title',
-    creditBar: '[slot="credit-bar"], .post-meta-info, [data-testid="post-metadata"]',
-    subredditLink: 'a[href^="/r/"], .subreddit-link',
-    subredditName: 'a.subreddit-name, [data-testid="subreddit-name"], a[href^="/r/"]',
-    // flair: '[slot="post-flair"], .post-flair, .flair',
-    mediaContainer: '[slot="post-media-container"], .media-container, [data-testid="post-media"]',
-    externalLink:
-      'a[href^="http"]:not([href*="reddit.com"]), .external-link, [data-testid="external-link"]',
-    commentSection:
-      'faceplate-partial[name^="TopComments_"], .comments-container, [data-testid="comments-section"]',
-    // sidebarRules: '.rules-section, [data-testid="rules-section"]',
-    // moderators: '.moderators-section, [data-testid="moderators-section"]',
-  },
-  comment: {
-    container: '.Comment, shreddit-comment, [data-testid="comment"]',
-    author: 'a.author-name, [slot="authorName"] a, [data-testid="comment_author"]',
-    flair: '.AuthorFlair, [slot="authorFlair"], .comment-author-flair',
-    score: '.score, [slot="score"], [data-test-id="comment-upvotes"], .icon-upvote + span',
-    timestamp: 'faceplate-timeago, time, [data-testid="comment_timestamp"]',
-    content: '.md, .RichTextJSON-root, [data-testid="comment-content"], .comment-content',
-    actions: '.comment-actions, [slot="actions"], .action-buttons',
-    replies: '.replies, .children, [slot="replies"]',
-    awards: '.comment-awards, [slot="awards"]',
-    distinguished: '.distinguished, [data-testid="distinguished-text"]',
-    collapsed: '.collapsed, [data-testid="collapsed-comment"]',
-  },
-  subreddit: {
-    feed: "shreddit-feed article",
-    postTitle: 'a[slot="title"], a[id^="post-title-"], [slot="title"]',
-    authorName: '[slot="authorName"] a, .advertiser-name',
-    flair: '[slot="post-flair"] .flair-content',
-    mediaImage: "img.preview-image, img.preview-img, img.media-lightbox-img",
-    thumbnail: '[slot="thumbnail"] img, .thumbnail img',
-    commentLink: [
-      'a[data-testid="comment-link"]',
-      'a[data-click-id="comments"]',
-      'span:has-text("comments")',
-      'a:has-text("comments")',
-      '[slot="comments-button"]',
-    ].join(", "),
-    titleLink: 'h1 a, h3 a, a[data-click-id="body"]',
-  },
-};
-
-export interface Article {
-  postType: "text" | "image" | "video" | "link" | "unknown";
-  id?: string;
-  title?: string;
-  author?: string;
-  authorId?: string;
-  created?: string;
-  score?: string;
-  comments?: string;
-  flair?: string;
-  permalink?: string;
-  url?: string;
-  domain?: string;
-  thumbnail?: string | null;
-  image?: string | null;
-  post?: Post;
-}
-
-export interface Attribution {
-  tag: string;
-  text: string | undefined;
-  attributes: Record<string, string>;
-}
-
-export interface ElementalNode {
-  attributes: Attribution;
-  elementals: ElementalNode[];
-}
-
-// Type definitions for Post
-export interface Post {
-  container?: ElementalNode;
-  comments?: Comment[];
-}
-
-// Comment interface represents an individual comment
-export interface Comment {
-  author: string;
-  score: number;
-  timestamp: string;
-  text: string;
-  depth: number;
-}
 
 //
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
@@ -109,16 +19,16 @@ interface Args {
 
 interface Options extends Opts<Args> {}
 
-export function configure(opts: Partial<Options>) {
+export function configure(opts?: Partial<Options>) {
   const settings: Settings = {
     start: {
-      all: opts.settings?.start?.all || true,
+      all: opts?.settings?.start?.all || true,
       new: true,
       attempts: 9,
       feature: "reddit",
       rando: { min: 1, max: 3 },
       iterations: { min: 1, max: 1 },
-      variations: { min: 1, max: 3 },
+      variations: { min: 1, max: 1 },
       urls: opts?.settings?.start.urls || [
         "https://www.reddit.com/r/mildlyinteresting/",
       ],
@@ -139,19 +49,19 @@ export function configure(opts: Partial<Options>) {
     sort: "Relevance",
     filter: "All",
     search: ["popeye"],
-    ...opts.args
+    ...opts?.args
   };
 
   const ai: AI = {
     task: "",
     decorators: {
-      tone: opts.ai?.decorators.tone || null,
-      system: opts.ai?.decorators.system || "You are a helpful reddit assistant.",
-      prefix:opts.ai?.decorators.prefix || "As a social media expert you know how to make perfect decisions so consider the following:",
-      human: opts.ai?.decorators.human || "I am a reddit content creator, who creates interesting content",
-      audience: opts.ai?.decorators.audience || "The target audience are reddit website users",
-      background: opts.ai?.decorators.background || "I currently am on reddit.com and looking for content",
-      suffix: opts.ai?.decorators.suffix || "Respond as creative as possible.",
+      tone: opts?.ai?.decorators.tone || null,
+      system: opts?.ai?.decorators.system || "You are a helpful reddit assistant.",
+      prefix:opts?.ai?.decorators.prefix || "As a social media expert you know how to make perfect decisions so consider the following:",
+      human: opts?.ai?.decorators.human || "I am a reddit content creator, who creates interesting content",
+      audience: opts?.ai?.decorators.audience || "The target audience are reddit website users",
+      background: opts?.ai?.decorators.background || "I currently am on reddit.com and looking for content",
+      suffix: opts?.ai?.decorators.suffix || "Respond as creative as possible.",
     },
     generations: {
       terms: args.search.length > 0 ? args.search.map((data) => ({ data, type: "term", reason: "to search reddit contextually" })) : [],

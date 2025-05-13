@@ -7,16 +7,51 @@ import { AI, Input } from "../../types.js";
 import { Logger } from "../../lib/logger.js";
 import { promptee } from "../../lib/ask.js";
 
-
-
 export class Reddit extends Base {
+  readonly player = new Player(this);
   readonly searched: string[] = [];
+
+  // ctor
   constructor(
     readonly ctx: BrowserContext,
     readonly opts: Options,
-    readonly scenario: (url: string) => Promise<number | unknown>
+    readonly action?: (url?: string) => Promise<unknown>
   ) {
-    super(ctx, opts, scenario);
+    super(ctx, opts, async (url: string) => {
+      Logger.log("Scenario URL:", url);
+
+      if (action && this.scopeulation.comments(url)) {
+        for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+          try {
+            this.iterations = 1;
+            this.variations = 1;
+            return await action(url);
+          } catch (e) {
+            Logger.warn("Error in action function:", e);
+            await this.page.reload({ waitUntil: "load" });
+          } finally {
+            Logger.log("Action function completed");
+            // TODO: refactoroo
+            // reddit.opts.args.search.push(...searches);
+            // reddit.opts.settings.start.iterations = iterations;
+          }
+        }
+      } else if (action) {
+        try {
+          const expecto = await this.findo(async () => await action(), this.player.visited);
+          return expecto.index;
+        } catch (e) {
+          Logger.warn("Error in action function:", e);
+        } finally {
+          const text = this.opts.args.search[this.searched.length];
+          this.searched.push(text);
+          Logger.log("Action function completed");
+        }
+      } else {
+        Logger.warn("No action provided");
+      }
+      return undefined;
+    });
   }
 
   // check todo's and done
@@ -68,12 +103,13 @@ export class Reddit extends Base {
     }
   }
 
-  // search for a term on Reddit
+  // on navigation needed
   async navigato(url: string) {
     await this.navigate(url);
     this.visited.push(url);
   }
 
+  // searcho when search is needed
   async searcho() {
     const url = this.opts.settings.start.urls[this.visited.length];
     const navigate = this.searched.length === 0 && !this.visited.includes(url);
@@ -310,6 +346,31 @@ export class Reddit extends Base {
     );
   }
 
+  // actionable scenario when user is doing something on a post
+  async actio() {
+    if (rando()) return false;
+
+    const join = async () => {
+      if (rando()) {
+        try {
+          await this.scrollabit();
+          await this.subreddit.joiner();
+          return true;
+        } catch (error) {
+          Logger.warn("Error joining subreddit:", error);
+        }
+      }
+    };
+    const joined = await join();
+    if ((joined && rando()) || !joined) {
+      try {
+        await this.subreddit.voter(false);
+      } catch (error) {
+        Logger.warn("Error joining subreddit:", error);
+      }
+    }
+  }
+
   // patterns scopeulation
   readonly scopeulation = {
     community(url: string) {
@@ -481,6 +542,8 @@ export class Reddit extends Base {
 
     // add a comment to the main thread
     addComment: async (comment: () => Promise<string>) => {
+      const acted = await this.actio();
+
       // Click the comment button
       const result = await trySequentially([
         async () => await this.click(await this.post.joinConversation()),
@@ -509,6 +572,7 @@ export class Reddit extends Base {
 
       // Submit comment
       await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
+      if (acted === false) await this.actio();
     },
 
     // reply to a comment
@@ -548,13 +612,15 @@ export class Reddit extends Base {
     },
 
     // vote on a post
-    voter: async () => {
-      const scopeulator = this.scopeulation.tranform();
-      if (scopeulator.scope === "Communities" || scopeulator.type === "communities") {
-        await this.scrollabit();
-      } else {
-        const banger = await this.post.joinConversation();
-        this.bang("vote", banger);
+    voter: async (pre = true) => {
+      if (pre) {
+        const scopeulator = this.scopeulation.tranform();
+        if (scopeulator.scope === "Communities" || scopeulator.type === "communities") {
+          await this.scrollabit();
+        } else {
+          const banger = await this.post.joinConversation();
+          this.bang("vote", banger);
+        }
       }
       const ups = this.page.getByRole("button", { name: "Upvote" });
       const downs = this.page.getByRole("button", { name: "Downvote" });
@@ -585,10 +651,7 @@ export class Reddit extends Base {
     joiner: async () => {
       // Click the "Join" button
       await this.click(
-        this.bang(
-          "'Join' button not found",
-          this.page.getByRole("button", { name: "Join", exact: true }).first()
-        )
+        this.bang("'Join' button", this.page.getByRole("button", { name: "Join", exact: true }).first())
       );
     },
   };
@@ -642,17 +705,16 @@ export class Reddit extends Base {
 
 export default async function (
   ctx: BrowserContext,
-  opts?: Partial<Options>,
-  action?: (url?: string) => Promise<unknown>
+  opts: Partial<Options>,
+  action: (url?: string) => Promise<unknown>
 ) {
-  // Determine URLs based on args.search and settings
-  const options = configure({
-    ai: opts?.ai,
-    args: opts?.args,
-    settings: opts?.settings,
-  });
+  // default options
+  const options = configure(opts);
+  const variate =
+    (options.settings.start.all || options.ai.generations.terms.length > 0) &&
+    options.settings.start.variations.max > 1;
 
-  if ((options.settings.start.all || options.ai.generations.terms.length > 0) && options.settings.start.variations.max > 1) {
+  if (variate) {
     // loop through the search terms and generate new ones
     const result = await promptee<Input[]>({
       task: `generate search terms to browse reddit`,
@@ -673,50 +735,16 @@ export default async function (
         },
       },
     });
-    const terms = result.map((i) => i.data);
-    options.args.search.push(...terms);
-    Logger.log("Generated search terms:", terms);
+    options.args.search = [...options.args.search, ...result.map((i) => i.data)].sort(
+      () => Math.random() - 0.5
+    );
   }
+  Logger.log("Search terms:", options.args.search);
 
-  const reddit = new Reddit(ctx, options, async (url: string): Promise<unknown> => {
-    Logger.log("Scenario URL:", url);
-
-    if (action && reddit.scopeulation.comments(url)) {
-      for (let i = 0; i < options.settings.start.attempts; i++) {
-        try {
-          reddit.iterations = 1;
-          reddit.variations = 1;
-          return await action(url);
-        } catch (e) {
-          Logger.warn("Error in action function:", e);
-          await reddit.page.reload({ waitUntil: "load" });
-        } finally {
-          Logger.log("Action function completed");
-          // TODO: refactoroo
-          // reddit.opts.args.search.push(...searches);
-          // reddit.opts.settings.start.iterations = iterations;
-        }
-      }
-    } else if (action) {
-      try {
-        const expecto = await reddit.findo(async () => await action(), player.visited);
-        return expecto.index;
-      } catch (e) {
-        Logger.warn("Error in action function:", e);
-      } finally {
-        const text = reddit.opts.args.search[reddit.searched.length];
-        reddit.searched.push(text);
-        Logger.log("Action function completed");
-      }
-    } else {
-      Logger.warn("No action provided");
-    }
-    return undefined;
-  });
-
-  const player = await Player(reddit);
+  const reddit = new Reddit(ctx, options, action);
+  await reddit.init();
   return {
     reddit,
-    player,
+    player: reddit.player,
   };
 }

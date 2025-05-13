@@ -8,7 +8,7 @@ export default async function (context: BrowserContext, opts: Options) {
     if (reddit.opts.args.search || url) await reddit.post.assert();
 
     const title = await reddit.post.title();
-    const comments = await reddit.post.getComments(3);
+    const comments = await reddit.post.getComments(6);
     const { locator, text } = await reddit.post.getComment();
 
     // Step 1.5 - define the scenario

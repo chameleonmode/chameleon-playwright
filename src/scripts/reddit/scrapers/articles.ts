@@ -1,8 +1,53 @@
 // File: src/scrapers/post-scraper.ts
 import { Page } from "playwright";
-import { Article, Artifact, Post, Comment, SELECTORS, ElementalNode } from "../reddit.js";
 import { Logger } from "../../../lib/logger.js";
+import { SELECTORS } from "./api.js";
 
+
+
+export interface Article {
+  postType: "text" | "image" | "video" | "link" | "unknown";
+  id?: string;
+  title?: string;
+  author?: string;
+  authorId?: string;
+  created?: string;
+  score?: string;
+  comments?: string;
+  flair?: string;
+  permalink?: string;
+  url?: string;
+  domain?: string;
+  thumbnail?: string | null;
+  image?: string | null;
+  post?: Post;
+}
+
+export interface Attribution {
+  tag: string;
+  text: string | undefined;
+  attributes: Record<string, string>;
+}
+
+export interface ElementalNode {
+  attributes: Attribution;
+  elementals: ElementalNode[];
+}
+
+// Type definitions for Post
+export interface Post {
+  container?: ElementalNode;
+  comments?: Comment[];
+}
+
+// Comment interface represents an individual comment
+export interface Comment {
+  author: string;
+  score: number;
+  timestamp: string;
+  text: string;
+  depth: number;
+}
 
 /**
  * Scrapes a Reddit post and extracts all data

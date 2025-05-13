@@ -1,8 +1,11 @@
 import { Logger } from "../lib/logger.js";
 import { Base } from "./base.js";
 
-export class Player {
-  constructor(readonly actor: Base, readonly visited: number[] = []) {}
+export default class Player {
+  readonly visited: number[] = []
+
+  // ctor
+  constructor(readonly actor: Base) {}
 
   async play() {
     const length = this.actor.opts.settings.start.urls.length;
@@ -29,7 +32,7 @@ export class Player {
   }
 }
 
-export default async function (actor: Base) {
-  await actor.init();
-  return new Player(actor);
-}
+// export default async function (actor: Base) {
+//   await actor.init();
+//   return new Player(actor);
+// }

@@ -2,9 +2,9 @@ import { BrowserContext } from "@playwright/test";
 import { Options } from "../../reddit.js";
 import Reddit from "../../page.js";
 
-export default async function (context: BrowserContext, opts: Options) {
+export default async function (ctx: BrowserContext, opts: Options) {
   // Step 1 - Init
-  const { reddit, player } = await Reddit(context, opts, async (url) => {
+  const { reddit, player } = await Reddit(ctx, opts, async (url) => {
     // Step 1.5 - define the scenario
     await reddit.post.assert();
 

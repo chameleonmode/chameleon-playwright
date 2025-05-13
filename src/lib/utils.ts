@@ -59,11 +59,11 @@ export function random(...values: number[]): number {
 export function rando(): boolean;
 export function rando(number: number): number;
 export function rando<T>(list: T[]): T;
-export function rando<T>(list?: T[] | number): T | boolean | number {
-  return Array.isArray(list)
-    ? list[Math.floor(Math.random() * list.length)]
-    : list
-    ? Math.floor(Math.random() * list)
+export function rando<T>(thing?: T[] | number): T | boolean | number {
+  return Array.isArray(thing)
+    ? thing[Math.floor(Math.random() * thing.length)]
+    : thing
+    ? Math.floor(Math.random() * thing)
     : Math.random() < 0.5;
 }
 
@@ -171,4 +171,11 @@ export function deepMerge(target: any, source: any) {
   });
 
   return output;
+}
+
+export function getOSName() {
+  const osType = process.platform;
+  if (osType === "darwin") return "macOS";
+  if (osType === "win32") return "Windows";
+  return "Linux";
 }
