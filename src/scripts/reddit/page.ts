@@ -346,7 +346,7 @@ export class Reddit extends Base {
     );
   }
 
-  // actionable scenario when user is doing something on a post
+  // actionable scenario when user is doing something on a post: TODO: finish
   async actio() {
     if (rando()) return false;
 

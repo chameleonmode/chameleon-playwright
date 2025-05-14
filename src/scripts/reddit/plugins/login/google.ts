@@ -8,7 +8,7 @@ export default async function (
   }
 ) {
   // Step 1 - Launch Reddit
-  const { reddit } = await Reddit(context);
+  const { reddit } = await Reddit(context, {}, async() => {});
 
   // Step 2 - Authentication
   await reddit.login.loginWithGoogle(options.email, options.password);

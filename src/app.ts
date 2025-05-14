@@ -1,59 +1,57 @@
-import { chromium } from "@playwright/test";
+import readline from "node:readline";
+import { Logger } from "./lib/logger.js";
+import { run } from "./lib/runner.js";
+import { Playwrighteer } from "./computer/playwrighteer.js";
 
 async function main() {
-  const [file, json, dir] = process.argv.slice(2);
-  const pluginPath = `./${file}`;
-  const userDataDir = dir || "/Users/dev/Library/Application Support/Chameleon/Chrome/29256";
-  const opts = json ? JSON.parse(json) || "{}" : undefined;
-  const { default: plugin } = await import(pluginPath); 
-
-  const ctx = await(async function () {
-    try {
-      // Try to connect to an already running Chrome instance
-      const browser = await chromium.connectOverCDP("http://localhost:9613");
-      const context = browser.contexts()[0];
-      // Add stealth features to avoid detection
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, "webdriver", { get: () => false });
-
-        // Add more stealth features as needed
-        const originalQuery = window.navigator.permissions.query;
-        // @ts-ignore
-        window.navigator.permissions.query = (parameters) => {
-          parameters.name === "notifications"
-            ? Promise.resolve({ state: Notification.permission })
-            : originalQuery(parameters);
-        };
-      });
-      return context;
-    } catch (error) {
-      // Ensure the context is connected to the newly launched browser
-      return await chromium.launchPersistentContext(userDataDir, {
-        headless: false,
-        executablePath: (() => {
-          switch (process.platform) {
-            case "win32":
-              return process.arch === "x64"
-                ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-                : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-            case "darwin":
-              return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-            case "linux":
-              return "/usr/bin/google-chrome";
+  const args = process.argv.slice(2);
+  if (!args.length) {
+    readline
+      .createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: false,
+      })
+      .on("line", (line) => {
+        if (line.startsWith("{")) {
+          const jsonLine = JSON.parse(line);
+          switch (jsonLine.arg) {
+            case "run":
+              run({
+                file: jsonLine.file,
+                port: jsonLine.port,
+                options: jsonLine.options,
+              });
+              break;
             default:
-              return undefined;
+              Logger.log(`Unknown command: ${jsonLine.arg}`);
+              Logger.log("Available commands: run, exit");
           }
-        })(),
-        // adding args might create issues with some plugins on different platforms leave it empty
-        args: ["--remote-debugging-port=3690"],
+        } else {
+          Logger.log(`Received: ${line}`);
+          const args = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+          const command = args.shift();
+          switch (command) {
+            case "exit":
+              Logger.log("Exiting...");
+              process.exit(0);
+            default:
+              Logger.log(`Unknown command: ${command}`);
+          }
+        }
       });
+    Logger.log("command ({arg: 'run', file, port, options}, exit):");
+  } else {
+    const playwrighter = new Playwrighteer();
+    if (!args[0].startsWith("{")){
+      await playwrighter.run(args);
+    }else{
+      await playwrighter.cua(args[0]);
     }
-  })();
-
-  await plugin(ctx, opts);
+  }
 }
 
 main().catch((error) => {
-  console.log(`Error: ${error}`, error);
+  Logger.log(`Error: ${error}`, error);
   process.exit(1);
 });

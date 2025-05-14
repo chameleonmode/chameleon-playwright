@@ -1,9 +1,8 @@
-import { AI, App, Tone } from "../types.js";
+import { AI, Tone } from "../types.js";
 import { Logger } from "./logger.js";
+import { req } from "./requests.js";
 import { rando } from "./utils.js";
 
-
-export const state: App = { api: undefined };
 export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
 
 export async function askConsole(input: string): Promise<string> {
@@ -26,51 +25,18 @@ export async function askConsole(input: string): Promise<string> {
   });
 }
 
-export async function promptee<T>(
-  ctx: AI,
-  {
-    method = "POST",
-    path = "/promptee/prompter",
-    headers = {
-      "Content-Type": "application/json",
+export async function promptee<T>(ctx: AI) {
+  ctx.decorators.tone ||= rando(tones);
+  const request = await req<{res: any}>("/promptee/prompter", {
+    body: ctx,
+    headers: {
       ai: "origato",
       type: ctx.generations.type,
     },
-  } = {}
-) {
-  ctx.decorators.tone ||= rando(tones);
-  const body = JSON.stringify(ctx);
-  const from = `${await endpoint()}${path}`
-  Logger.log("Request:", { from, method, headers, body });
-
-  const res = await fetch(from, {
-    method,
-    headers,
-    body,
   });
 
-  const response = await res.json();
-  Logger.log("Generated:", response);
+  const response = request.res as T;
+  Logger.log("Reply:", response);
 
-  const reply = response.res as T;
-  Logger.log("Reply:", reply);
-
-  return reply;
-}
-
-async function endpoint() {
-  return (state.api ||= await (async () => {
-    try {
-      // Simple fetch check with AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300);
-
-      await fetch("http://127.0.0.1:3042", { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      return "http://127.0.0.1:3042"; // Local server is available
-    } catch (error) {
-      return "https://chameleon-ws.onrender.com"; // Use fallback
-    }
-  })());
+  return response;
 }

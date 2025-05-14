@@ -1,3 +1,4 @@
+import { Browser } from "@playwright/test";
 import path from "path";
 
 export async function loader(file: string) {
@@ -6,7 +7,7 @@ export async function loader(file: string) {
   const __dirname = path.dirname(__filename);
 
   // Attempting to load script from the specified file
-  const script = file.endsWith(".js") || file.endsWith(".ts") ? file : path.join(__dirname, "scripts", `${file}.js`);
+  const script = file.endsWith(".js") ? file : path.join(__dirname, `${file}.js`);
 
   // Use URL object directly instead of pathToFileURL
   const url = new URL(`file://${path.resolve(script)}`);
@@ -14,11 +15,11 @@ export async function loader(file: string) {
   return module.default || module[file];
 }
 
-export default async function run(args: { file: string; port: number; options: unknown }) {
+export async function run(args: { file: string; port: number; options: unknown }, bro?: Browser) {
   try {
     console.log(`Try: ${args.file} Port: ${args.port}`);
     const script = await loader(args.file);
-    const browser = await (
+    const browser = bro || await (
       await import("@playwright/test")
     ).chromium.connectOverCDP(`http://localhost:${args.port}`);
 

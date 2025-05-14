@@ -1,0 +1,47 @@
+import { App } from "../types.js";
+import { Logger } from "./logger.js";
+
+export const state: App = { api: undefined };
+
+export async function endpoint() {
+  return (state.api ||= await (async () => {
+    try {
+      // Simple fetch check with AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300);
+
+      await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      return "http://127.0.0.1:3042"; // Local server is available
+    } catch (error) {
+      return "https://chameleon-ws.onrender.com"; // Use fallback
+    }
+  })());
+}
+
+export async function req<T>(
+  path: string,
+  args: {
+    body?: any;
+    method?: string;
+    headers?: Record<string, string>;
+  }
+) {
+  const from = `${await endpoint()}${path}`;
+  const init = {
+    headers: {
+      "Content-Type": "application/json",
+      ...args.headers,
+    },
+    method: args.method ?? "POST",
+    body: args.body ? JSON.stringify(args.body) : undefined,
+  };
+  Logger.log("Request:", { from, args: {...args}, init:{...init} });
+
+  const request = await fetch(from, init);
+  const response = await request.json();
+  Logger.log("Generated:", response);
+
+  return response;
+}

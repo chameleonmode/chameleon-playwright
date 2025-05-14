@@ -179,3 +179,19 @@ export function getOSName() {
   if (osType === "win32") return "Windows";
   return "Linux";
 }
+
+export function getChromePath() {
+  switch (process.platform) {
+    case "win32":
+      return process.arch === "x64"
+        ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        : "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+    case "darwin":
+      return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    case "linux":
+      return "/usr/bin/google-chrome";
+    default:
+      return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  }
+}
+
