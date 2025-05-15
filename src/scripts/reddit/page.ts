@@ -341,7 +341,7 @@ export class Reddit extends Base {
           return { index, funky, visited };
         }
       } catch (e) {
-        Logger.warn("Func is archived or removed.", e);
+        Logger.warn("error in findo loop", e);
         visited.push(index);
         await this.page.reload({ waitUntil: "load" });
         await this.onIteration(this.visited[this.visited.length - 1]);
@@ -355,15 +355,16 @@ export class Reddit extends Base {
 
   // actionable scenario when user is doing something on a post: TODO: finish
   async actionado() {
-    const compleations = [];
+    const compleations: string[] = [];
     const acto = rando() && ["comment", "reply"].includes(this.opts.settings.start.feature);
     this.bang("acto?", acto);
 
     //
-    const actionable = this.opts.artifacters.find(
+    const actionable = this.opts.args.artifacters.find(
       (art) => art.type === "selections" && art.data.find((d: string) => ["join", "vote"].includes(d))
     )?.data as string[];
     this.bang("Actionable", actionable.length > 0, { actionable });
+    if(!actionable.includes("vote")) actionable.push("vote");
 
     // Execute each actionable function from the selectionator
     const actions: Record<string, () => Promise<void>> = {
@@ -377,7 +378,7 @@ export class Reddit extends Base {
 
     for (const selection of actionable) {
       try {
-        this.bang("action", rando(), { selection });
+        if(!compleations.includes("join")) this.bang("action", rando(), { selection });
         await actions[selection]();
         compleations.push(selection);
       } catch (error) {
@@ -773,7 +774,10 @@ export default async function (
   }
   Logger.info("Feature:", {
     feature: options.settings.start.feature,
-    artifacts: JSON.stringify(options.artifacters),
+    artifacts: JSON.stringify(options.args.artifacters),
+  });
+  Logger.info("Settings:", {
+    options: JSON.stringify(options),
   });
   // start the plugin
   const reddit = new Reddit(ctx, options, action);

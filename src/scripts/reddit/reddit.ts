@@ -14,10 +14,10 @@ interface Args {
   scope: Scope;
   sort: Sort;
   filter: Filter;
+  artifacters: Artifact[];
 }
 
 interface Options extends Opts<Args> {
-  artifacters: Artifact[];
 }
 
 export function configure(opts?: Partial<Options>) {
@@ -30,9 +30,7 @@ export function configure(opts?: Partial<Options>) {
       rando: { min: 1, max: 1 },
       iterations: { min: 1, max: 1 },
       variations: { min: 1, max: 1 },
-      urls: opts?.settings?.start.urls || [
-        "https://www.reddit.com/r/mildlyinteresting/",
-      ],
+      urls: opts?.settings?.start.urls || []
     },
     timeouts: {
       navigate: 60,
@@ -50,7 +48,13 @@ export function configure(opts?: Partial<Options>) {
     sort: "Relevance",
     filter: "All",
     search: ["popeye"],
-    ...opts?.args
+    artifacters: [
+      {
+        type: "selections",
+        data: ["vote"],
+      },
+    ],
+    ...opts?.args,
   };
 
   const ai: AI = {
@@ -84,12 +88,6 @@ export function configure(opts?: Partial<Options>) {
   const options: Options = {
     args,
     ai,
-    artifacters: opts?.artifacters || [
-      {
-        type: "selections",
-        data: ["vote"],
-      },
-    ],
     run: {
       file: "reddit",
       port: 3000,
@@ -106,7 +104,6 @@ export function configure(opts?: Partial<Options>) {
       },
     },
   };
-  Logger.debug("reddit", "Options", JSON.stringify(options, null, 2));
   
   return options;
 }
