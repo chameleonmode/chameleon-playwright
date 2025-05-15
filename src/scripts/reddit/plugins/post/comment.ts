@@ -4,7 +4,7 @@ import Reddit from "../../page.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
   // Step 1 - Init
-  const { reddit, player } = await Reddit(ctx, opts, async (url) => {
+  const { reddit } = await Reddit(ctx, opts, async (url) => {
     // Step 1.5 - define the scenario
     await reddit.post.assert();
 
@@ -34,5 +34,5 @@ export default async function (ctx: BrowserContext, opts: Options) {
   });
 
   // Step 2 - Run
-  await player.play();
+  await reddit.player.play();
 }

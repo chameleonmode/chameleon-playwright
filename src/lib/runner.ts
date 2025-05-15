@@ -1,5 +1,6 @@
-import { Browser } from "@playwright/test";
+import { Browser, chromium } from "@playwright/test";
 import path from "path";
+import { Opts } from "./types";
 
 export async function loader(file: string) {
   // Recreate dirname for ES module
@@ -12,32 +13,51 @@ export async function loader(file: string) {
   // Use URL object directly instead of pathToFileURL
   const url = new URL(`file://${path.resolve(script)}`);
   const module = await import(url.href);
-  return module.default || module[file];
+  const feature = url.href.split("/").pop()?.split(".")[0];
+  return { plugin: module.default || module, feature };
 }
 
-export async function run(args: { file: string; port: number; options: unknown }, bro?: Browser) {
+export async function run(args: { file: string; port: number; opts: unknown }) {
   try {
     console.log(`Try: ${args.file} Port: ${args.port}`);
-    const script = await loader(args.file);
-    const browser = bro || await (
-      await import("@playwright/test")
-    ).chromium.connectOverCDP(`http://localhost:${args.port}`);
+    const { plugin, feature } = await loader(args.file);
+    const browser = await chromium.connectOverCDP(`http://localhost:${args.port}`);
 
     const ctx = browser.contexts()[0];
     // Add stealth features to avoid detection
+    // Add standard Playwright stealth features to avoid detection
     await ctx.addInitScript(() => {
+      // Hide webdriver property
       Object.defineProperty(navigator, "webdriver", { get: () => false });
 
-      // Add more stealth features as needed
-      const originalQuery = window.navigator.permissions.query;
-      // @ts-ignore
+      // Hide automation-related properties
+      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
+      Object.defineProperty(navigator, "deviceMemory", { get: () => 8 });
+
+            // Add more stealth features as needed
+      const query = window.navigator.permissions.query;
       window.navigator.permissions.query = (parameters) => {
-        parameters.name === "notifications"
-          ? Promise.resolve({ state: Notification.permission })
-          : originalQuery(parameters);
+        if (parameters.name === "notifications") {
+          const result: PermissionStatus = {
+            name: "notifications",
+            state: Notification.permission as PermissionState,
+            onchange: null,
+            addEventListener: function() {},
+            removeEventListener: function() {},
+            dispatchEvent: function() { return false; }
+          };
+          return Promise.resolve(result);
+        }
+        return query(parameters);
       };
     });
-    await script(ctx, args.options);
+    const opts = {
+      file: args.file,
+      port: args.port,
+      settings: { start: { feature } },
+      ...(args.opts as Partial<Opts<unknown>>),
+    };
+    await plugin(ctx, opts);
     console.log(`Try: ${args.file} success`);
   } catch (error: unknown) {
     console.error(`Catch: ${args.file} ${error instanceof Error ? error.message : String(error)}`);

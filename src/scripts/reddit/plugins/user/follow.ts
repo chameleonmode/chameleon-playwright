@@ -5,8 +5,8 @@ import { User } from "./page.js";
 
 export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init
-  const { reddit, player } = await Reddit(context, opts, async () => await user.follow());
+  const { reddit } = await Reddit(context, opts, async () => await user.follow());
   const user = new User(reddit);
   // Step 2 - Play
-  await player.play();
+  await reddit.player.play();
 }

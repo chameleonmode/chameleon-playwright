@@ -8,8 +8,9 @@ interface Arti<T> {
 interface Artifact extends Arti<any> {}
 
 interface Opts<T> {
-  ai: AI;
   args: T;
+  ai: AI;
+  run: Artifact;
   settings: Settings;
 }
 
@@ -83,6 +84,6 @@ type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
 type Kind = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term" | "";
 type Range = { min: number; max: number };
 
-export * from "./lib/types/ai.js";
+export * from "./ai.js";
 export { Arti, Opts, Start, Settings, Timeouts, Artifact };
 export type { Ranger, App, Term, Rando, AI, Kind, Range, Tone, Decorations, Generators, Input };

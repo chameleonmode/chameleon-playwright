@@ -3,10 +3,9 @@ import { random, rando, trySequentially } from "../../lib/utils.js";
 import { Base } from "../base.js";
 import Player from "../player.js";
 import { configure, Args, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
-import { AI, Input } from "../../types.js";
+import { AI, Input } from "../../lib/types/index.js";
 import { Logger } from "../../lib/logger.js";
 import { promptee } from "../../lib/ask.js";
-
 export class Reddit extends Base {
   readonly player = new Player(this);
   readonly searched: string[] = [];
@@ -154,7 +153,8 @@ export class Reddit extends Base {
       // If not a user provided URL, we might need a different scope
       return mapper[scopeulator.scope];
     })();
-    // TODO: refactor
+
+    // TODO: refactor --------------------------
     try {
       if (!scopeulator.type) {
         await this.click(
@@ -304,8 +304,9 @@ export class Reddit extends Base {
     } catch (e) {
       Logger.warn("Error in findo function:", e);
     }
+    // ------------------------------------------
 
-    for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+    for (let i = 0; i < Math.max(this.opts.settings.start.attempts, 1); i++) {
       Logger.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
       await this.nap();
       await this.scrollabit();
@@ -327,12 +328,18 @@ export class Reddit extends Base {
       try {
         const thread = locator.nth(index);
         await this.click(thread);
-        const funky = await funco();
-        return {
-          index,
-          funky,
-          visited,
-        };
+        try {
+          this.bang(
+            "max attempts",
+            this.opts.settings.start.attempts === 0,
+            this.opts.settings.start.attempts
+          );
+          Logger.warn("Max attempts reached, restarting next iteration.");
+          return { index, visited };
+        } catch (e) {
+          const funky = await funco();
+          return { index, funky, visited };
+        }
       } catch (e) {
         Logger.warn("Func is archived or removed.", e);
         visited.push(index);
@@ -347,28 +354,38 @@ export class Reddit extends Base {
   }
 
   // actionable scenario when user is doing something on a post: TODO: finish
-  async actio() {
-    if (rando()) return false;
+  async actionado() {
+    const compleations = [];
+    const acto = rando() && ["comment", "reply", "post"].includes(this.opts.settings.start.feature);
+    this.bang("acto?", acto );
 
-    const join = async () => {
-      if (rando()) {
-        try {
-          await this.scrollabit();
-          await this.subreddit.joiner();
-          return true;
-        } catch (error) {
-          Logger.warn("Error joining subreddit:", error);
-        }
-      }
-    };
-    const joined = await join();
-    if ((joined && rando()) || !joined) {
-      try {
+    //
+    const actionable = this.opts.artifacters.find(
+      (art) => art.type === "selections" && art.data.find((d: string) => ["join", "vote"].includes(d))
+    )?.data as string[];
+    this.bang("Actionable", actionable.length > 0, { actionable });
+
+    // Execute each actionable function from the selectionator
+    const actions: Record<string, () => Promise<void>> = {
+      join: async () => {
+        await this.subreddit.joiner();
+      },
+      vote: async () => {
         await this.subreddit.voter(false);
+      },
+    };
+
+    for (const selection of actionable) {
+      try {
+        this.bang("action", rando(), { selection });
+        await actions[selection]();
+        compleations.push(selection);
       } catch (error) {
-        Logger.warn("Error joining subreddit:", error);
+        Logger.warn(`Error performing action "${selection}":`, error);
       }
     }
+    this.bang("Actionable completions", compleations.length, { compleations });
+    return compleations.length;
   }
 
   // patterns scopeulation
@@ -513,6 +530,14 @@ export class Reddit extends Base {
         await this.click(randomPost);
       }
     },
+    act: async (inside: string, acted?: boolean | number) => {
+      try {
+        this.bang("act " + inside, acted === undefined);
+        return await this.actionado();
+      } catch (e) {
+        Logger.warn("Error in act function:", e);
+      }
+    },
 
     // find a comment
     getComments: async (max = 3) => {
@@ -542,7 +567,8 @@ export class Reddit extends Base {
 
     // add a comment to the main thread
     addComment: async (comment: () => Promise<string>) => {
-      const acted = await this.actio();
+      const inside = "addComment";
+      const acted = await this.post.act(inside);
 
       // Click the comment button
       const result = await trySequentially([
@@ -572,11 +598,14 @@ export class Reddit extends Base {
 
       // Submit comment
       await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
-      if (acted === false) await this.actio();
+      await this.post.act(inside, acted);
     },
 
     // reply to a comment
     replyToComment: async (locator: Locator, reply: () => Promise<string>) => {
+      const inside = "replyToComment";
+      const acted = await this.post.act(inside);
+
       await locator.scrollIntoViewIfNeeded();
       await this.nap();
       // Click the reply button
@@ -592,6 +621,8 @@ export class Reddit extends Base {
 
       // Click the submit button
       await this.click(replyBox.locator("button[slot='submit-button']").first());
+
+      await this.post.act(inside, acted);
     },
 
     // visit the subreddit
@@ -613,11 +644,10 @@ export class Reddit extends Base {
 
     // vote on a post
     voter: async (pre = true) => {
+      await this.scrollabit();
       if (pre) {
         const scopeulator = this.scopeulation.tranform();
-        if (scopeulator.scope === "Communities" || scopeulator.type === "communities") {
-          await this.scrollabit();
-        } else {
+        if (!scopeulator.community) {
           const banger = await this.post.joinConversation();
           this.bang("vote", banger);
         }
@@ -629,7 +659,7 @@ export class Reddit extends Base {
       // ensure we don't exceed the number of available votes
       const count = Math.min(upCount, downCount) - 1;
       const length = Math.min(count, this.rando);
-      this.bang("Vote count", length > 0, { upCount, downCount, count });
+      this.bang("Vote count", length, { upCount, downCount, count, length });
       for (let i = 0; i < length; i++) {
         const index = random(0, count);
         await (rando() ? this.click(ups.nth(index)) : this.click(downs.nth(index)));
@@ -649,6 +679,7 @@ export class Reddit extends Base {
 
     // check the member is joined the subreddit or not if not then join the subreddit.
     joiner: async () => {
+      await this.scrollabit();
       // Click the "Join" button
       await this.click(
         this.bang("'Join' button", this.page.getByRole("button", { name: "Join", exact: true }).first())
@@ -708,7 +739,7 @@ export default async function (
   opts: Partial<Options>,
   action: (url?: string) => Promise<unknown>
 ) {
-  // default options
+  // setup options
   const options = configure(opts);
   const variate =
     (options.settings.start.all || options.ai.generations.terms.length > 0) &&
@@ -739,12 +770,8 @@ export default async function (
       () => Math.random() - 0.5
     );
   }
-  Logger.log("Search terms:", options.args.search);
-
+  // start the plugin
   const reddit = new Reddit(ctx, options, action);
   await reddit.init();
-  return {
-    reddit,
-    player: reddit.player,
-  };
+  return { reddit };
 }

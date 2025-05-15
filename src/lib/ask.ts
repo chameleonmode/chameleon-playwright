@@ -1,4 +1,4 @@
-import { AI, Tone } from "../types.js";
+import { AI, Tone } from "./types/index.js";
 import { Logger } from "./logger.js";
 import { req } from "./requests.js";
 import { rando } from "./utils.js";

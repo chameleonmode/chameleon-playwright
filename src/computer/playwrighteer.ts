@@ -42,8 +42,7 @@ export const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
 export async function cua<T>(input: any[], display: { width: number; height: number }) {
   const body = { input, display };
   const headers = { ai: "cua", type: "roo" };
-  const res = await req<T>("/promptee/agent", { body, headers });
-  return res;
+  return await req<T>("/promptee/agent", { body, headers });
 }
 
 export class Playwrighteer {
@@ -51,12 +50,19 @@ export class Playwrighteer {
   browser?: Browser;
   ctx?: BrowserContext;
   page!: Page;
+  readonly funkers: Funkaroo[] = [];
   constructor() {}
 
-  async setup({ dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256", port = 9613 } = {}) {
-    try {
+  async setup({ dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256", port = 9613 }) {
+    const connect = async () => {
       // Try to connect to an already running Chrome instance
-      return await chromium.connectOverCDP(`http://localhost:${port}`);
+      const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
+      const contexts = browser.contexts();
+      const ctx = contexts.length ? contexts[0] : await browser.newContext();
+      return { port, dir, browser, contexts, ctx };
+    };
+    try {
+      return await connect();
     } catch (error) {
       const chromePath = getChromePath(); // your platform-specific lookup
       const args = [
@@ -72,19 +78,19 @@ export class Playwrighteer {
       });
       // allow parent to exit independently:
       child.unref();
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return await chromium.connectOverCDP(`http://localhost:${port}`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      return await connect();
     }
   }
 
   async run(args: string[]) {
-    const [file, json, dir] = args;
-    await this.setup({ dir });
+    const [file, port, dir, opts] = args;
+    const { port: ported } = await this.setup({ dir, port: port ? parseInt(port, 10) : 9613 });
 
     await run({
       file,
-      port: 9613,
-      options: json ? JSON.parse(json) : json,
+      port: ported,
+      opts: opts ? JSON.parse(opts) : opts,
     });
   }
 
@@ -107,8 +113,9 @@ export class Playwrighteer {
       port: number;
       inputs: { role: string; content: string }[];
     };
-    this.browser = await this.setup({ dir, port });
-    this.ctx = this.browser.contexts()[0];
+    const { browser, ctx } = await this.setup({ dir, port });
+    this.browser = browser;
+    this.ctx = ctx;
     this.page = await this.ctx.newPage();
 
     const items = [
@@ -150,7 +157,8 @@ export class Playwrighteer {
     /** Handle each item; may cause a computer action + screenshot. **/
     if (item.type === "message") {
       Logger.debug(item.content[0]);
-    }if (item.type === "reasoning") {
+    }
+    if (item.type === "reasoning") {
       Logger.debug(item.summary[0]);
     } else if (item.type === "function_call") {
       const funk = item.name;
@@ -194,7 +202,7 @@ export class Playwrighteer {
 
     // keep looping until we get a final assistant response
     while (newItems.length === 0 || newItems[newItems.length - 1].role !== "assistant") {
-      const response: { output: any[] } = await cua<{ output: any[] }>(
+      const response: { output: any } = await cua<{ output: any[] }>(
         inputItems.concat(newItems),
         await this.getDimensions()
       );
@@ -230,19 +238,27 @@ export class Playwrighteer {
 
     // Perform the action based on the name and args
     const { funk, args } = funka;
-    await this.page.focus("body");
 
-    if (funk !== "screenshot") await this[funk](args);
+    // Focus the page before performing any action
+    await this.page.focus("body");
+    if (funk !== "screenshot") {
+      const frunker = this.funkers.length ? this.funkers[this.funkers.length - 1] : undefined;
+      Logger.debug("frunker !== funker", frunker !== funka, JSON.stringify(frunker), JSON.stringify(funka));
+      if (!frunker || frunker !== funka) await this[funk](args);
+      this.funkers.push(funka);
+    }
     return await new Promise((resolve) => setTimeout(() => resolve("success"), 3000));
   }
 
   async getDimensions() {
-    const viewport = this.page.viewportSize() || await this.page.evaluate(() => {
-      return {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      };
-    });
+    const viewport =
+      this.page.viewportSize() ||
+      (await this.page.evaluate(() => {
+        return {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
+      }));
     return viewport ?? { width: 1024, height: 768 };
   }
 

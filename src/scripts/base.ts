@@ -14,7 +14,7 @@ import {
   Scroll,
   Timeouts,
   Type,
-} from "../types.js";
+} from "../lib/types/index.js";
 import { Logger } from "../lib/logger.js";
 
 export abstract class Base {
@@ -96,7 +96,7 @@ export abstract class Base {
     const element = locator?.locator(selector).first() || this.page.locator(selector).first();
     await expect(element).toBeVisible();
     return this.bang(
-      "Element not found in" + selector,
+      "Element txt content" + selector,
       await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim())
     );
   }
@@ -427,7 +427,7 @@ export abstract class Base {
   }
 
   bang<T>(message: string, expect: T, source?: unknown) {
-    Logger.debug(`(Banger): ${message}`, expect, source);
+    Logger.debug(`Banging: ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }

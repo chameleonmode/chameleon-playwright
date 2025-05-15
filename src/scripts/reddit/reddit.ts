@@ -1,9 +1,8 @@
 // File: reddit.ts
 import { Logger } from "../../lib/logger.js";
-import { Opts, Artifact, AI, Settings } from "../../types.js";
+import { Opts, Artifact, AI, Settings } from "../../lib/types/index.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
-
 
 //
 type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
@@ -17,7 +16,9 @@ interface Args {
   filter: Filter;
 }
 
-interface Options extends Opts<Args> {}
+interface Options extends Opts<Args> {
+  artifacters: Artifact[];
+}
 
 export function configure(opts?: Partial<Options>) {
   const settings: Settings = {
@@ -26,7 +27,7 @@ export function configure(opts?: Partial<Options>) {
       new: true,
       attempts: 9,
       feature: "reddit",
-      rando: { min: 1, max: 3 },
+      rando: { min: 1, max: 1 },
       iterations: { min: 1, max: 1 },
       variations: { min: 1, max: 1 },
       urls: opts?.settings?.start.urls || [
@@ -83,6 +84,16 @@ export function configure(opts?: Partial<Options>) {
   const options: Options = {
     args,
     ai,
+    artifacters: opts?.artifacters || [
+      {
+        type: "selections",
+        data: ["vote"],
+      },
+    ],
+    run: {
+      file: "reddit",
+      port: 3000,
+    },
     settings: {
       start: {
         ...settings.start,

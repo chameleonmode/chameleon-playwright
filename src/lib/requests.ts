@@ -1,4 +1,4 @@
-import { App } from "../types.js";
+import { App } from "./types/index.js";
 import { Logger } from "./logger.js";
 
 export const state: App = { api: undefined };
@@ -37,11 +37,11 @@ export async function req<T>(
     method: args.method ?? "POST",
     body: args.body ? JSON.stringify(args.body) : undefined,
   };
-  Logger.log("Request:", { from, args: {...args}, init:{...init} });
+  Logger.log("Request:", { from, args: JSON.stringify(args), init: JSON.stringify(init) });
 
   const request = await fetch(from, init);
   const response = await request.json();
   Logger.log("Generated:", response);
 
-  return response;
+  return response as T;
 }

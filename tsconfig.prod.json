@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "outDir": "/Users/dev/src/Chameleon-lib/Chameleon.Assets/plugins/playwright",
     "sourceMap": false,
     "declaration": false,
     "declarationMap": false,
