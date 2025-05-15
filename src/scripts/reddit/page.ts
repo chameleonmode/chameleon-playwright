@@ -356,8 +356,8 @@ export class Reddit extends Base {
   // actionable scenario when user is doing something on a post: TODO: finish
   async actionado() {
     const compleations = [];
-    const acto = rando() && ["comment", "reply", "post"].includes(this.opts.settings.start.feature);
-    this.bang("acto?", acto );
+    const acto = rando() && ["comment", "reply"].includes(this.opts.settings.start.feature);
+    this.bang("acto?", acto);
 
     //
     const actionable = this.opts.artifacters.find(
@@ -769,7 +769,12 @@ export default async function (
     options.args.search = [...options.args.search, ...result.map((i) => i.data)].sort(
       () => Math.random() - 0.5
     );
+    Logger.info("Generated search terms:", options.args.search, JSON.stringify(result));
   }
+  Logger.info("Feature:", {
+    feature: options.settings.start.feature,
+    artifacts: JSON.stringify(options.artifacters),
+  });
   // start the plugin
   const reddit = new Reddit(ctx, options, action);
   await reddit.init();

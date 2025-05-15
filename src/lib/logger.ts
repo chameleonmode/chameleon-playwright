@@ -10,7 +10,7 @@ export class Logger {
   }
 
   static info(message: string = "Chamelioneer", ...objects: any[]): void {
-    console.log(`[${this.prefix()}] \x1b[34mINFO\x1b[0m`, { message, objects });
+    console.log(`[${this.prefix()}] \x1b[35mINFO\x1b[0m`, { message, objects });
   }
 
   static debug(message: string = "Chamelioneer", ...objects: any[]): void {

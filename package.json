@@ -8,7 +8,7 @@
     "build": "tsc",
     "build:prod": "npm run build:clean && tsc -p tsconfig.prod.json && npm run build:prepare",
     "build:clean": "rm -rf dist",
-    "build:prepare": "cp package.json dist && cd && npm install --omit=dev --no-package-lock --no-bin-links",
+    "build:prepare": "cp package.json dist && cd dist && npm install --omit=dev --no-package-lock --no-bin-links",
     "build:bundle": "esbuild src/app.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/bundle.js --external:@playwright/* --external:playwright* --external:chromium-bidi/* --external:*.node",
     "red:rep": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/reply",
     "red:com": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/post/comment",

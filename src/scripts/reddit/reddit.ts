@@ -26,7 +26,7 @@ export function configure(opts?: Partial<Options>) {
       all: opts?.settings?.start?.all || true,
       new: true,
       attempts: 9,
-      feature: "reddit",
+      feature: opts?.settings?.start?.feature || "reddit",
       rando: { min: 1, max: 1 },
       iterations: { min: 1, max: 1 },
       variations: { min: 1, max: 1 },
