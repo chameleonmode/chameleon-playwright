@@ -1,102 +1,51 @@
-import { promptee } from "../../src/lib/ask.js";
-import { AI, Term, Input } from "../../src/types.js";
-import { configure, Args, Options } from "../../src/scripts/reddit/reddit.js";
 import { Logger } from "../../src/lib/logger.js";
+import { AI, Input } from "../../src/types/index.js";
+import { promptee } from "../../src/lib/requests.js";
+import { configure, Args } from "../../src/scripts/reddit/reddit.js";
 (async () => {
   const args: Args = {
-    scope: "Communities",
-    sort: "Comments",
-    filter: "Year",
-    search: ["pop"],
+    scope: "Posts",
+    sort: "Relevance",
+    filter: "All",
+    search: ["popeye"],
+    artifacters: [{ type: "selections", data: ["vote"] }],
+  };
+  const ai: AI = {
+    model: "gpt",
+    decorators: {
+      tone: "fun and whimsical, in the style of shane gillis",
+      system: "You are a helpful social media assistant.",
+      prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
+      human: "I am a reddit content creator, who creates interesting content",
+      audience: "The target audience are reddit website users",
+      background: "I currently am on reddit.com and looking for content",
+      suffix: "Respond as creative as possible.",
+    },
   };
 
-  const ai: AI = {
-    task: "",
-    decorators: {
-      system: "You are a Reddit bot.",
-      prefix: "You are a social media copywriting guru who knows how to craft perfect replies.",
-      human: "I are a Reddit user.",
-      audience: "reddit website users",
-      background: "",
-      tone: "creative",
-      suffix: "Please respond as creative and concisely as possible.",
+  const result = await promptee.prompt<Input[]>({
+    model: ai.model,
+    decorators: ai.decorators,
+    task: `respond to this reddit post with a comment`,
+    image: {
+      des: "screenshot of the post",
+      b64: "iVBORw0KGgoAAAANSUhEUgAABQAAAA4VCAIAAADGmq9yAAAAAXNSR0IArs4c6QAAIABJREFUeJzs3WdYFFcXAOAzs32X3nsRRRQVEVGx994L9hJbYkvUFGM0URNNoiaaaKKfvUSNLRZUVCzYu4KKNEGqFOll+87M92MRkLrAwoKc9/FJdqfcubvL7M6Ze++5BMMwgBBCCCGEEEIIfexIXVcAIYQQQgghhBCqCxgAI4QQQgghhBBqFDAARgghhBBCCCHUKGAAjBBCCCGEEEKoUcAAGCGEEEIIIYRQo4ABMEIIIYQQQgihRgEDYIQQQgghhBBCjQJb1xVACFWfQqlSqFQKpUpF0TRNMzivN0IIoQ8RAARBkCTJZpFcDpvLZnM5ePmHauqjvwLR7YkjfX5bGnRTGvZEmRCpSk9iJHkMTWv3EARJEkJ9tpkNx95V0KK9wLOHwKObdg9RbxEf3Z8rQh8/FUVJZAqpXEFp+9sQIYTQR49FkgI…PfVDRfb3Wwt/f3lQlN9rUaJrN3Jg3dpNsqtWnwEK367Wobrip7+8bHRhHRqXPfXq69snHVsqGLsN3ONkyt0Zh9lXfTr9XacrlcLtd4RafX6/V6s53MBocNh0qtcXSwN+ulwQ/Pfe1JQAIMAAAAAHDfbd+9N3PRfLNNmGCY5DcV23fv5dnZMYzhtkq14clMdhEywK+ABBgAAAAA4P4a/uAqWGQwGLq6b7J7g2GAFH4LJMAAAAAAAABgFbALNAAAAAAAAFgFJMAAAAAAAABgFZAAAwAAAAAAgFVAAgwAAAAAAABWAQkwAAAAAAAAWAUkwAAAAAAAAGAVkAADAAAAAACAVUACDAAAAAAAAFYBCTAAAAAAAABYBSTAAAAAAAAAYBWQAAMAAAAAAIBVQAIMAAAAAAAAVgEJMAAAAAAAAFgFJMAAAAAAAABgFZAAAwAAAAAAgFVAAgwAAAAAAABW4UfDxKkE8KX0vAAAAABJRU5ErkJggg==",
     },
     generations: {
-      type: "prompt",
-      terms: [],
+      sys: "Your commenting on a reddit post use between minimum 9 to maximum 54 words in your response data",
+      type: "comment",
+      context: `currently @https://www.reddit.com/r/AskReddit/comments/1kptz1u/people_over_35_whats_something_you_genuinely_miss/
+some comments on the post are:
+- Finding a magazine with something you love on it, a band or an actor or whatever. Now if you love something you can immediately consume every piece of media on that thing, which is also cool, but I’ll always miss turning the corner at the grocery store and seeing that Spin is doing an all punk issue, or the Rolling Stone issue after Hunter Thompson died, and being like FUCK YES. Edited to add: and the smell! The ink plus the paper and the perfume samples, incredible.
+- Internet before corporate got hold of it. Was truly a wild west era
+- I miss when internet fandom communities were built around teenage nerds who knew HTML and how to open a Geocities domain."`,
       input: {
-        type: "prompt",
-        data: "",
-        reason: "",
+        type: "title",
+        data: "People over 35, what's something you genuinely miss that younger generations will probably never experience?",
+        reason: "this is the title of the post",
       },
-      range: {
-        min: 0,
-        max: 0,
-      },
-      sys: "",
-      context: ""
-    },
-  };
-
-  // Determine URLs based on args.search and settings
-  const urls = [
-    "https://www.reddit.com/r/AITAH/",
-    "https://www.reddit.com/r/AITAH/search/?q=wtf&cId=065ac19a-7e1a-4ddc-a2bf-f265b37fe0cc&iId=828cb1c6-875a-48e7-be07-96ae622a9200",
-    "https://www.reddit.com/search/?q=ai+stuff&type=communities",
-    "https://www.reddit.com/r/mildlyinteresting/comments/1kepdzk/how_orange_my_hands_are_im_normally_paler_than_my/",
-  ];
-  const all = true;
-  const options = configure({
-    ai,
-    args,
-    settings: {
-      start: {
-        all,
-        new: true,
-        attempts: 9,
-        feature: "reddit",
-        rando: { min: 1, max: 3 },
-        iterations: { min: 1, max: 1 },
-        variations: { min: 1, max: 3 },
-        urls,
-      },
-      timeouts: {
-        navigate: 60,
-        default: 30,
-        wait: 15,
-        naps: {
-          min: 256,
-          max: 512,
-          multiplier: 0,
-        },
-      },
+      range: { min: 1, max: 1 },
     },
   });
-  if ((options.settings.start.all || args.search.length) && options.settings.start.variations.max > 1) {
-    // loop through the search terms and generate new ones
-    const result = await promptee<Term[]>({
-      ...ai,
-      task: `surf around reddit`,
-      decorators: {
-        ...ai.decorators,
-        system: "You are a Reddit bot. You specialize in generating search terms.",
-      },
-      generations: {
-        type: "search",
-        terms: args.search.map((data) => ({ data, type: "term", reason: "context" })),
-        input: {
-          type: "search",
-          data: JSON.stringify(options.args.search),
-          reason: "surff reddit for posts and media",
-        },
-        range: {
-          min: options.settings.start.variations.min,
-          max: options.settings.start.variations.max,
-        },
-        sys: "",
-        context: ""
-      },
-    });
-    const terms = result.map((term) => term.term);
-  }
+  Logger.log("", { result: JSON.stringify(result) });
 })();

@@ -1,10 +1,11 @@
-import { Browser, chromium } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import path from "path";
-import { Opts } from "./types";
+import { fileURLToPath } from "url";
+import { Opts } from "../types";
 
 export async function loader(file: string) {
   // Recreate dirname for ES module
-  const __filename = (await import("url")).fileURLToPath(import.meta.url);
+  const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
   // Attempting to load script from the specified file
@@ -53,8 +54,7 @@ export async function run(args: { file: string; port: number; opts: unknown }) {
     });
     const opts = {
       ...(args.opts as Partial<Opts<unknown>>),
-      file: args.file,
-      port: args.port,
+      run: { file: args.file, port: args.port },
       settings: { start: { feature } },
     };
     await plugin(ctx, opts);

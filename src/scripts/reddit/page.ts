@@ -1,11 +1,11 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { random, rando, trySequentially } from "../../lib/utils.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
+import { promptee } from "../../lib/requests.js";
+import { Player } from "../player.js";
 import { Base } from "../base.js";
-import Player from "../player.js";
-import { configure, Args, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
-import { AI, Input } from "../../lib/types/index.js";
+import { Input } from "../../types/index.js";
 import { Logger } from "../../lib/logger.js";
-import { promptee } from "../../lib/ask.js";
 export class Reddit extends Base {
   readonly player = new Player(this);
   readonly searched: string[] = [];
@@ -364,7 +364,7 @@ export class Reddit extends Base {
       (art) => art.type === "selections" && art.data.find((d: string) => ["join", "vote"].includes(d))
     )?.data as string[];
     this.bang("Actionable", actionable.length > 0, { actionable });
-    if(!actionable.includes("vote")) actionable.push("vote");
+    if (!actionable.includes("vote")) actionable.push("vote");
 
     // Execute each actionable function from the selectionator
     const actions: Record<string, () => Promise<void>> = {
@@ -378,7 +378,7 @@ export class Reddit extends Base {
 
     for (const selection of actionable) {
       try {
-        if(!compleations.includes("join")) this.bang("action", rando(), { selection });
+        if (!compleations.includes("join")) this.bang("action", rando(), { selection });
         await actions[selection]();
         compleations.push(selection);
       } catch (error) {
@@ -659,7 +659,10 @@ export class Reddit extends Base {
 
       // ensure we don't exceed the number of available votes
       const count = Math.min(upCount, downCount) - 1;
-      const length = Math.min(count, this.rando);
+      const length = Math.min(
+        count,
+        rando(this.opts.settings.start.rando.min, this.opts.settings.start.rando.max)
+      );
       this.bang("Vote count", length, { upCount, downCount, count, length });
       for (let i = 0; i < length; i++) {
         const index = random(0, count);
@@ -667,14 +670,8 @@ export class Reddit extends Base {
       }
 
       return {
-        ups: {
-          locator: ups,
-          count: upCount,
-        },
-        downs: {
-          locator: downs,
-          count: downCount,
-        },
+        ups: { locator: ups, count: upCount },
+        downs: { locator: downs, count: downCount },
       };
     },
 
@@ -742,24 +739,21 @@ export default async function (
 ) {
   // setup options
   const options = configure(opts);
-  const variate =
-    (options.settings.start.all || options.ai.generations.terms.length > 0) &&
-    options.settings.start.variations.max > 1;
 
-  if (variate) {
-    // loop through the search terms and generate new ones
-    const result = await promptee<Input[]>({
+  // generate additional search terms
+  if (options.settings.start.all && options.settings.start.variations.max > 1) {
+    const result = await promptee.genorate<Input[]>({
+      model: options.ai.model,
       task: `generate search terms to browse reddit`,
       decorators: options.ai.decorators,
       generations: {
+        type: "term",
         sys: "you are creating variations of search terms",
-        type: "search",
-        context: "",
-        terms: options.ai.generations.terms,
+        context: "current search terms",
         input: {
           type: "search",
           data: JSON.stringify(options.args.search),
-          reason: "these are the search terms i want to use",
+          reason: "list of search terms to generate variations for",
         },
         range: {
           min: options.settings.start.variations.min,
@@ -779,6 +773,7 @@ export default async function (
   Logger.info("Settings:", {
     options: JSON.stringify(options),
   });
+  
   // start the plugin
   const reddit = new Reddit(ctx, options, action);
   await reddit.init();

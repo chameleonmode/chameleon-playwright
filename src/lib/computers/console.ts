@@ -1,9 +1,3 @@
-import { AI, Tone } from "./types/index.js";
-import { Logger } from "./logger.js";
-import { req } from "./requests.js";
-import { rando } from "./utils.js";
-
-export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
 
 export async function askConsole(input: string): Promise<string> {
   console.log(`Ask:${input}`); // must remain ask for seperate process to interceptt
@@ -23,20 +17,4 @@ export async function askConsole(input: string): Promise<string> {
       resolve(answer.slice(4).trim()); // Remove the "Ans:" prefix and trim whitespace
     });
   });
-}
-
-export async function promptee<T>(ctx: AI) {
-  ctx.decorators.tone ||= rando(tones);
-  const request = await req<{res: any}>("/promptee/prompter", {
-    body: ctx,
-    headers: {
-      ai: "origato",
-      type: ctx.generations.type,
-    },
-  });
-
-  const response = request.res as T;
-  Logger.log("Reply:", response);
-
-  return response;
 }

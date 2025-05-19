@@ -1,4 +1,6 @@
+import { Ranger } from ".";
 
+export namespace CUA {
   /**
    * A click action.
    */
@@ -7,13 +9,13 @@
      * Indicates which mouse button was pressed during the click. One of `left`,
      * `right`, `wheel`, `back`, or `forward`.
      */
-    button: 'left' | 'right' | 'wheel' | 'back' | 'forward';
+    button: "left" | "right" | "wheel" | "back" | "forward";
 
     /**
      * Specifies the event type. For a click action, this property is always set to
      * `click`.
      */
-    type: 'click';
+    type: "click";
 
     /**
      * The x-coordinate where the click occurred.
@@ -34,7 +36,7 @@
      * Specifies the event type. For a double click action, this property is always set
      * to `double_click`.
      */
-    type: 'double_click';
+    type: "double_click";
 
     /**
      * The x-coordinate where the double click occurred.
@@ -68,7 +70,7 @@
      * Specifies the event type. For a drag action, this property is always set to
      * `drag`.
      */
-    type: 'drag';
+    type: "drag";
   }
 
   export namespace Drag {
@@ -102,7 +104,7 @@
      * Specifies the event type. For a keypress action, this property is always set to
      * `keypress`.
      */
-    type: 'keypress';
+    type: "keypress";
   }
 
   /**
@@ -113,7 +115,7 @@
      * Specifies the event type. For a move action, this property is always set to
      * `move`.
      */
-    type: 'move';
+    type: "move";
 
     /**
      * The x-coordinate to move to.
@@ -134,7 +136,7 @@
      * Specifies the event type. For a screenshot action, this property is always set
      * to `screenshot`.
      */
-    type: 'screenshot';
+    type: "screenshot";
   }
 
   /**
@@ -155,7 +157,7 @@
      * Specifies the event type. For a scroll action, this property is always set to
      * `scroll`.
      */
-    type: 'scroll';
+    type: "scroll";
 
     /**
      * The x-coordinate where the scroll occurred.
@@ -181,7 +183,7 @@
      * Specifies the event type. For a type action, this property is always set to
      * `type`.
      */
-    type: 'type';
+    type: "type";
   }
 
   /**
@@ -192,11 +194,111 @@
      * Specifies the event type. For a wait action, this property is always set to
      * `wait`.
      */
-    type: 'wait';
+    type: "wait";
   }
 
-
-export type Actionable = {
-  type: "click" | "scroll" | "keypress" | "type" | "wait" | "screenshot";
-  action: Click | DoubleClick | Drag | Keypress | Move | Screenshot | Scroll | Type | Wait;
+  export type Actionable = {
+    type: "click" | "scroll" | "keypress" | "type" | "wait" | "screenshot";
+    action: Click | DoubleClick | Drag | Keypress | Move | Screenshot | Scroll | Type | Wait;
+  };
 }
+export type Actionable = CUA.Actionable;
+export type Action =
+  | CUA.Click
+  | CUA.DoubleClick
+  | CUA.Drag
+  | CUA.Keypress
+  | CUA.Move
+  | CUA.Screenshot
+  | CUA.Scroll
+  | CUA.Type
+  | CUA.Wait;
+
+export type Model = "gpt" | "fink";
+export type Kind = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term" | "";
+export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
+
+export interface Input {
+  type: Kind;
+  data: string;
+  reason: string;
+}
+export interface Decorations {
+  system: string;
+  prefix: string;
+  tone: Tone | string | null;
+  human: string;
+  audience: string;
+  background: string;
+  suffix: string;
+}
+
+export interface AI {
+  model: Model;
+  decorators: Decorations;
+}
+
+export namespace requests {
+  export type Type = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term";
+  export interface Generators {
+    sys: string;
+    type: Type;
+    context: string;
+    input: Input;
+    range: Ranger;
+  }
+  export interface Image {
+    /**
+     * Description of the screenshot
+     */
+    des: string;
+
+    /**
+     * base64 encoded image
+     */
+    b64: string;
+  }
+
+  export interface Genoration {
+    /**
+     * The prompt text.
+     */
+    task: string;
+
+    /**
+     * The model to use for the prompt.
+     */
+    model: Model;
+
+    /**
+     * The generations to use for the prompt.
+     */
+    generations: Generators;
+
+    /**
+     * The type of the prompt.
+     */
+    decorators: Decorations;
+  }
+
+  export interface Prompt extends Genoration {
+    /**
+     * The temperature to use for the prompt.
+     */
+    image: Image;
+  }
+}
+
+export const tones: Tone[] = ["sarcastic", "informative", "relatable", "straightforward"];
+export const ai: AI = {
+  model: "gpt",
+  decorators: {
+    tone: null,
+    system: "You are a helpful social media assistant.",
+    prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
+    human: "I am a reddit content creator, who creates interesting content",
+    audience: "The target audience are reddit website users",
+    background: "I currently am on reddit.com and looking for content",
+    suffix: "Respond as creative as possible.",
+  },
+};

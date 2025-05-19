@@ -1,9 +1,9 @@
 import { spawn } from "node:child_process";
 import { Page, Browser, chromium, BrowserContext } from "@playwright/test";
-import { getChromePath } from "../lib/utils.js";
-import { run } from "../lib/runner.js";
-import { req } from "../lib/requests.js";
-import { Logger } from "../lib/logger.js";
+import { getChromePath } from "../utils.js";
+import { run } from "../runner.js";
+import { req } from "../requests.js";
+import { Logger } from "../logger.js";
 
 export type Funkaroo = {
   funk: string;

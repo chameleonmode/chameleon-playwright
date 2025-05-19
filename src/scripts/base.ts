@@ -1,36 +1,22 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { random, rando, sleepRandom, tryForEach } from "../lib/utils.js";
-import { promptee, tones } from "../lib/ask.js";
-import {
-  Actionable,
-  Click,
-  Decorations,
-  Generators,
-  Input,
-  Keypress,
-  Opts,
-  Rando,
-  Scroll,
-  Timeouts,
-  Type,
-} from "../lib/types/index.js";
+import { requests, Input, Opts, Rando, Timeouts } from "../types/index.js";
+import { rando, sleepRandom, tryForEach, trySequentially } from "../lib/utils.js";
+import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
 
 export abstract class Base {
   readonly visited: string[] = [];
-  readonly toner = tones;
   public page!: Page;
   constructor(
     readonly ctx: BrowserContext,
     readonly opts: Opts<unknown>,
     readonly scenario: (url: string) => Promise<number | unknown>,
-    readonly rando: number = random(opts.settings.start.rando.min, opts.settings.start.rando.max),
-    public iterations: number = random(
+    public iterations: number = rando(
       opts.settings.start.iterations.min,
       opts.settings.start.iterations.max
     ),
-    public variations: number = random(
+    public variations: number = rando(
       opts.settings.start.variations.min,
       opts.settings.start.variations.max
     ),
@@ -95,10 +81,14 @@ export abstract class Base {
   async txtContent(selector: string, locator?: Locator) {
     const element = locator?.locator(selector).first() || this.page.locator(selector).first();
     await expect(element).toBeVisible();
-    return this.bang(
-      "Element txt content" + selector,
-      await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim())
-    );
+
+    const result = await trySequentially([
+      async () => await element.scrollIntoViewIfNeeded({ timeout: this.timeouts.wait }),
+    ]);
+    this.banger(result, result); // banger
+
+    const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
+    return this.bang("Element txt content" + selector, text);
   }
 
   async selectAll(locator?: Locator, clear = false) {
@@ -112,14 +102,14 @@ export abstract class Base {
 
   async type(text: string) {
     await this.page.keyboard.type(text, {
-      delay: random(64, 128),
+      delay: rando(64, 128),
     });
   }
 
   async pressSequentially(locator: Locator, text: string, click = true) {
     if (click) await this.click(locator);
     await locator.pressSequentially(text, {
-      delay: random(64, 128),
+      delay: rando(64, 128),
       timeout: 1000 * 60 * 5,
     });
   }
@@ -147,7 +137,7 @@ export abstract class Base {
 
   async scrollabit() {
     // Scroll down multiple times with delay to simulate natural scrolling
-    for (let i = 0; i < random(3, 6); i++) {
+    for (let i = 0; i < rando(3, 6); i++) {
       await this.nap();
       try {
         // if already scrolled till end break
@@ -167,7 +157,7 @@ export abstract class Base {
 
         // Occasionally scroll up slightly (1 in 8 chance)
         const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
-        await this.page.mouse.wheel(0, direction * random(clientHeight / 2, clientHeight));
+        await this.page.mouse.wheel(0, direction * rando(clientHeight / 2, clientHeight));
       } catch (e) {
         break;
       }
@@ -186,6 +176,8 @@ export abstract class Base {
     await this.waitForNavigation();
   }
 
+  // Find elements by testId, selector, or text
+  // This function will return the first found element based on the strategy
   async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
     for (const id of ids) {
       const locator =
@@ -205,7 +197,7 @@ export abstract class Base {
     throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
   }
 
-  // Separate function for frames
+  // Find frames by selector seperate for find
   async findFrame(selectors: string[]) {
     for (const selector of selectors) {
       try {
@@ -226,195 +218,20 @@ export abstract class Base {
     throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
   }
 
-  async ask(opts: { task: string; generate: Generators }) {
-    const result = await promptee<Input[]>({
-      ...this.opts.ai,
-      task: opts.task,
-      generations: opts.generate,
+  /**
+   * Capture only the viewport (not full_page).
+   */
+  async screenshot() {
+    const pngBuffer = await this.page.screenshot({ fullPage: false });
+    return pngBuffer.toString("base64");
+  }
+
+  async ask(opts: { task: string; image: requests.Image; generations: requests.Generators }) {
+    return await promptee.prompt<Input[]>({
+      model: this.opts.ai.model,
+      decorators: this.opts.ai.decorators,
+      ...opts,
     });
-    return result;
-  }
-
-  async handles(act: Actionable) {
-    // Given a computer action (e.g., click, double_click, scroll, etc.),
-    // execute the corresponding operation on the Playwright page.
-
-    try {
-      switch (act.type) {
-        case "click": {
-          const { x, y, button = "left" } = act.action as Click;
-          Logger.log(`Action: click at (${x}, ${y}) with button '${button}'`);
-          await this.page.mouse.click(x, y, { button: button as any });
-          break;
-        }
-
-        case "scroll": {
-          const { x, y, scroll_x, scroll_y } = act.action as Scroll;
-          Logger.log(
-            `Action: scroll at (${x}, ${y}) with offsets (scrollX=${scroll_x}, scrollY=${scroll_y})`
-          );
-          await this.page.mouse.move(x, y);
-          await this.page.evaluate(({ sx, sy }) => window.scrollBy(sx, sy), { sx: scroll_x, sy: scroll_y });
-          break;
-        }
-
-        case "keypress": {
-          const { keys } = act.action as Keypress;
-          for (const k of keys) {
-            Logger.log(`Action: keypress '${k}'`);
-            // A simple mapping for common keys; expand as needed.
-            if (k.includes("ENTER")) {
-              await this.page.keyboard.press("Enter");
-            } else if (k.includes("SPACE")) {
-              await this.page.keyboard.press(" ");
-            } else {
-              await this.page.keyboard.press(k);
-            }
-          }
-          break;
-        }
-
-        case "type": {
-          const { text } = act.action as Type;
-          Logger.log(`Action: type text '${text}'`);
-          await this.page.keyboard.type(text);
-          break;
-        }
-
-        case "wait": {
-          Logger.log(`Action: wait`);
-          await this.page.waitForTimeout(2000);
-          break;
-        }
-
-        case "screenshot": {
-          // Nothing to do as screenshot is taken at each turn
-          Logger.log(`Action: screenshot`);
-          break;
-        }
-
-        // Handle other actions here
-
-        default:
-          Logger.log("Unrecognized action:", act);
-      }
-    } catch (e) {
-      Logger.error("Error handling action", act, ":", e);
-    }
-  }
-
-  async handlee(action: any) {
-    const keyMap: Record<string, string> = {
-      ENTER: "Enter",
-      ARROWLEFT: "ArrowLeft",
-      ARROWRIGHT: "ArrowRight",
-      ARROWUP: "ArrowUp",
-      ARROWDOWN: "ArrowDown",
-      ALT: "Alt",
-      CTRL: "Control",
-      SHIFT: "Shift",
-      CMD: "Meta", // macOS Command key
-    };
-
-    const modifierKeys = new Set(["Control", "Shift", "Alt", "Meta"]);
-
-    try {
-      const page = this.page;
-      const { x, y, button, path, scroll_x, scroll_y, text, keys, url } = action;
-
-      switch (action.type) {
-        case "click":
-          Logger.log(`Clicking at (${x}, ${y}), ${button} button`);
-          await page.mouse.click(x, y);
-          break;
-        case "double_click":
-          Logger.log(`Double clicking at (${x}, ${y})`);
-          await page.mouse.dblclick(x, y);
-          break;
-        case "move":
-          Logger.log(`Moving mouse to (${x}, ${y})`);
-          await page.mouse.move(x, y);
-          break;
-        case "drag":
-          Logger.log("Dragging along path", path);
-          if (Array.isArray(path) && path.length > 0) {
-            const [firstPoint, ...restPoints] = path;
-            await page.mouse.move(firstPoint.x, firstPoint.y);
-            await page.mouse.down();
-            for (const point of restPoints) {
-              await page.mouse.move(point.x, point.y);
-            }
-            await page.mouse.up();
-          } else {
-            Logger.log("Drag action missing a valid path");
-          }
-          break;
-        case "scroll":
-          Logger.log(`Scrolling by (${scroll_x}, ${scroll_y})`);
-          await page.mouse.wheel(scroll_x, scroll_y);
-          break;
-        case "type":
-          Logger.log(`Typing text: ${text}`);
-          await page.keyboard.type(text);
-          break;
-        case "keypress":
-          Logger.log(`Pressing key: ${keys}`);
-          const mappedKeys = keys.map((key: string) => keyMap[key.toUpperCase()] || key);
-          const modifiers = mappedKeys.filter((key: string) => modifierKeys.has(key));
-          const normalKeys = mappedKeys.filter((key: string) => !modifierKeys.has(key));
-
-          if (
-            (mappedKeys[0] === "Meta" && mappedKeys[1] === "[") ||
-            (mappedKeys[0] === "Alt" && mappedKeys[1] === "ArrowLeft")
-          ) {
-            await page.goBack();
-            break;
-          }
-
-          // Hold down modifier keys
-          for (const key of modifiers) {
-            await page.keyboard.down(key);
-          }
-
-          // Press normal keys
-          for (const key of normalKeys) {
-            await page.keyboard.press(key);
-          }
-
-          // Release modifier keys
-          for (const key of modifiers) {
-            await page.keyboard.up(key);
-          }
-          break;
-        case "wait":
-          Logger.log("Waiting for browser...");
-          await page.waitForTimeout(1000);
-          break;
-        case "goto":
-          Logger.log(`Navigating to ${url}`);
-          await page.goto(url);
-          break;
-        case "back":
-          Logger.log("Navigating back");
-          await page.goBack();
-          break;
-        case "forward":
-          Logger.log("Navigating forward");
-          await page.goForward();
-          break;
-        case "screenshot":
-          Logger.log("Taking a screenshot");
-          break;
-        default:
-          Logger.log("Unknown action:", action);
-      }
-    } catch (error) {
-      Logger.error("Error executing action:", action, error);
-    }
-  }
-  async getScreenshotAsBase64() {
-    const screenshotBuffer = await this.page.screenshot({ fullPage: true });
-    return screenshotBuffer.toString("base64");
   }
 
   error(message: string, cause?: unknown) {
@@ -430,5 +247,9 @@ export abstract class Base {
     Logger.debug(`Banging: ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
+  }
+
+  banger<T>(expect: T, source?: unknown) {
+    return this.bang(``, expect, source);
   }
 }

@@ -1,7 +1,7 @@
 import { Logger } from "../lib/logger.js";
 import { Base } from "./base.js";
 
-export default class Player {
+export class Player {
   readonly visited: number[] = []
 
   // ctor

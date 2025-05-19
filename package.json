@@ -16,10 +16,8 @@
     "red:pos": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/post",
     "red:joi": "node --loader ts-node/esm src/app.ts ../scripts/reddit/plugins/subreddit/join",
     "red:run": "node --loader ts-node/esm src/app.ts ../scripts/reddit",
-    "age:run": "node --loader ts-node/esm src/app.ts {}",
-    "examples:ask:comment": "node --loader ts-node/esm tests/examples/ask-comment.ts",
     "examples:ask:prompt": "node --loader ts-node/esm tests/examples/ask-prompt.ts",
-    "examples:scrape": "node --loader ts-node/esm tests/examples/scrape.ts"
+    "examples:ask:genorate": "node --loader ts-node/esm tests/examples/ask-genorate.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.50.1"

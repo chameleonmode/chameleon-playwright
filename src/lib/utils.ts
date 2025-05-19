@@ -1,4 +1,4 @@
-import { Rando } from "./types/index.js";
+import { Rando } from "../types";
 
 /**
  * sleeps for a specified number of milliseconds.
@@ -32,9 +32,9 @@ export const sleep = (ms: number) => {
  * @returns A random integer between the smallest and largest values (inclusive)
  */
 export function random(...values: number[]): number {
-  const smallest = Math.min(...values);
-  const largest = Math.max(...values);
-  const floor = Math.floor(Math.random() * (largest - smallest + 1) + smallest);
+  const smallest = Math.min(...values) + 1;
+  const largest = Math.max(...values) + 1;
+  const floor = Math.floor(Math.random() * (largest - smallest) + smallest);
   return floor;
 }
 
@@ -58,11 +58,14 @@ export function random(...values: number[]): number {
  */
 export function rando(): boolean;
 export function rando(number: number): number;
+export function rando(min: number, max: number): number;
 export function rando<T>(list: T[]): T;
-export function rando<T>(thing?: T[] | number): T | boolean | number {
+export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | number {
   return Array.isArray(thing)
     ? thing[Math.floor(Math.random() * thing.length)]
-    : thing
+    : thing && thinger
+    ? random(thinger, thing)
+    : thing && typeof thing === "number"
     ? Math.floor(Math.random() * thing)
     : Math.random() < 0.5;
 }
@@ -137,13 +140,9 @@ export async function trySequentially<T>(promises: (() => Promise<T>)[]) {
   for (let i = 0; i < promises.length; i++) {
     try {
       // Execute the current promise-returning function
-      const result = await promises[i]();
+      const fulfilled = await promises[i]();
       // If we get here, the promise fulfilled successfully
-      return {
-        fulfilled: result,
-        errors,
-        fulfilledIndex: i,
-      };
+      return {fulfilled, errors, fulfilledIndex: i };
     } catch (error) {
       // Store the error and continue to the next promise
       errors.push(error);
