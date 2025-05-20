@@ -1,6 +1,6 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { requests, Input, Opts, Rando, Timeouts } from "../types/index.js";
+import { requests, Input, Opts, Rando, Timeouts, Output } from "../types/index.js";
 import { rando, sleepRandom, tryForEach, trySequentially } from "../lib/utils.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
@@ -15,10 +15,6 @@ export abstract class Base {
     public iterations: number = rando(
       opts.settings.start.iterations.min,
       opts.settings.start.iterations.max
-    ),
-    public variations: number = rando(
-      opts.settings.start.variations.min,
-      opts.settings.start.variations.max
     ),
     readonly timeouts: Timeouts = {
       ...opts.settings.timeouts,
@@ -149,15 +145,21 @@ export abstract class Base {
           };
         });
 
-        // Throws when at bottom or can't scroll further
-        this.bang(
-          `scrollHeight: ${scrollHeight}, scrollTop: ${scrollTop}, clientHeight: ${clientHeight}`,
-          scrollTop + clientHeight <= scrollHeight
-        );
-
         // Occasionally scroll up slightly (1 in 8 chance)
         const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
-        await this.page.mouse.wheel(0, direction * rando(clientHeight / 2, clientHeight));
+        const y = direction * rando(clientHeight / 2, clientHeight);
+
+        // Throws when at bottom or can't scroll further
+        this.bang(
+          { y, scrollTop, clientHeight, scrollHeight },
+          y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight
+        );
+
+        if (rando()) await this.page.mouse.wheel(0, y);
+        else
+          direction > 0
+            ? await this.page.keyboard.press("PageDown")
+            : await this.page.keyboard.press("PageUp");
       } catch (e) {
         break;
       }
@@ -218,23 +220,43 @@ export abstract class Base {
     throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
   }
 
+  async dimensions() {
+    return await this.page.evaluate(() => {
+      return {
+        width: document.documentElement.scrollWidth,
+        height: document.documentElement.scrollHeight,
+      };
+    });
+  }
+
   /**
    * Capture only the viewport (not full_page).
    */
-  async screenshot() {
-    const pngBuffer = await this.page.screenshot({ fullPage: false });
-    return pngBuffer.toString("base64");
+  async screenshot(clip: boolean = true) {
+    if (clip) {
+      const { width, height } = await this.dimensions();
+      return (
+        await this.page.screenshot({
+          fullPage: true,
+          scale: "css",
+          type: "jpeg",
+          quality: 18,
+          clip: { x: 0, y: 0, width, height: height - height / 2 },
+        })
+      ).toString("base64");
+    }
+    return (await this.page.screenshot({ fullPage: false })).toString("base64");
   }
 
   async ask(opts: { task: string; image: requests.Image; generations: requests.Generators }) {
-    return await promptee.prompt<Input[]>({
+    return await promptee.prompt({
       model: this.opts.ai.model,
       decorators: this.opts.ai.decorators,
       ...opts,
     });
   }
 
-  error(message: string, cause?: unknown) {
+  error(message: unknown, cause?: unknown) {
     const error = new Error(
       `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts.settings.start)}] ${message}`,
       { cause }
@@ -243,7 +265,7 @@ export abstract class Base {
     return error;
   }
 
-  bang<T>(message: string, expect: T, source?: unknown) {
+  bang<T>(message: unknown, expect: T, source?: unknown) {
     Logger.debug(`Banging: ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });

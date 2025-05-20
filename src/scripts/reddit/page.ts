@@ -23,7 +23,6 @@ export class Reddit extends Base {
         for (let i = 0; i < this.opts.settings.start.attempts; i++) {
           try {
             this.iterations = 1;
-            this.variations = 1;
             return await action(url);
           } catch (e) {
             Logger.warn("Error in action function:", e);
@@ -541,12 +540,13 @@ export class Reddit extends Base {
     },
 
     // find a comment
-    getComments: async (max = 3) => {
+    getComments: async (max?: number) => {
       await this.scrollabit();
       const locator = this.page.locator("shreddit-comment");
       const count = await locator.count();
+      const length = max ? Math.min(max, count) : count;
       const comments: string[] = [];
-      for (let i = 0; i < Math.min(max, count); i++) {
+      for (let i = 0; i < length; i++) {
         comments.push(await this.txtContent("div[slot='comment']", locator.nth(i)));
       }
       return comments;
@@ -740,30 +740,32 @@ export default async function (
   // setup options
   const options = configure(opts);
 
+  // start the plugin
+  const reddit = new Reddit(ctx, options, action);
+  await reddit.init();
+
   // generate additional search terms
-  if (options.settings.start.all && options.settings.start.variations.max > 1) {
-    const result = await promptee.genorate<Input[]>({
+  const all = options.settings.start.all;
+  const genorate = all && options.args.search.length && options.settings.start.variations.max > 0;
+  if (genorate) {
+    const result = await promptee.genorate({
       model: options.ai.model,
-      task: `generate search terms to browse reddit`,
       decorators: options.ai.decorators,
+      task: `generate search terms`,
       generations: {
         type: "term",
         sys: "you are creating variations of search terms",
         context: "current search terms",
+        range: options.settings.start.variations,
         input: {
           type: "search",
-          data: JSON.stringify(options.args.search),
+          data: options.args.search,
           reason: "list of search terms to generate variations for",
-        },
-        range: {
-          min: options.settings.start.variations.min,
-          max: options.settings.start.variations.max,
         },
       },
     });
-    options.args.search = [...options.args.search, ...result.map((i) => i.data)].sort(
-      () => Math.random() - 0.5
-    );
+    const terms = result.map((i) => i.data);
+    options.args.search = [...options.args.search, ...terms].sort(() => Math.random() - 0.5);
     Logger.info("Generated search terms:", options.args.search, JSON.stringify(result));
   }
   Logger.info("Feature:", {
@@ -773,9 +775,6 @@ export default async function (
   Logger.info("Settings:", {
     options: JSON.stringify(options),
   });
-  
-  // start the plugin
-  const reddit = new Reddit(ctx, options, action);
-  await reddit.init();
+
   return { reddit };
 }

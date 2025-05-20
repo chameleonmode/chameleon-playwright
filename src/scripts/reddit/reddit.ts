@@ -35,12 +35,9 @@ export function configure(opts?: Partial<Options>) {
       feature: "reddit",
       rando: { min: 1, max: 1 },
       iterations: { min: 1, max: 1 },
-      variations: { min: 1, max: 1 },
+      variations: { min: 1, max: 3 },
+      urls: [],
       ...opts?.settings?.start,
-      urls: [
-        ...(opts?.settings?.start.all && args.search.length ? [BASE_URL] : []),
-        ...(opts?.settings?.start.urls || []),
-      ],
     },
     timeouts: {
       navigate: 60,
@@ -53,24 +50,33 @@ export function configure(opts?: Partial<Options>) {
   const ai: AI = {
     model: "gpt",
     decorators: {
-      tone: "inteligent and whimsical",
-      system: "You are a helpful social media assistant.",
+      tone: "adaptive to the general tone of context",
+      system: "You are helpful!",
       prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
-      human: "I am a reddit content creator, who creates interesting content",
-      audience: "The target audience are reddit website users",
-      background: "I currently am on reddit.com and looking for content",
+      human: "reddit content creator",
+      audience: "adaptive to the general audience of the task context",
+      background: "surfing reddit",
       suffix: "Respond as creative as possible.",
     },
   };
 
   const options: Options = {
-    settings,
     args,
     run: { ...opts?.run },
+    settings: {
+      ...settings,
+      start: {
+        ...settings.start,
+        urls: [
+          ...(settings.start.all && args.search.length ? [BASE_URL] : []),
+          ...(settings.start.urls || []),
+        ],
+      },
+    },
     ai: {
       model: opts?.ai?.model || ai.model,
       decorators: {
-        tone: opts?.ai?.decorators.tone || ai.decorators.tone,
+        tone: ai.decorators.tone,
         system: opts?.ai?.decorators.system || ai.decorators.system,
         prefix: opts?.ai?.decorators.prefix || ai.decorators.prefix,
         human: opts?.ai?.decorators.human || ai.decorators.human,

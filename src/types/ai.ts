@@ -220,11 +220,16 @@ export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward"
 
 export interface Input {
   type: Kind;
-  data: string;
+  data: string[];
   reason: string;
 }
+export interface Output {
+  type: Kind;
+  data: string;
+  reason: any;
+}
 export interface Decorations {
-  system: string;
+  system: string; // 2. SYSTEM ROLE (keeps the model “on brand”)
   prefix: string;
   tone: Tone | string | null;
   human: string;
@@ -256,7 +261,7 @@ export namespace requests {
     /**
      * base64 encoded image
      */
-    b64: string;
+    b64: string[];
   }
 
   export interface Genoration {
@@ -285,7 +290,7 @@ export namespace requests {
     /**
      * The temperature to use for the prompt.
      */
-    image: Image;
+    image?: Image;
   }
 }
 

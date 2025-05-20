@@ -1,4 +1,4 @@
-import { Rando } from "../types";
+import { Rando } from "../types/index.js";
 
 /**
  * sleeps for a specified number of milliseconds.

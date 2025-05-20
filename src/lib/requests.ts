@@ -1,5 +1,4 @@
-import { state, tones } from "../types";
-import { requests } from "../types/ai.js";
+import { state, tones, Output, requests } from "../types/index.js";
 import { Logger } from "./logger.js";
 import { rando } from "./utils.js";
 
@@ -57,19 +56,19 @@ export namespace promptee {
     return await req<Response>("/promptee" + route, args);
   }
 
-  function responsito<T>(request: Response) {
-    const response = request.res as T;
-    Logger.log("Reply:", response);
-    return response;
+  function responsito(request: Response) {
+    const out = request.reply as Output[];
+    Logger.log("Reply:", out);
+    return out;
   }
 
-  export async function prompt<T>(ctx: requests.Prompt) {
+  export async function prompt(ctx: requests.Prompt) {
     const request = await requesito("/prompt", ctx);
-    return responsito<T>(request);
+    return responsito(request);
   }
 
-  export async function genorate<T>(ctx: requests.Genoration) {
+  export async function genorate(ctx: requests.Genoration) {
     const request = await requesito("/genorate", ctx);
-    return responsito<T>(request);
+    return responsito(request);
   }
 }
