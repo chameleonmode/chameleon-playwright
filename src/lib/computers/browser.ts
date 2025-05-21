@@ -83,7 +83,7 @@ export class Playwrighteer {
     }
   }
 
-  async run(args: string[]) {
+  async runner(args: string[]) {
     const [file, port, dir, opts] = args;
     const { port: ported } = await this.setup({ dir, port: port ? parseInt(port, 10) : 9613 });
 

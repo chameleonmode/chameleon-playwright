@@ -31,7 +31,7 @@ async function main() {
           case "play":
             const args = process.argv.slice(2);
             const playwrighter = new Playwrighteer();
-            if (!args[0].startsWith("{")) await playwrighter.run(args);
+            if (!args[0].startsWith("{")) await playwrighter.runner(args);
             else await playwrighter.cua(args[0]);
             break;
           default:
