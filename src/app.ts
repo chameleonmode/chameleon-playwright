@@ -1,7 +1,7 @@
 import readline from "node:readline";
 import { Logger } from "./lib/logger.js";
 import { run } from "./lib/runner.js";
-import { Playwrighteer } from "./lib/computers/playwrighteer.js";
+import { Playwrighteer } from "./lib/computers/browser.js";
 
 async function main() {
   readline
