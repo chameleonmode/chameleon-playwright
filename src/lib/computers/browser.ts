@@ -53,13 +53,15 @@ export class Playwrighteer {
   readonly funkers: Funkaroo[] = [];
   constructor() {}
 
-  async setup({ dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256", port = 9613 }) {
+  async setup({
+    dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256",
+    port = 9613,
+  }): Promise<{ port: number; browser: Browser }> {
     const connect = async () => {
       // Try to connect to an already running Chrome instance
       const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
       const contexts = browser.contexts();
-      const ctx = contexts.length ? contexts[0] : await browser.newContext();
-      return { port, dir, browser, contexts, ctx };
+      return { port, browser };
     };
     try {
       return await connect();
@@ -79,7 +81,7 @@ export class Playwrighteer {
       // allow parent to exit independently:
       child.unref();
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      return await connect();
+      return await this.setup({ dir, port });
     }
   }
 
@@ -113,9 +115,9 @@ export class Playwrighteer {
       port: number;
       inputs: { role: string; content: string }[];
     };
-    const { browser, ctx } = await this.setup({ dir, port });
+    const { browser } = await this.setup({ dir, port });
     this.browser = browser;
-    this.ctx = ctx;
+    this.ctx = this.browser.contexts()[0] || await this.browser.newContext();
     this.page = await this.ctx.newPage();
 
     const items = [
