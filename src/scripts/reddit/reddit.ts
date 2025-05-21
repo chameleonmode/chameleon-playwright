@@ -1,4 +1,5 @@
 // File: reddit.ts
+import { Logger } from "../../lib/logger.js";
 import { AI, Opts, Artifact, Settings } from "../../types/index.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
@@ -19,6 +20,7 @@ export interface Args {
 export interface Options extends Opts<Args> {}
 
 export function configure(opts?: Partial<Options>) {
+  Logger.log("Opts", {opts: JSON.stringify(opts, null, 2)});
   const args: Args = {
     scope: "Posts",
     sort: "Relevance",
@@ -71,6 +73,9 @@ export function configure(opts?: Partial<Options>) {
           ...(settings.start.all && args.search.length ? [BASE_URL] : []),
           ...(settings.start.urls || []),
         ],
+      },
+      timeouts: {
+        ...settings.timeouts,
       },
     },
     ai: {

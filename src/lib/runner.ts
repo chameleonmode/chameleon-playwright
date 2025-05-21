@@ -52,10 +52,16 @@ export async function run(args: { file: string; port: number; opts: unknown }) {
         return query(parameters);
       };
     });
+    const op = args.opts as Partial<Opts<unknown>>;
     const opts = {
-      ...(args.opts as Partial<Opts<unknown>>),
+      ...op,
       run: { file: args.file, port: args.port },
-      settings: { start: { feature } },
+      settings: {
+         start: { 
+          feature,
+          ...op?.settings?.start,
+        } 
+      },
     };
     await plugin(ctx, opts);
     console.log(`Try: ${args.file} success`);

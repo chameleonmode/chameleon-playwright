@@ -745,8 +745,7 @@ export default async function (
   await reddit.init();
 
   // generate additional search terms
-  const all = options.settings.start.all;
-  const genorate = all && options.args.search.length && options.settings.start.variations.max > 0;
+  const genorate = options.settings.start.all && options.args.search.length && options.settings.start.variations.max > 0;
   if (genorate) {
     const result = await promptee.genorate({
       model: options.ai.model,
@@ -772,7 +771,7 @@ export default async function (
     feature: options.settings.start.feature,
     artifacts: JSON.stringify(options.args.artifacters),
   });
-  Logger.info("Settings:", {
+  Logger.info("Options:", {
     options: JSON.stringify(options),
   });
 
