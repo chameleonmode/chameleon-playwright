@@ -1,6 +1,6 @@
 // File: reddit.ts
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings } from "../../types/index.js";
+import { AI, Opts, Artifact, Settings } from "../../lib/types/index.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
 

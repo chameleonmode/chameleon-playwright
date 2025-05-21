@@ -1,4 +1,4 @@
-import { state, tones, Output, requests } from "../types/index.js";
+import { state, tones, Output, requests } from "./types/index.js";
 import { Logger } from "./logger.js";
 import { rando } from "./utils.js";
 

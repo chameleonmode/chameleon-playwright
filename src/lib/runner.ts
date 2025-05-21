@@ -1,7 +1,7 @@
 import { chromium } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Opts } from "../types/index.js";
+import { Opts } from "./types/index.js";
 
 export async function loader(file: string) {
   // Recreate dirname for ES module

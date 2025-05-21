@@ -1,6 +1,6 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { requests, Input, Opts, Rando, Timeouts, Output } from "../types/index.js";
+import { requests, Input, Opts, Rando, Timeouts, Output } from "../lib/types/index.js";
 import { rando, sleepRandom, tryForEach, trySequentially } from "../lib/utils.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";

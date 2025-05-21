@@ -4,7 +4,7 @@ import { configure, Options, Scope, Sort, BASE_URL, Filter } from "./reddit.js";
 import { promptee } from "../../lib/requests.js";
 import { Player } from "../player.js";
 import { Base } from "../base.js";
-import { Input } from "../../types/index.js";
+import { Input } from "../../lib/types/index.js";
 import { Logger } from "../../lib/logger.js";
 export class Reddit extends Base {
   readonly player = new Player(this);
