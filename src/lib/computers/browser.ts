@@ -60,7 +60,6 @@ export class Playwrighteer {
     const connect = async () => {
       // Try to connect to an already running Chrome instance
       const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
-      const contexts = browser.contexts();
       return { port, browser };
     };
     try {
