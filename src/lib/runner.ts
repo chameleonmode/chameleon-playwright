@@ -1,4 +1,4 @@
-import { chromium } from "@playwright/test";
+import { Browser } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Opts } from "./types/index.js";
@@ -18,13 +18,12 @@ export async function loader(file: string) {
   return { plugin: module.default || module, feature };
 }
 
-export async function run(args: { file: string; port: number; opts: unknown }) {
+export async function run(args: { file: string; browser: Browser, opts: unknown }) {
   try {
-    console.log(`Try: ${args.file} Port: ${args.port}`);
+    console.log(`Try: ${args.file}`);
     const { plugin, feature } = await loader(args.file);
-    const browser = await chromium.connectOverCDP(`http://localhost:${args.port}`);
 
-    const ctx = browser.contexts()[0];
+    const ctx = args.browser.contexts()[0];
     // Add stealth features to avoid detection
     // Add standard Playwright stealth features to avoid detection
     await ctx.addInitScript(() => {
@@ -55,12 +54,13 @@ export async function run(args: { file: string; port: number; opts: unknown }) {
     const op = args.opts as Partial<Opts<unknown>>;
     const opts = {
       ...op,
-      run: { file: args.file, port: args.port },
+      run: { file: args.file },
       settings: {
+        ...op?.settings,
          start: { 
-          feature,
           ...op?.settings?.start,
-        } 
+          feature,
+        },
       },
     };
     await plugin(ctx, opts);

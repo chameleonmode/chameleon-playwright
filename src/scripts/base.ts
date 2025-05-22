@@ -266,7 +266,7 @@ export abstract class Base {
   }
 
   bang<T>(message: unknown, expect: T, source?: unknown) {
-    Logger.debug(`Banging: ${message}`, expect, source);
+    Logger.debug(`Bang: (${this.opts.settings.start.feature}) ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }

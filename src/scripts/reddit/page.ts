@@ -655,7 +655,8 @@ export class Reddit extends Base {
       }
       const ups = this.page.getByRole("button", { name: "Upvote" });
       const downs = this.page.getByRole("button", { name: "Downvote" });
-      const [upCount, downCount] = await Promise.all([ups.count(), downs.count()]);
+      const upCount = await ups.count();
+      const downCount = await downs.count();
 
       // ensure we don't exceed the number of available votes
       const count = Math.min(upCount, downCount) - 1;

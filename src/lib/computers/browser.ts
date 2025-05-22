@@ -53,10 +53,7 @@ export class Playwrighteer {
   readonly funkers: Funkaroo[] = [];
   constructor() {}
 
-  async setup({
-    dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256",
-    port = 9613,
-  }): Promise<{ port: number; browser: Browser }> {
+  async setup(port: number): Promise<{ port: number; browser: Browser }> {
     const connect = async () => {
       // Try to connect to an already running Chrome instance
       const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
@@ -65,39 +62,38 @@ export class Playwrighteer {
     try {
       return await connect();
     } catch (error) {
-      const chromePath = getChromePath(); // your platform-specific lookup
-      const args = [
-        "--disable-extensions",
-        `--profile-directory=Default`,
-        `--user-data-dir=${dir}`,
-        `--remote-debugging-port=${port}`,
-      ];
-      // spawn detached so Chrome keeps running after your script exits:
-      const child = spawn(chromePath, args, {
-        detached: true,
-        stdio: "ignore",
-      });
-      // allow parent to exit independently:
-      child.unref();
+      // Logger.error("Error connecting to Chrome:", error);
+      // const chromePath = getChromePath(); // your platform-specific lookup
+      // const args = [
+      //   "--disable-extensions",
+      //   "--disable-file-system",
+      //   `--remote-debugging-port=${port}`,
+      // ];
+      // // spawn detached so Chrome keeps running after your script exits:
+      // const child = spawn(chromePath, args, {
+      //   detached: true,
+      //   stdio: "ignore",
+      // });
+      // // allow parent to exit independently:
+      // child.unref();
+
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      return await this.setup({ dir, port });
+      return await this.setup(port);
     }
   }
 
-  async runner(args: string[]) {
-    const [file, port, dir, opts] = args;
-    const { port: ported } = await this.setup({ dir, port: port ? parseInt(port, 10) : 9613 });
+  async runner(args: { file: string; port?: string; dir?: string; opts?: string | unknown }) {
+    const { file, port, dir, opts } = args;
 
     await run({
       file,
-      port: ported,
-      opts: opts ? JSON.parse(opts) : opts,
+      opts,
+      browser: (await this.setup(port ? parseInt(port, 10) : 9613)).browser,
     });
   }
 
   async cua(args: string) {
     const {
-      dir = "/Users/dev/Library/Application Support/Chameleon/Chrome/29256",
       port = 9613,
       inputs = [
         { role: "user", content: "go to https://loadmill-center-12baa23ad9e4.herokuapp.com/" },
@@ -110,13 +106,12 @@ export class Playwrighteer {
         //
       ],
     } = JSON.parse(args) as {
-      dir: string;
       port: number;
       inputs: { role: string; content: string }[];
     };
-    const { browser } = await this.setup({ dir, port });
+    const { browser } = await this.setup(port);
     this.browser = browser;
-    this.ctx = this.browser.contexts()[0] || await this.browser.newContext();
+    this.ctx = this.browser.contexts()[0] || (await this.browser.newContext());
     this.page = await this.ctx.newPage();
 
     const items = [

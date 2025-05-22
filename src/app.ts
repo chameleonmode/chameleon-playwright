@@ -3,19 +3,17 @@ import { Logger } from "./lib/logger.js";
 import { run } from "./lib/runner.js";
 import { Playwrighteer } from "./lib/computers/browser.js";
 
+
 async function main() {
   readline
-    .createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      terminal: false,
-    })
+    .createInterface({ input: process.stdin, output: process.stdout, terminal: false })
     .on("line", async (line) => {
       if (line.startsWith("{")) {
         const jsonLine = JSON.parse(line);
         switch (jsonLine.arg) {
           case "run":
-            run({ file: jsonLine.file, port: jsonLine.port, opts: jsonLine.options });
+            const computer = new Playwrighteer();
+            computer.runner({ file: jsonLine.file, port: jsonLine.port, opts: jsonLine.opts });
             break;
           default:
             Logger.log(`Unknown command: ${jsonLine.arg}`);
@@ -31,8 +29,10 @@ async function main() {
           case "play":
             const args = process.argv.slice(2);
             const playwrighter = new Playwrighteer();
-            if (!args[0].startsWith("{")) await playwrighter.runner(args);
-            else await playwrighter.cua(args[0]);
+            if (!args[0].startsWith("{")) {
+              const [file, port, dir, opts] = args;
+              await playwrighter.runner({ file, port, dir, opts: opts ? JSON.parse(opts) : undefined });
+            } else await playwrighter.cua(args[0]);
             break;
           default:
             Logger.log(`Unknown command: ${command}`);
