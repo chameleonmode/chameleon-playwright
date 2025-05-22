@@ -258,15 +258,15 @@ export abstract class Base {
 
   error(message: unknown, cause?: unknown) {
     const error = new Error(
-      `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts.settings.start)}] ${message}`,
+      `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts)}] ${message}`,
       { cause }
     );
-    Logger.error(`${message}`, cause);
+    Logger.error(`(error/${this.opts.settings.start.feature}) ${error.message}`, cause);
     return error;
   }
 
   bang<T>(message: unknown, expect: T, source?: unknown) {
-    Logger.debug(`Bang: (${this.opts.settings.start.feature}) ${message}`, expect, source);
+    Logger.debug(`(bang/${this.opts.settings.start.feature}) ${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }

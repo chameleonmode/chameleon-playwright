@@ -10,7 +10,7 @@ import { Rando } from "./types/index.js";
  * @param ms - The number of milliseconds to sleep.
  * @returns A promise that resolves after the specified time.
  */
-export const sleep = (ms: number) => {
+export const delay = (ms: number) => {
   return new Promise<number>((resolve) => {
     setTimeout(() => resolve(ms), ms);
   });
@@ -72,8 +72,8 @@ export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | 
 
 export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }: Rando) {
   const ms = random(min, max);
-  const delay = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
-  return await sleep(delay);
+  const span = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
+  return await delay(span);
 }
 
 export async function tryForEach<T>(promises: Promise<T>[]) {
