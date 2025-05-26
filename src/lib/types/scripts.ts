@@ -1,4 +1,4 @@
-import { AI, Artifact, Ranger } from "./index.js";
+import { AI, Artifact, Rando } from "./index.js";
 
 export interface Opts<T> {
   args: T;
@@ -12,14 +12,7 @@ export interface Settings {
   timeouts: Timeouts;
 }
 
-export type Rando = {
-  [K in keyof Ranger]: Ranger[K];
-} & {
-  multiplier?: number;
-};
-
 export interface Start {
-  rando: Rando;
   new: boolean;
   all: boolean;
   urls: string[];
@@ -27,6 +20,7 @@ export interface Start {
   attempts: number;
   variations: Rando;
   iterations: Rando;
+  rando: Rando;
 }
 
 export interface Timeouts {

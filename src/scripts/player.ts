@@ -1,8 +1,15 @@
 import { Logger } from "../lib/logger.js";
 import { Base } from "./base.js";
 
+export interface State {
+  visited: number[];
+  iterations: number[];
+}
 export class Player {
-  readonly visited: number[] = []
+  readonly state: State = {
+    visited: [],
+    iterations: [],
+  };
 
   // ctor
   constructor(readonly actor: Base) {}
@@ -16,7 +23,7 @@ export class Player {
       // if on next variation
       Logger.log(`Url: ${j + 1} of ${length}`, url);
       while (!((await this.actor.onTry(url)) instanceof Error)) {
-        this.visited.length = 0;
+        this.state.visited.length = 0;
         for (let i = 0; i < this.actor.iterations; i++) {
           Logger.log(`Iteration: ${i + 1} of ${this.actor.iterations}`);
 
@@ -25,9 +32,10 @@ export class Player {
 
           // on each iteration
           const resulto = await this.actor.scenario(url);
-          if (resulto && typeof resulto === "number") this.visited.push(resulto);
+          if (resulto && typeof resulto === "number") this.state.visited.push(resulto);
         }
       }
+      this.state.iterations.push(j);
     }
   }
 }

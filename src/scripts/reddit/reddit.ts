@@ -70,16 +70,19 @@ export function configure(opts?: Partial<Options>) {
       start: {
         ...settings.start,
         urls: [
-          ...(settings.start.all && args.search.length ? [BASE_URL] : []),
-          ...(settings.start.urls || []),
+          ...(args.search.length ? [BASE_URL] : []),
+          ...(settings.start.all && settings.start.urls.length ? settings.start.urls : []),
         ],
       },
       timeouts: {
         ...settings.timeouts,
+        navigate: 1000 * settings.timeouts.navigate,
+        default: 1000 * settings.timeouts.default,
+        wait: 1000 * settings.timeouts.wait,
       },
     },
     ai: {
-      model: opts?.ai?.model || ai.model,
+      model: ai.model,
       decorators: {
         tone: ai.decorators.tone,
         system: opts?.ai?.decorators.system || ai.decorators.system,

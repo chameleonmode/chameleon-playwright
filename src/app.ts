@@ -1,46 +1,55 @@
 import readline from "node:readline";
 import { Logger } from "./lib/logger.js";
-import { delay } from "./lib/utils.js";
 import { Playwrighteer } from "./lib/computers/browser.js";
 
-
 async function main() {
-  await delay(1000);
+  const args = process.argv.slice(2);
+  Logger.log("Starting Runner...", args);
+
+  const play = async ({ file, port, opts }: { file: string; port?: string; opts?: string | unknown }) => {
+    const computer = new Playwrighteer();
+    await computer.runner({ file, port, opts });
+  };
+
+  const commander = async (line: string) => {
+    const command = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+    switch (command.shift()) {
+      case "exit":
+        Logger.log("Exiting...");
+        process.exit(0);
+      case "play":
+        const [file, port, opts] = args;
+        await play({ file, port, opts: opts ? JSON.parse(opts) : undefined });
+        break;
+      default:
+        Logger.log(`Unknown command: ${command}`);
+    }
+  };
+
   readline
     .createInterface({ input: process.stdin, output: process.stdout, terminal: false })
     .on("line", async (line) => {
+      Logger.log(`Received: ${line}`);
       if (line.startsWith("{")) {
-        const jsonLine = JSON.parse(line);
-        switch (jsonLine.arg) {
+        const { arg, file, port, opts } = JSON.parse(line);
+        switch (arg) {
           case "run":
-            const computer = new Playwrighteer();
-            computer.runner({ file: jsonLine.file, port: jsonLine.port, opts: jsonLine.opts });
+            play({ file, port, opts });
+            break;
+          case "cua":
+            await new Playwrighteer().cua(line);
             break;
           default:
-            Logger.log(`Unknown command: ${jsonLine.arg}`);
+            Logger.log(`Unknown command: ${arg}`);
             Logger.log("Available commands: run, exit");
         }
       } else {
-        Logger.log(`Received: ${line}`);
-        const command = line.match(/(?:[^\s"]+|"[^"]*")+/g) || ["play"];
-        switch (command.shift()) {
-          case "exit":
-            Logger.log("Exiting...");
-            process.exit(0);
-          case "play":
-            const args = process.argv.slice(2);
-            const playwrighter = new Playwrighteer();
-            if (!args[0].startsWith("{")) {
-              const [file, port, dir, opts] = args;
-              await playwrighter.runner({ file, port, dir, opts: opts ? JSON.parse(opts) : undefined });
-            } else await playwrighter.cua(args[0]);
-            break;
-          default:
-            Logger.log(`Unknown command: ${command}`);
-        }
+        await commander(line);
       }
     });
+
   Logger.log("command ({arg: 'run', file, port, opts}, play, exit):");
+  if(args.length) commander("play");
 }
 
 main().catch((error) => {

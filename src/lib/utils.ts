@@ -1,5 +1,3 @@
-import { Rando } from "./types/index.js";
-
 /**
  * sleeps for a specified number of milliseconds.
  * @example
@@ -70,7 +68,7 @@ export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | 
     : Math.random() < 0.5;
 }
 
-export async function sleepRandom({ min = 256, max = 512, multiplier = 0 }: Rando) {
+export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
   const ms = random(min, max);
   const span = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
   return await delay(span);
@@ -90,6 +88,33 @@ export async function tryForEach<T>(promises: Promise<T>[]) {
     })
   );
 
+  return { fulfilled, errors };
+}
+
+
+
+export async function trySequentially<T>(promises: (() => Promise<T>)[], { first = true } = {}) {
+  const fulfilled: T[] = [];
+  const errors: unknown[] = [];
+
+  // We need functions that return promises, not promises themselves,
+  // because promises start executing immediately when created
+
+  for (let i = 0; i < promises.length; i++) {
+    try {
+      // Execute the current promise-returning function
+      const filled = await promises[i]();
+      fulfilled.push(filled);
+
+      // If we get here, the promise fulfilled successfully
+      if (first) break;
+    } catch (error) {
+      // Store the error and continue to the next promise
+      errors.push(error);
+    }
+  }
+
+  // If we've tried all promises and none succeeded
   return { fulfilled, errors };
 }
 
@@ -129,32 +154,6 @@ export async function tryOnFirst<T>(promises: Promise<T>[]) {
     // If all promises rejected, we'd end up here
     return { fulfilled: null, errors };
   }
-}
-
-export async function trySequentially<T>(promises: (() => Promise<T>)[]) {
-  const errors: unknown[] = [];
-
-  // We need functions that return promises, not promises themselves,
-  // because promises start executing immediately when created
-
-  for (let i = 0; i < promises.length; i++) {
-    try {
-      // Execute the current promise-returning function
-      const fulfilled = await promises[i]();
-      // If we get here, the promise fulfilled successfully
-      return {fulfilled, errors, fulfilledIndex: i };
-    } catch (error) {
-      // Store the error and continue to the next promise
-      errors.push(error);
-    }
-  }
-
-  // If we've tried all promises and none succeeded
-  return {
-    fulfilled: null,
-    errors,
-    fulfilledIndex: -1,
-  };
 }
 
 export function deepMerge(target: any, source: any) {

@@ -1,7 +1,7 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { requests, Input, Opts, Rando, Timeouts, Output } from "../lib/types/index.js";
-import { rando, sleepRandom, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { requests, Opts } from "../lib/types/index.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
 
@@ -15,13 +15,7 @@ export abstract class Base {
     public iterations: number = rando(
       opts.settings.start.iterations.min,
       opts.settings.start.iterations.max
-    ),
-    readonly timeouts: Timeouts = {
-      ...opts.settings.timeouts,
-      navigate: 1000 * opts.settings.timeouts.navigate,
-      default: 1000 * opts.settings.timeouts.default,
-      wait: 1000 * opts.settings.timeouts.wait,
-    }
+    )
   ) {}
   status() {
     const todo = this.opts.settings.start.urls.length;
@@ -35,8 +29,8 @@ export abstract class Base {
     this.page = this.opts.settings.start.new
       ? await this.ctx.newPage()
       : this.ctx.pages()[this.ctx.pages().length - 1];
-    this.page.setDefaultTimeout(this.timeouts.default);
-    this.page.setDefaultNavigationTimeout(this.timeouts.navigate);
+    this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
+    this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
   }
 
   async navigate(url: string | undefined) {
@@ -46,7 +40,7 @@ export abstract class Base {
       await this.nap();
     } catch (e) {
       Logger.error("Error navigating to URL:", e);
-      await sleepRandom({
+      await sleepo({
         min: 1000 * 7,
         max: 1000 * 14,
         multiplier: 1,
@@ -55,7 +49,7 @@ export abstract class Base {
     }
   }
 
-  async waitForNavigation(timeout = this.timeouts.navigate) {
+  async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
     return await tryForEach([
       this.page.waitForLoadState("load", { timeout }),
       this.page.waitForLoadState("domcontentloaded", { timeout }),
@@ -79,9 +73,9 @@ export abstract class Base {
     await expect(element).toBeVisible();
 
     const result = await trySequentially([
-      async () => await element.scrollIntoViewIfNeeded({ timeout: this.timeouts.wait }),
+      async () => await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait }),
     ]);
-    this.banger(result, result); // banger
+    this.banger(result, { source: result }); // banger
 
     const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
     return this.bang("Element txt content" + selector, text);
@@ -110,23 +104,27 @@ export abstract class Base {
     });
   }
 
-  async click(locator: Locator, timeout = this.timeouts.wait) {
+  async click(locator: Locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
     await this.nap();
 
-    // Expectorations
-    const expecto = await tryForEach([
-      expect(locator).toBeEnabled({ timeout }),
-      expect(locator).toBeVisible({ timeout }),
-    ]);
-    this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length); // banger
+    if (strict) {
+      // Expectorations
+      const expecto = await tryForEach([
+        expect(locator).toBeEnabled({ timeout }),
+        expect(locator).toBeVisible({ timeout }),
+      ]);
+      this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
 
-    // Locatorations
-    const locato = await tryForEach([
-      locator.waitFor({ timeout }),
-      locator.scrollIntoViewIfNeeded({ timeout }),
-      locator.click({ timeout, force: true }),
-    ]);
-    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length); // banger
+      // Locatorations
+      await locator.waitFor({ timeout });
+    }
+
+    // Click the locator
+    const locato = await trySequentially(
+      [() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })],
+      { first: false }
+    );
+    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
 
     await this.nap();
   }
@@ -166,15 +164,10 @@ export abstract class Base {
     }
   }
 
-  async nap(
-    args: Rando = {
-      min: this.timeouts.naps.min,
-      max: this.timeouts.naps.max,
-      multiplier: this.timeouts.naps.multiplier,
-    }
-  ) {
-    const sleepo = await sleepRandom(args);
-    await this.page.waitForTimeout(sleepo);
+  async nap(args?: { min?: number; max?: number; multiplier?: number }) {
+    const qargs = { ...this.opts.settings.timeouts.naps, ...args };
+    const sleep = await sleepo(qargs);
+    await this.page.waitForTimeout(sleep);
     await this.waitForNavigation();
   }
 
@@ -257,16 +250,14 @@ export abstract class Base {
   }
 
   error(message: unknown, cause?: unknown) {
-    const error = new Error(
-      `[${this.opts.settings.start.feature}] - [${JSON.stringify(this.opts)}] ${message}`,
-      { cause }
-    );
-    Logger.error(`(error/${this.opts.settings.start.feature}) ${error.message}`, cause);
+    const error = new Error(`${message}`, { cause });
+    const pretty = { cause, stack: error.stack, opts: JSON.stringify(this.opts) };
+    Logger.error(`(error/${this.opts.settings.start.feature}):\n${error.message}`, pretty);
     return error;
   }
 
   bang<T>(message: unknown, expect: T, source?: unknown) {
-    Logger.debug(`(bang/${this.opts.settings.start.feature}) ${message}`, expect, source);
+    Logger.debug(`(bang/${this.opts.settings.start.feature}):\n${message}`, expect, source);
     if (expect) return expect;
     throw this.error(message, { source, expect });
   }
