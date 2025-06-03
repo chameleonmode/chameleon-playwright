@@ -22,7 +22,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
           context: reddit.page.url(),
           input: {
             type: "comment",
-            data: comments,
+            data: comments.map((c) => c.text),
             reason: "existing array of comments on the post",
           },
         },

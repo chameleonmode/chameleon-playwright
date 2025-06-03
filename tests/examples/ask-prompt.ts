@@ -1,6 +1,6 @@
 import { Logger } from "../../src/lib/logger.js";
-import { AI, Input } from "../../src/types/index.js";
 import { promptee } from "../../src/lib/requests.js";
+import { AI } from "../../src/lib/types/index.js";
 import { configure, Args } from "../../src/scripts/reddit/reddit.js";
 (async () => {
   const args: Args = {
@@ -44,5 +44,5 @@ import { configure, Args } from "../../src/scripts/reddit/reddit.js";
       },
     },
   });
-  Logger.log("", { result: JSON.stringify(result) });
+  Logger.log("", { result });
 })();

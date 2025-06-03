@@ -149,10 +149,10 @@ export async function tryOnFirst<T>(promises: Promise<T>[]) {
   try {
     // Race between the first fulfilled promise and the fallback
     const result = await Promise.race([...racingPromises, fallbackPromise]);
-    return { fulfilled: result, errors };
+    return { result, errors };
   } catch (error) {
     // If all promises rejected, we'd end up here
-    return { fulfilled: null, errors };
+    return { errors };
   }
 }
 

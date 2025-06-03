@@ -6,263 +6,269 @@ import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
 
 export abstract class Base {
-  readonly visited: string[] = [];
-  public page!: Page;
-  constructor(
-    readonly ctx: BrowserContext,
-    readonly opts: Opts<unknown>,
-    readonly scenario: (url: string) => Promise<number | unknown>,
-    public iterations: number = rando(
-      opts.settings.start.iterations.min,
-      opts.settings.start.iterations.max
-    )
-  ) {}
-  status() {
-    const todo = this.opts.settings.start.urls.length;
-    const done = this.visited.length;
-    return { todo, done };
-  }
-  abstract onTry(url: string): Promise<void | Error>;
-  abstract onIteration(url: string): Promise<void | Error>;
+	readonly visited: string[] = [];
+	public page!: Page;
+	constructor(
+		readonly ctx: BrowserContext,
+		readonly opts: Opts<unknown>,
+		readonly scenario: (url: string) => Promise<number | unknown>,
+		public iterations: number = rando(
+			opts.settings.start.iterations.min,
+			opts.settings.start.iterations.max
+		)
+	) {}
+	status() {
+		const todo = this.opts.settings.start.urls.length;
+		const done = this.visited.length;
+		return { todo, done };
+	}
+	abstract onTry(url: string): Promise<void | Error>;
+	abstract onIteration(url: string): Promise<void | Error>;
 
-  async init() {
-    this.page = this.opts.settings.start.new
-      ? await this.ctx.newPage()
-      : this.ctx.pages()[this.ctx.pages().length - 1];
-    this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
-    this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
-  }
+	async init() {
+		this.page = this.opts.settings.start.new
+			? await this.ctx.newPage()
+			: this.ctx.pages()[this.ctx.pages().length - 1];
+		this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
+		this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
+	}
 
-  async navigate(url: string | undefined) {
-    try {
-      if (url) await this.page.goto(url, { waitUntil: "load" });
-      await this.waitForNavigation();
-      await this.nap();
-    } catch (e) {
-      Logger.error("Error navigating to URL:", e);
-      await sleepo({
-        min: 1000 * 7,
-        max: 1000 * 14,
-        multiplier: 1,
-      });
-      await this.navigate(url);
-    }
-  }
+	async navigate(url: string | undefined) {
+		try {
+			if (url) await this.page.goto(url, { waitUntil: "load" });
+			await this.waitForNavigation();
+			await this.nap();
+		} catch (e) {
+			Logger.error("Error navigating to URL:", e);
+			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
+			await this.navigate(url);
+		}
+	}
 
-  async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
-    return await tryForEach([
-      this.page.waitForLoadState("load", { timeout }),
-      this.page.waitForLoadState("domcontentloaded", { timeout }),
-    ]);
-  }
+	async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
+		return await tryForEach([
+			this.page.waitForLoadState("load", { timeout }),
+			this.page.waitForLoadState("domcontentloaded", { timeout }),
+		]);
+	}
 
-  async getFocusedElement() {
-    return this.page.evaluate(() => {
-      const element = document.activeElement;
-      return {
-        element,
-        tagName: element?.tagName,
-        ariaLabel: element?.ariaLabel,
-        textContent: element?.textContent,
-      };
-    });
-  }
+	async getFocusedElement() {
+		return this.page.evaluate(() => {
+			const element = document.activeElement;
+			return {
+				element,
+				tagName: element?.tagName,
+				ariaLabel: element?.ariaLabel,
+				textContent: element?.textContent,
+			};
+		});
+	}
 
-  async txtContent(selector: string, locator?: Locator) {
-    const element = locator?.locator(selector).first() || this.page.locator(selector).first();
-    await expect(element).toBeVisible();
+	async firstVisible(location: Locator) {
+		const locations = await location.count();
+		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }); // banger
+		for (let i = 0; i < locations; i++) {
+			const element = location.nth(i);
+			if (await element.isVisible()) {
+				await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait });
+				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
+				if (!text) continue; // Skip if no text content
+				return { element, text };
+			}
+		}
+		throw this.error(`No visible elements found for selector: ${location}`, { locations, location });
+	}
 
-    const result = await trySequentially([
-      async () => await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait }),
-    ]);
-    this.banger(result, { source: result }); // banger
+	async txtContent(selector: string, locator?: Locator) {
+		const location = locator?.locator(selector) || this.page.locator(selector);
+		try {
+			const { element, text } = await this.firstVisible(location); //this.banger(, { location }); // banger
+			return this.bang("txtContent: " + selector, text, { element, text });
+		} catch {}
+	}
 
-    const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
-    return this.bang("Element txt content" + selector, text);
-  }
+	async selectAll(locator?: Locator, clear = false) {
+		const modifierKey = process.platform === "win32" ? "Control" : "Meta";
+		await (locator ? locator.press(`${modifierKey}+A`) : this.page.keyboard.press(`${modifierKey}+A`));
+		if (clear) {
+			await this.nap();
+			await (locator ? locator.press("Backspace") : this.page.keyboard.press("Backspace"));
+		}
+	}
 
-  async selectAll(locator?: Locator, clear = false) {
-    const modifierKey = process.platform === "win32" ? "Control" : "Meta";
-    await (locator ? locator.press(`${modifierKey}+A`) : this.page.keyboard.press(`${modifierKey}+A`));
-    if (clear) {
-      await this.nap();
-      await (locator ? locator.press("Backspace") : this.page.keyboard.press("Backspace"));
-    }
-  }
+	async type(text: string) {
+		await this.page.keyboard.type(text, {
+			delay: rando(64, 128),
+		});
+	}
 
-  async type(text: string) {
-    await this.page.keyboard.type(text, {
-      delay: rando(64, 128),
-    });
-  }
+	async pressSequentially(locator: Locator, text: string, click = true) {
+		if (click) await this.click(locator);
+		await locator.pressSequentially(text, {
+			delay: rando(64, 128),
+			timeout: 1000 * 60 * 5,
+		});
+	}
 
-  async pressSequentially(locator: Locator, text: string, click = true) {
-    if (click) await this.click(locator);
-    await locator.pressSequentially(text, {
-      delay: rando(64, 128),
-      timeout: 1000 * 60 * 5,
-    });
-  }
+	async click(locator: Locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
+		await this.nap();
 
-  async click(locator: Locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
-    await this.nap();
+		if (strict) {
+			// Expectorations
+			const expecto = await tryForEach([
+				expect(locator).toBeEnabled({ timeout }),
+				expect(locator).toBeVisible({ timeout }),
+			]);
+			this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
 
-    if (strict) {
-      // Expectorations
-      const expecto = await tryForEach([
-        expect(locator).toBeEnabled({ timeout }),
-        expect(locator).toBeVisible({ timeout }),
-      ]);
-      this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
+			// Locatorations
+			await locator.waitFor({ timeout });
+		}
 
-      // Locatorations
-      await locator.waitFor({ timeout });
-    }
+		// Click the locator
+		const locato = await trySequentially(
+			[() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })],
+			{ first: false }
+		);
+		this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
 
-    // Click the locator
-    const locato = await trySequentially(
-      [() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })],
-      { first: false }
-    );
-    this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
+		await this.nap();
+	}
 
-    await this.nap();
-  }
+	async scrollabit() {
+		// Scroll down multiple times with delay to simulate natural scrolling
+		for (let i = 0; i < rando(3, 6); i++) {
+			await this.nap();
+			try {
+				// if already scrolled till end break
+				const { scrollTop, scrollHeight, clientHeight } = await this.page.evaluate(() => {
+					return {
+						scrollTop: window.scrollY,
+						clientHeight: document.documentElement.clientHeight,
+						scrollHeight: document.body.scrollHeight,
+					};
+				});
 
-  async scrollabit() {
-    // Scroll down multiple times with delay to simulate natural scrolling
-    for (let i = 0; i < rando(3, 6); i++) {
-      await this.nap();
-      try {
-        // if already scrolled till end break
-        const { scrollTop, scrollHeight, clientHeight } = await this.page.evaluate(() => {
-          return {
-            scrollTop: window.scrollY,
-            clientHeight: document.documentElement.clientHeight,
-            scrollHeight: document.body.scrollHeight,
-          };
-        });
+				// Occasionally scroll up slightly (1 in 8 chance)
+				const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
+				const y = direction * rando(clientHeight / 2, clientHeight);
 
-        // Occasionally scroll up slightly (1 in 8 chance)
-        const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
-        const y = direction * rando(clientHeight / 2, clientHeight);
+				// Throws when at bottom or can't scroll further
+				this.bang(
+					{ y, scrollTop, clientHeight, scrollHeight },
+					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight
+				);
 
-        // Throws when at bottom or can't scroll further
-        this.bang(
-          { y, scrollTop, clientHeight, scrollHeight },
-          y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight
-        );
+				if (rando()) await this.page.mouse.wheel(0, y);
+				else
+					direction > 0
+						? await this.page.keyboard.press("PageDown")
+						: await this.page.keyboard.press("PageUp");
+			} catch (e) {
+				break;
+			}
+		}
+	}
 
-        if (rando()) await this.page.mouse.wheel(0, y);
-        else
-          direction > 0
-            ? await this.page.keyboard.press("PageDown")
-            : await this.page.keyboard.press("PageUp");
-      } catch (e) {
-        break;
-      }
-    }
-  }
+	async nap(args?: { min?: number; max?: number; multiplier?: number }) {
+		const qargs = { ...this.opts.settings.timeouts.naps, ...args };
+		const sleep = await sleepo(qargs);
+		await this.page.waitForTimeout(sleep);
+		await this.waitForNavigation();
+	}
 
-  async nap(args?: { min?: number; max?: number; multiplier?: number }) {
-    const qargs = { ...this.opts.settings.timeouts.naps, ...args };
-    const sleep = await sleepo(qargs);
-    await this.page.waitForTimeout(sleep);
-    await this.waitForNavigation();
-  }
+	// Find elements by testId, selector, or text
+	// This function will return the first found element based on the strategy
+	async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
+		for (const id of ids) {
+			const locator =
+				strategy === "testId"
+					? this.page.getByTestId(id)
+					: strategy === "selector"
+					? this.page.locator(id)
+					: this.page.getByText(id);
 
-  // Find elements by testId, selector, or text
-  // This function will return the first found element based on the strategy
-  async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
-    for (const id of ids) {
-      const locator =
-        strategy === "testId"
-          ? this.page.getByTestId(id)
-          : strategy === "selector"
-          ? this.page.locator(id)
-          : this.page.getByText(id);
+			const count = await locator.count();
 
-      const count = await locator.count();
+			if (count > 0) {
+				return { count, locator, id };
+			}
+		}
 
-      if (count > 0) {
-        return { count, locator, id };
-      }
-    }
+		throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+	}
 
-    throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
-  }
+	// Find frames by selector seperate for find
+	async findFrame(selectors: string[]) {
+		for (const selector of selectors) {
+			try {
+				const frame = this.page.frameLocator(selector);
+				const frameHandle = await this.page.$(selector);
+				const contentFrame = frameHandle ? await frameHandle.contentFrame() : null;
 
-  // Find frames by selector seperate for find
-  async findFrame(selectors: string[]) {
-    for (const selector of selectors) {
-      try {
-        const frame = this.page.frameLocator(selector);
-        const frameHandle = await this.page.$(selector);
-        const contentFrame = frameHandle ? await frameHandle.contentFrame() : null;
+				if (contentFrame) {
+					return { frame, frameHandle, contentFrame, selector };
+				}
+			} catch (e) {
+				// Continue to next selector if this one failed
+				Logger.warn(`Failed to find frame for selector: ${selector}`, e);
+				continue;
+			}
+		}
 
-        if (contentFrame) {
-          return { frame, frameHandle, contentFrame, selector };
-        }
-      } catch (e) {
-        // Continue to next selector if this one failed
-        Logger.warn(`Failed to find frame for selector: ${selector}`, e);
-        continue;
-      }
-    }
+		throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
+	}
 
-    throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
-  }
+	async dimensions() {
+		return await this.page.evaluate(() => {
+			return {
+				width: document.documentElement.scrollWidth,
+				height: document.documentElement.scrollHeight,
+			};
+		});
+	}
 
-  async dimensions() {
-    return await this.page.evaluate(() => {
-      return {
-        width: document.documentElement.scrollWidth,
-        height: document.documentElement.scrollHeight,
-      };
-    });
-  }
+	/**
+	 * Capture only the viewport (not full_page).
+	 */
+	async screenshot(clip: boolean = true) {
+		if (clip) {
+			const { width, height } = await this.dimensions();
+			return (
+				await this.page.screenshot({
+					fullPage: true,
+					scale: "css",
+					type: "jpeg",
+					quality: 18,
+					clip: { x: 0, y: 0, width, height: height - height / 2 },
+				})
+			).toString("base64");
+		}
+		return (await this.page.screenshot({ fullPage: false })).toString("base64");
+	}
 
-  /**
-   * Capture only the viewport (not full_page).
-   */
-  async screenshot(clip: boolean = true) {
-    if (clip) {
-      const { width, height } = await this.dimensions();
-      return (
-        await this.page.screenshot({
-          fullPage: true,
-          scale: "css",
-          type: "jpeg",
-          quality: 18,
-          clip: { x: 0, y: 0, width, height: height - height / 2 },
-        })
-      ).toString("base64");
-    }
-    return (await this.page.screenshot({ fullPage: false })).toString("base64");
-  }
+	async ask(opts: { task: string; image: requests.Image; generations: requests.Generators }) {
+		return await promptee.prompt({
+			model: this.opts.ai.model,
+			decorators: this.opts.ai.decorators,
+			...opts,
+		});
+	}
 
-  async ask(opts: { task: string; image: requests.Image; generations: requests.Generators }) {
-    return await promptee.prompt({
-      model: this.opts.ai.model,
-      decorators: this.opts.ai.decorators,
-      ...opts,
-    });
-  }
+	error(message: unknown, cause?: unknown) {
+		const error = new Error(`${message}`, { cause });
+		const pretty = { cause, stack: error.stack, opts: this.opts };
+		Logger.error(`(error/${this.opts.settings.start.feature}): ${error.message}`, pretty);
+		return error;
+	}
 
-  error(message: unknown, cause?: unknown) {
-    const error = new Error(`${message}`, { cause });
-    const pretty = { cause, stack: error.stack, opts: JSON.stringify(this.opts) };
-    Logger.error(`(error/${this.opts.settings.start.feature}):\n${error.message}`, pretty);
-    return error;
-  }
+	bang<T>(message: unknown, expect: T, source?: unknown) {
+		Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
+		if (expect) return expect;
+		throw this.error(message, { source, expect });
+	}
 
-  bang<T>(message: unknown, expect: T, source?: unknown) {
-    Logger.debug(`(bang/${this.opts.settings.start.feature}):\n${message}`, expect, source);
-    if (expect) return expect;
-    throw this.error(message, { source, expect });
-  }
-
-  banger<T>(expect: T, source?: unknown) {
-    return this.bang(``, expect, source);
-  }
+	banger<T>(expect: T, source?: unknown) {
+		return this.bang(``, expect, source);
+	}
 }

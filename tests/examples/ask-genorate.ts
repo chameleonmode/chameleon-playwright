@@ -1,8 +1,8 @@
 import { Logger } from "../../src/lib/logger.js";
 import { promptee } from "../../src/lib/requests.js";
-import { AI, Input, Settings } from "../../src/types/index.js";
 import { configure, Args } from "../../src/scripts/reddit/reddit.js";
 import { rando } from "../../src/lib/utils.js";
+import { AI, Settings } from "../../src/lib/types/index.js";
 
 (async () => {
   const settings: Settings = {
@@ -67,6 +67,6 @@ import { rando } from "../../src/lib/utils.js";
     });
     const terms = result.map((i) => i.data);
     options.args.search = [...options.args.search, ...terms].sort(() => Math.random() - 0.5);
-    Logger.info("Generated search terms:", options.args.search, JSON.stringify(result));
+    Logger.info("Generated search terms:", options.args.search, result);
   }
 })();

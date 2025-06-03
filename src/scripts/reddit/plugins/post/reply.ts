@@ -1,4 +1,5 @@
 import { BrowserContext } from "@playwright/test";
+import { rando } from "../../../../lib/utils.js";
 import { Options } from "../../reddit.js";
 import Pager from "../../page.js";
 
@@ -10,7 +11,7 @@ export default async function (context: BrowserContext, opts: Options) {
     // const title = await reddit.post.title();
     const b64 = [await reddit.screenshot()];
     const comments = await reddit.post.getComments();
-    const { locator, text } = await reddit.post.getComment();
+    const { locator, text } = rando(comments);
 
     // Step 1.5 - define the scenario
 
@@ -25,7 +26,7 @@ export default async function (context: BrowserContext, opts: Options) {
           context: reddit.page.url(),
           input: {
             type: "comment",
-            data: comments,
+            data: comments.map((c) => c.text),
             reason: "existing array of comments on the post",
           },
         },

@@ -20,7 +20,7 @@ export interface Args {
 export interface Options extends Opts<Args> {}
 
 export function configure(opts?: Partial<Options>) {
-  Logger.log("Opts", {opts: JSON.stringify(opts, null, 2)});
+  Logger.log("Opts", { opts });
   const args: Args = {
     scope: "Posts",
     sort: "Relevance",
