@@ -71,7 +71,7 @@ export class Reddit extends Base {
 		const basic = this.scopeulation.subreddit(url) || url === BASE_URL;
 
 		// check if we have completed all urls we need to also search on
-		if (searched && basic && !this.visited.includes(url)) {
+		if (searched && this.scopeulation.subreddit(url) && !this.visited.includes(url)) {
 			this.searched.length = 0;
 			return await this.onTry(url);
 		}

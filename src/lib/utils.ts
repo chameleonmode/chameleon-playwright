@@ -30,8 +30,8 @@ export const delay = (ms: number) => {
  * @returns A random integer between the smallest and largest values (inclusive)
  */
 export function random(...values: number[]): number {
-  const smallest = Math.min(...values) + 1;
-  const largest = Math.max(...values) + 1;
+  const smallest = Math.min(...values);
+  const largest = Math.max(...values);
   const floor = Math.floor(Math.random() * (largest - smallest) + smallest);
   return floor;
 }
@@ -70,7 +70,7 @@ export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | 
 
 export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
   const ms = random(min, max);
-  const span = Math.floor(ms * (multiplier > 0 ? multiplier : random(3, 6)));
+  const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
   return await delay(span);
 }
 

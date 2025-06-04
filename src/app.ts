@@ -1,6 +1,7 @@
 import readline from "node:readline";
 import { Logger } from "./lib/logger.js";
 import { Playwrighteer } from "./lib/computers/browser.js";
+import { sleepo } from "./lib/utils.js";
 
 async function main() {
   const args = process.argv.slice(2);
@@ -34,6 +35,7 @@ async function main() {
         const { arg, file, port, opts } = JSON.parse(line);
         switch (arg) {
           case "run":
+            await sleepo({ min: 6000, max: 6000, multiplier: 1 });
             play({ file, port, opts });
             break;
           case "cua":

@@ -31,7 +31,6 @@ export function configure(opts?: Partial<Options>) {
   };
   const settings: Settings = {
     start: {
-      all: true,
       new: true,
       attempts: 9,
       feature: "reddit",
@@ -40,6 +39,7 @@ export function configure(opts?: Partial<Options>) {
       variations: { min: 1, max: 3 },
       urls: [],
       ...opts?.settings?.start,
+      all: true,
     },
     timeouts: {
       navigate: 60,
@@ -72,7 +72,7 @@ export function configure(opts?: Partial<Options>) {
         urls: [
           ...(args.search.length ? [BASE_URL] : []),
           ...(settings.start.all && settings.start.urls.length ? settings.start.urls : []),
-        ],
+        ].filter(Boolean),
       },
       timeouts: {
         ...settings.timeouts,
