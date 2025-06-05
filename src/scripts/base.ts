@@ -11,11 +11,7 @@ export abstract class Base {
 	constructor(
 		readonly ctx: BrowserContext,
 		readonly opts: Opts<unknown>,
-		readonly scenario: (url: string) => Promise<number | unknown>,
-		public iterations: number = rando(
-			opts.settings.start.iterations.min,
-			opts.settings.start.iterations.max
-		)
+		readonly scenario: (url: string) => Promise<number | unknown>
 	) {}
 	status() {
 		const todo = this.opts.settings.start.urls.length;

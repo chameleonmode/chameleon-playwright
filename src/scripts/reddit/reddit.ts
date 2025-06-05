@@ -49,6 +49,9 @@ export function configure(opts?: Partial<Options>) {
       ...opts?.settings?.timeouts,
     },
   };
+  settings.start.rando.max = settings.start.rando.min;
+  settings.start.iterations.max = settings.start.iterations.min;
+  settings.start.variations.max = settings.start.variations.min;
   const ai: AI = {
     model: "gpt",
     decorators: {
