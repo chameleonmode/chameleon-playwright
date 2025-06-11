@@ -56,7 +56,7 @@ export const ai: AI = {
 	},
 };
 export function configure(opts?: Partial<Options>) {
-	Logger.log("Opts", { opts });
+	Logger.debug("Opts", { opts });
 	const search = opts?.args?.search || args.search;
 	const options: Options = {
 		args: {
