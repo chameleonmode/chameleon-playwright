@@ -60,21 +60,6 @@ export class Playwrighteer {
     try {
       return await connect();
     } catch (error) {
-      // Logger.error("Error connecting to Chrome:", error);
-      // const chromePath = getChromePath(); // your platform-specific lookup
-      // const args = [
-      //   "--disable-extensions",
-      //   "--disable-file-system",
-      //   `--remote-debugging-port=${port}`,
-      // ];
-      // // spawn detached so Chrome keeps running after your script exits:
-      // const child = spawn(chromePath, args, {
-      //   detached: true,
-      //   stdio: "ignore",
-      // });
-      // // allow parent to exit independently:
-      // child.unref();
-
       await new Promise((resolve) => setTimeout(resolve, 3000));
       return await this.setup(port);
     }

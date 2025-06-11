@@ -29,7 +29,7 @@ export abstract class Base {
 		this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
 	}
 
-	async navigate(url: string | undefined) {
+	async navigate(url: string | undefined, attempt = 0) {
 		try {
 			if (url) await this.page.goto(url, { waitUntil: "load" });
 			await this.waitForNavigation();
@@ -37,7 +37,8 @@ export abstract class Base {
 		} catch (e) {
 			Logger.error("Error navigating to URL:", e);
 			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-			await this.navigate(url);
+			this.banger(this.opts.settings.start.attempts > attempt++);
+			await this.navigate(url, attempt);
 		}
 	}
 
@@ -236,7 +237,6 @@ export abstract class Base {
 					scale: "css",
 					type: "jpeg",
 					quality: 18,
-					clip: { x: 0, y: 0, width, height: height - height / 2 },
 				})
 			).toString("base64");
 		}

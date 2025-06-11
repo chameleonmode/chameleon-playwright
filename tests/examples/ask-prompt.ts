@@ -1,15 +1,7 @@
 import { Logger } from "../../src/lib/logger.js";
 import { promptee } from "../../src/lib/requests.js";
 import { AI } from "../../src/lib/types/index.js";
-import { configure, Args } from "../../src/scripts/reddit/reddit.js";
 (async () => {
-  const args: Args = {
-    scope: "Posts",
-    sort: "Relevance",
-    filter: "All",
-    search: ["popeye"],
-    artifacters: [{ type: "selections", data: ["vote"] }],
-  };
   const ai: AI = {
     model: "gpt",
     decorators: {

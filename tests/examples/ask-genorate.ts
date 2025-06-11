@@ -1,35 +1,10 @@
 import { Logger } from "../../src/lib/logger.js";
 import { promptee } from "../../src/lib/requests.js";
-import { configure, Args } from "../../src/scripts/reddit/reddit.js";
+import { configure, settings, Scope, Sort, args } from "../../src/scripts/reddit/reddit.js";
 import { rando } from "../../src/lib/utils.js";
 import { AI, Settings } from "../../src/lib/types/index.js";
 
 (async () => {
-  const settings: Settings = {
-    start: {
-      all: true,
-      new: true,
-      attempts: 9,
-      feature: "reddit",
-      rando: { min: 1, max: 1 },
-      iterations: { min: 1, max: 1 },
-      variations: { min: 1, max: 3 },
-      urls: [],
-    },
-    timeouts: {
-      navigate: 60,
-      default: 30,
-      wait: 15,
-      naps: { min: 256, max: 512 },
-    },
-  };
-  const args: Args = {
-    scope: "Posts",
-    sort: "Relevance",
-    filter: "All",
-    search: ["popeye"],
-    artifacters: [{ type: "selections", data: ["vote"] }],
-  };
   const ai: AI = {
     model: "gpt",
     decorators: {
