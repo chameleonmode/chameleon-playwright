@@ -21,6 +21,7 @@ export class Player {
     for (let j = 0; j < length; j++) {
       const url = this.actor.opts.settings.start.urls[j];
       if(!url) continue;
+      if (j > 0) await delay(this.actor.opts.settings.timeouts.artifacto.delay);
 
       // if on next variation
       Logger.log(`Url: ${j + 1} of ${length}`, url);
@@ -30,13 +31,15 @@ export class Player {
           Logger.log(`Iteration: ${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
 
           // if on next iteration
-          if (i > 0) await this.actor.onIteration(url);
+          if (i > 0) {
+						await delay(this.actor.opts.settings.timeouts.artifacto.delay);
+						await this.actor.onIteration(url);
+					}
 
           // on each iteration
           const resulto = await this.actor.scenario(url);
           if (resulto && typeof resulto === "number") this.state.visited.push(resulto);
         }
-        await delay(this.actor.opts.settings.timeouts.artifacto.delay)
       }
       this.state.iterations.push(j);
     }
