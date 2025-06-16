@@ -46,52 +46,46 @@ export const settings: Settings = {
 export const ai: AI = {
 	model: "gpt",
 	decorators: {
-		tone: "adaptive to the general tone of context",
 		system: "You are helpful!",
-		prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
 		human: "reddit content creator",
 		audience: "adaptive to the general audience of the task context",
 		background: "surfing reddit",
+		tone: "adaptive to the general tone of context",
+		prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
 		suffix: "Respond as creative as possible.",
 	},
 };
 export function configure(opts?: Partial<Options>) {
 	Logger.debug("Opts", { opts });
-	const search = opts?.args?.search || args.search;
+	const search = opts?.args?.search || [];
 	const options: Options = {
-		args: {
-			...args,
-			...opts?.args,
-		},
-		run: { ...opts?.run },
+		run: opts?.run ?? {},
+		args: { ...args, ...opts?.args }, // opts.args overrides default args
 		settings: {
-			...settings,
 			start: {
-				...settings.start,
-				...opts?.settings?.start,
+				...settings.start, // Default start settings
+				...opts?.settings?.start, // opts.settings.start overrides defaults
+				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
+				// It uses the global 'settings.start.urls'.
 				urls: [
-					...(search.length ? [BASE_URL] : []),
-					...(settings.start.urls.length ? settings.start.urls : []),
-				].filter(Boolean),
+					...(search.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
+					...settings.start.urls, // Append default start URLs
+				].filter(Boolean), // Remove any falsy URL entries
 			},
 			timeouts: {
-				...settings.timeouts,
-				...opts?.settings?.timeouts,
+				...settings.timeouts, // Default timeout settings
+				...opts?.settings?.timeouts, // opts.settings.timeouts overrides defaults
+				// Specific timeouts are then hardcoded, overriding any previous values:
 				navigate: 1000 * 60,
 				default: 1000 * 30,
 				wait: 1000 * 15,
 			},
 		},
 		ai: {
-			model: ai.model,
+			model: ai.model, // Model is always taken from the global 'ai' object; opts.ai.model is ignored.
 			decorators: {
-				tone: ai.decorators.tone,
-				system: opts?.ai?.decorators.system || ai.decorators.system,
-				prefix: opts?.ai?.decorators.prefix || ai.decorators.prefix,
-				human: opts?.ai?.decorators.human || ai.decorators.human,
-				audience: opts?.ai?.decorators.audience || ai.decorators.audience,
-				background: opts?.ai?.decorators.background || ai.decorators.background,
-				suffix: opts?.ai?.decorators.suffix || ai.decorators.suffix,
+				...ai.decorators,
+				...opts?.ai?.decorators,
 			},
 		},
 	};
