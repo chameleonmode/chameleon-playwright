@@ -22,7 +22,7 @@ export class Reddit extends Base {
 			if (action && this.scopeulation.comments(url)) {
 				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
 					try {
-						this.opts.settings.start.iterations = {min: 1, max: 1};	
+						this.opts.settings.start.iterations = { min: 1, max: 1 };
 						return await action(url);
 					} catch (e) {
 						Logger.warn("Error in action function:", e);
@@ -102,12 +102,9 @@ export class Reddit extends Base {
 		const tried = await tryForEach([
 			this.navigate(url),
 			(async () => {
-
 				Logger.debug("variations:", this.opts.settings.start.variations);
 				// generate additional search terms
-				const genorate =
-					this.opts.args.search.length > 0 &&
-					this.opts.settings.start.variations.max > 0;
+				const genorate = this.opts.args.search.length > 0 && this.opts.settings.start.variations.max > 0;
 				if (genorate) {
 					const result = await promptee.genorate({
 						model: this.opts.ai.model,
@@ -519,6 +516,68 @@ export class Reddit extends Base {
 	// post
 	readonly post = {
 		title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
+		raw: async () => {
+			const rawHTML = await this.page.$eval("#i18n-shreddit-post-translator-content", (root) => {
+				const relevantTags = new Set([
+					"shreddit-post",
+					"div",
+					"h1",
+					"h2",
+					"h3",
+					"p",
+					"img",
+					"video",
+					"a",
+					"time",
+					"span",
+				]);
+				const allowedAttrs = ["id", "class", "href", "src", "alt", "title", "datetime"];
+				const attrPrefixes = ["post-", "data-", "content-", "subreddit-", "author-", "comment-"];
+
+				function serialize(node: any) {
+					let html = "";
+
+					if (node.nodeType === Node.ELEMENT_NODE) {
+						const tag = node.tagName.toLowerCase();
+						if (!relevantTags.has(tag)) return "";
+
+						html += `<${tag}`;
+
+						for (const attr of node.attributes) {
+							const name = attr.name;
+							if (allowedAttrs.includes(name) || attrPrefixes.some((prefix) => name.startsWith(prefix))) {
+								html += ` ${name}="${attr.value.replace(/"/g, "&quot;")}"`;
+							}
+						}
+
+						html += ">";
+						for (const child of node.childNodes) {
+							html += serialize(child);
+						}
+
+						// Shadow DOM support
+						const shadow = node.shadowRoot;
+						if (shadow) {
+							for (const child of shadow.childNodes) {
+								html += serialize(child);
+							}
+						}
+
+						html += `</${tag}>`;
+					} else if (node.nodeType === Node.TEXT_NODE) {
+						const clean = node.textContent?.trim();
+						if (clean) {
+							html += clean.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+						}
+					}
+
+					return html.replace(/\s+/g, " ").trim(); // Normalize whitespace
+				}
+
+				return serialize(root);
+			});
+			return rawHTML;
+		},
 		joinConversation: async () => {
 			try {
 				const seeFullDiscussionLink = this.page.locator('a:has-text("See full discussion")');
@@ -564,12 +623,19 @@ export class Reddit extends Base {
 			const loca = this.page.locator("shreddit-comment");
 			const count = await loca.count();
 			const length = max ? Math.min(max, count) : count;
-			const comments: { text: string; locator: Locator }[] = [];
+			const comments: { index: number; text: string; attributes: any; locator: Locator }[] = [];
 			for (let i = 0; i < length; i++) {
 				const locator = loca.nth(i);
-				const text = await this.txtContent("div[slot='comment']");
+				const text = await this.txtContent("div[slot='comment']", locator);
 				if (!text) continue; // Skip if no text content
-				comments.push({ text, locator });
+				const attributes = await locator.evaluate((node) => {
+					const attrs: Record<string, string> = {};
+					for (const attr of node.attributes) {
+						attrs[attr.name] = attr.value;
+					}
+					return attrs;
+				});
+				comments.push({ index: i, text, attributes, locator });
 			}
 			return comments;
 		},

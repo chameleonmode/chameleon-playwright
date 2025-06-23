@@ -1,35 +1,54 @@
 import { BrowserContext } from "@playwright/test";
 import { Options } from "../../reddit.js";
 import Reddit from "../../page.js";
+import { promptee } from "../../../../lib/requests.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
-  // Step 1 - Init
-  const { reddit } = await Reddit(ctx, opts, async (url) => {
-    // Step 1.5 - define the scenario
-    await reddit.post.assert();
+	// Step 1 - Init
+	const { reddit } = await Reddit(ctx, opts, async (url) => {
+		// Step 1.5 - define the scenario
+		await reddit.post.assert();
 
-    // const title = await reddit.post.title();
-    const comments = await reddit.post.getComments();
-    await reddit.post.addComment(async () => {
-      const result = await reddit.ask({
-        task: `respond to this reddit post`,
-        image: { des: "page screenshot", b64: [await reddit.screenshot()] },
-        generations: {
-          type: "comment",
-          sys: "1. You are creating a comment on a reddit post\n2. Match word count to the range of existing comments on the page",
-          range: { min: 1, max: 1 },
-          context: reddit.page.url(),
-          input: {
-            type: "comment",
-            data: comments.map((c) => c.text),
-            reason: "existing array of comments on the post",
-          },
-        },
-      });
-      return result[0].data;
-    });
-  });
+		const b64 = [await reddit.screenshot()];
+		const rawHTML = await reddit.post.raw();
+		const comments = await reddit.post.getComments();
 
-  // Step 2 - Run
-  await reddit.player.play();
+		await reddit.post.addComment(async () => {
+			const result = await promptee.robot({
+				model: "o4-mini",
+				decorators: reddit.opts.ai.decorators,
+				task: "generate_reddit_comment",
+				image: {
+					des: "page screenshot",
+					b64: b64,
+				},
+				generations: {
+					type: "comment",
+					range: { min: 1, max: 1 },
+					input: {
+						data: {
+							post: {
+								url: reddit.page.url(),
+								rawHTML,
+								comments: comments.map((c) => ({
+									index: c.index,
+									text: c.text,
+									attributes: c.attributes,
+								})),
+							},
+							target: {
+								type: "post",
+							},
+							user_intent: "Generate a comment to this post",
+						},
+						reason: "Commenting on a reddit post.",
+					},
+				},
+			});
+			return result[0].data;
+		});
+	});
+
+	// Step 2 - Run
+	await reddit.player.play();
 }

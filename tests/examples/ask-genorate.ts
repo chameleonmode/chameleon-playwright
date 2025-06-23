@@ -6,7 +6,7 @@ import { AI, Settings } from "../../src/lib/types/index.js";
 
 (async () => {
   const ai: AI = {
-    model: "gpt",
+    model: "gpt-4.1",
     decorators: {
       system: "You are helpful.",
       prefix: "Think through every step in the detailed sections.",

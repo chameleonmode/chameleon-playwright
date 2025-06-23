@@ -3,9 +3,8 @@ import { promptee } from "../../src/lib/requests.js";
 import { AI } from "../../src/lib/types/index.js";
 (async () => {
   const ai: AI = {
-    model: "gpt",
+    model: "o4-mini",
     decorators: {
-      system: "You are th expert",
       prefix: "Think through every step in the detailed sections.",
       tone: "Shane Gillis",
       human: "Reddit content creator",

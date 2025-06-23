@@ -44,20 +44,21 @@ export const settings: Settings = {
 	},
 };
 export const ai: AI = {
-	model: "gpt",
+	model: "o4-mini",
 	decorators: {
-		system: "You are helpful!",
 		human: "reddit content creator",
-		audience: "adaptive to the general audience of the task context",
+		audience: "reddit website users",
 		background: "surfing reddit",
-		tone: "adaptive to the general tone of context",
-		prefix: "As a social media expert you know how to make perfect decisions so consider the following:",
-		suffix: "Respond as creative as possible.",
+		tone: "adaptive to the general tone of provided context",
 	},
 };
 export function configure(opts?: Partial<Options>) {
 	Logger.debug("Opts", { opts });
 	const search = opts?.args?.search || [];
+	const urls = [
+		...(opts?.settings?.start?.urls || []),
+		...settings.start.urls, // Append default start URLs
+	];
 	const options: Options = {
 		run: opts?.run ?? {},
 		args: { ...args, ...opts?.args }, // opts.args overrides default args
@@ -68,8 +69,8 @@ export function configure(opts?: Partial<Options>) {
 				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
 				// It uses the global 'settings.start.urls'.
 				urls: [
-					...(search.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
-					...settings.start.urls, // Append default start URLs
+					...(search.length && !urls.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
+					...urls,
 				].filter(Boolean), // Remove any falsy URL entries
 			},
 			timeouts: {
