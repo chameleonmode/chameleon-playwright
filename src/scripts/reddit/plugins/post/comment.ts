@@ -39,9 +39,9 @@ export default async function (ctx: BrowserContext, opts: Options) {
 							target: {
 								type: "post",
 							},
-							user_intent: "Generate a comment to this post",
 						},
 						reason: "Commenting on a reddit post.",
+						user_intent: "Generate a comment to this post",
 					},
 				},
 			});

@@ -238,13 +238,13 @@ export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward"
 	export type RedditCommentPrompt = {
 		post: RedditPost;
 		target?: CommentTarget;
-		user_intent: string;
 	};
 
 export interface Input {
 	type?: Kind;
 	data: string[] | RedditCommentPrompt;
 	reason: string;
+  user_intent: string; // user intent for context
 }
 export interface Output {
 	type: Kind;

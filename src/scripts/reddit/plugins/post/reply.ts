@@ -46,9 +46,9 @@ export default async function (context: BrowserContext, opts: Options) {
 								attributes: comment.attributes,
 								index: comment.index,
 							},
-							user_intent: "Generate a reply to this comment",
 						},
 						reason: "Replying to a reddit comment.",
+						user_intent: "Generate a reply to this comment",
 					},
 				},
 			});
