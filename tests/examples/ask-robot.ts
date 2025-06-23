@@ -24,16 +24,16 @@ async function txtContent(selector: string, locator: Locator) {
 }
 async function main() {
 	// spawn detached so Chrome keeps running after your script exits:
-	const child = spawn(
-	  getChromePath(),
-	  [`--remote-debugging-port=9613`, `--user-data-dir=/Users/dev/src/chameleon-playwright/.cache/examples`],
-	  {
-	    detached: true,
-	    stdio: "ignore",
-	  }
-	);
-	// allow parent to exit independently:
-	child.unref();
+	// const child = spawn(
+	//   getChromePath(),
+	//   [`--remote-debugging-port=9613`, `--user-data-dir=/Users/dev/src/chameleon-playwright/.cache/examples`],
+	//   {
+	//     detached: true,
+	//     stdio: "ignore",
+	//   }
+	// );
+	// // allow parent to exit independently:
+	// child.unref();
 	const browser = await chromium.connectOverCDP(`http://localhost:9613`);
 	const page = await browser.contexts()[0].newPage();
 	await page.goto(
@@ -144,6 +144,7 @@ async function main() {
 			human: "Reddit content creator",
 			audience: "Reddit website users",
 			background: "I am surfing reddit",
+			system: "You are a Reddit content creator who is replying to comments on posts.",
 		},
 		task: "generate_reddit_reply",
 		image: {

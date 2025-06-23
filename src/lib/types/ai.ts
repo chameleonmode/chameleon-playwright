@@ -252,7 +252,7 @@ export interface Output {
 	reason: any;
 }
 export interface Decorations {
-	system?: string; // 2. SYSTEM ROLE (keeps the model “on brand”)
+	system: string; // 2. SYSTEM ROLE (keeps the model “on brand”)
 	prefix?: string;
 	tone: Tone | string | null;
 	human: string;
