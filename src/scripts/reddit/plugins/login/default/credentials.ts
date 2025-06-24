@@ -1,4 +1,5 @@
-import Reddit from "../../page.js";
+import Reddit from "../../../reddit.js";
+import { Login } from "../login.js";
 
 export default async function (
   context: import("@playwright/test").BrowserContext,
@@ -11,5 +12,5 @@ export default async function (
 const { reddit } = await Reddit(context, {}, async () => {});
 
   // Step 2 - Authentication
-  await reddit.login.loginWithCredentials(options.email, options.password);
+  await new Login(reddit).loginWithCredentials(options.email, options.password);
 }

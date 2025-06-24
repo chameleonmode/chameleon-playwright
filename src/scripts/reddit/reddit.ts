@@ -1,103 +1,773 @@
-// File: reddit.ts
+import { BrowserContext, expect, Locator } from "@playwright/test";
+import { random, rando, trySequentially, tryForEach, error } from "../../lib/utils.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter } from "./configure.js";
+import { Base } from "../base.js";
+import { Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings } from "../../lib/types/index.js";
 
-export const BASE_URL: string = "https://www.reddit.com";
+export class Reddit extends Base {
+	readonly player = new Player(this);
+	readonly searched: string[] = [];
 
-//
-export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
-export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments";
-export type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
+	// ctor
+	constructor(
+		readonly ctx: BrowserContext,
+		readonly opts: Options,
+		readonly action?: (url?: string) => Promise<unknown>
+	) {
+		super(ctx, opts, async (url: string) => {
+			Logger.log("Scenario URL:", url);
+			const pre = async () => {
+				if (this.scopeulation.user(url)) {
+					await this.click(
+						this.opts.args.sort === "Posts"
+							? 'a[slot="page-2"]:has-text("Posts")'
+							: this.opts.args.sort === "Comments"
+							? 'a[slot="page-3"]:has-text("Comments")'
+							: 'a[slot="page-1"]:has-text("Overview")'
+					);
+				}
+			};
 
-export interface Args {
-	search: string[];
-	scope: Scope;
-	sort: Sort;
-	filter: Filter;
-	artifacters: Artifact[];
-}
-export interface Options extends Opts<Args> {}
-export const args: Args = {
-	search: ["popeye"],
-	scope: "Posts",
-	sort: "Relevance",
-	filter: "All",
-	artifacters: [{ type: "selections", data: ["vote"] }],
-};
-export const settings: Settings = {
-	start: {
-		urls: [],
-		all: true,
-		new: true,
-		attempts: 9,
-		feature: "reddit",
-		rando: { min: 0, max: 0 },
-		iterations: { min: 0, max: 0 },
-		variations: { min: 0, max: 0 },
-	},
-	timeouts: {
-		navigate: 60,
-		default: 30,
-		wait: 15,
-		artifacto: { delay: 120 },
-		naps: { min: 256, max: 512 },
-	},
-};
-export const ai: AI = {
-	model: "o4-mini",
-	decorators: {
-		system: "You are a my Reddit content creator assistant",
-		human: "reddit content creator",
-		audience: "reddit website users",
-		background: "surfing reddit",
-		tone: "adaptive to the general tone of provided context",
-	},
-};
-export function configure(opts?: Partial<Options>) {
-	Logger.debug("Opts", { opts });
-	const search = opts?.args?.search || [];
-	const urls = [
-		...(opts?.settings?.start?.urls || []),
-		...settings.start.urls, // Append default start URLs
-	];
-	const options: Options = {
-		run: opts?.run ?? {},
-		args: { ...args, ...opts?.args }, // opts.args overrides default args
-		settings: {
-			start: {
-				...settings.start, // Default start settings
-				...opts?.settings?.start, // opts.settings.start overrides defaults
-				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
-				// It uses the global 'settings.start.urls'.
-				urls: [
-					...(search.length && !urls.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
-					...urls,
-				].filter(Boolean), // Remove any falsy URL entries
-			},
-			timeouts: {
-				...settings.timeouts, // Default timeout settings
-				...opts?.settings?.timeouts, // opts.settings.timeouts overrides defaults
-				// Specific timeouts are then hardcoded, overriding any previous values:
-				navigate: 1000 * 60,
-				default: 1000 * 30,
-				wait: 1000 * 15,
-			},
+			if (action && (this.scopeulation.comments(url) || this.scopeulation.user(url))) {
+				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+					try {
+						this.opts.settings.start.iterations = { min: 1, max: 1 };
+						await pre();
+						return await action(url);
+					} catch (e) {
+						Logger.warn("Error in action function:", e);
+						await this.page.reload({ waitUntil: "load" });
+					} finally {
+						Logger.log("Action function completed");
+						// TODO: refactoroo
+						// reddit.opts.args.search.push(...searches);
+						// reddit.opts.settings.start.iterations = iterations;
+					}
+				}
+			} else if (action) {
+				try {
+					const expecto = await this.findo(async () =>{
+							await pre();
+						 return await action();
+					});
+					return expecto.index;
+				} catch (e) {
+					Logger.warn("Error in action function:", e);
+				} finally {
+					const text = this.opts.args.search[this.searched.length];
+					this.searched.push(text);
+					Logger.log("Action function completed", text, this.searched);
+				}
+			} else {
+				Logger.warn("No action provided", url);
+			}
+			return undefined;
+		});
+	}
+
+	// check todo's and done
+	override status() {
+		const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
+		const visit = this.opts.settings.start.urls.length - this.visited.length;
+		const search = this.opts.args.search.length - this.searched.length;
+		const searched = search === 0 && this.opts.args.search.length > 0;
+		const done = this.visited.length + this.searched.length;
+		const stats = { todo, done, visit, search, searched };
+
+		Logger.log(`Status:`, stats);
+		return stats;
+	}
+
+	// on every try
+	override async onTry(url: string): Promise<void | Error> {
+		const { visit, search, searched } = this.status();
+		const basic = this.scopeulation.subreddit(url) || url === BASE_URL;
+
+		// check if we have completed all urls we need to also search on
+		if (searched && this.scopeulation.subreddit(url) && !this.visited.includes(url)) {
+			this.searched.length = 0;
+			return await this.onTry(url);
+		}
+
+		// check if we have completed all terms
+		return search > 0 && basic
+			? await this.searcho()
+			: visit > 0 && !this.visited.includes(url)
+			? await this.navigato(url)
+			: error(`All terms completed.`);
+	}
+
+	// on every retry/iteration
+	override async onIteration(url: string) {
+		await this.nap();
+		const started =
+			this.scopeulation.comments(url) || this.scopeulation.search(url)
+				? url
+				: url.replace(/\/?$/, "/") + "search";
+		while (!this.page.url().startsWith(started)) {
+			await this.page.goBack({ waitUntil: "load" });
+			await this.nap({ multiplier: random(3, 6) });
+		}
+	}
+
+	// on navigation needed
+	async navigato(url: string) {
+		// TODO:
+		// const tried = await tryForEach([
+		// 	this.navigate(url),
+		// 	(async () => {
+		// 		Logger.debug("variations:", this.opts.settings.start.variations);
+		// 		// generate additional search terms
+		// 		const genorate = this.opts.args.search.length > 0 && this.opts.settings.start.variations.max > 0;
+		// 		if (genorate) {
+		// 			const result = await promptee.genorate({
+		// 				model: this.opts.ai.model,
+		// 				decorators: this.opts.ai.decorators,
+		// 				task: `generate search terms`,
+		// 				generations: {
+		// 					type: "term",
+		// 					sys: "you are creating variations of search terms",
+		// 					context: "current search terms",
+		// 					range: this.opts.settings.start.variations,
+		// 					input: {
+		// 						type: "search",
+		// 						data: this.opts.args.search,
+		// 						reason: "list of search terms to generate variations for",
+		// 					},
+		// 				},
+		// 			});
+		// 			const terms = result.map((i) => i.data);
+		// 			this.opts.args.search = [...this.opts.args.search, ...terms].sort(() => Math.random() - 0.5);
+		// 			Logger.info("Generated search terms:", this.opts.args.search, result);
+		// 		}
+		// 	})(),
+		// ]);
+		// this.bang("Navigation", tried.fulfilled.length > 0, { url, tried });
+		await this.navigate(url);
+		this.visited.push(url);
+	}
+
+	// searcho when search is needed
+	async searcho() {
+		const url = this.opts.settings.start.urls[this.visited.length];
+		const navigate = this.searched.length === 0 && !this.visited.includes(url);
+		if (navigate) await this.navigato(url);
+		else await this.onIteration(this.visited[this.visited.length - 1]);
+
+		const text = this.opts.args.search[this.searched.length];
+		const locator = this.page.locator(`faceplate-search-input`);
+		const textbox = locator.getByRole("textbox");
+		await this.click(textbox);
+
+		const clearButton = locator.getByRole("button", { name: "Clear search" });
+		await this.click(clearButton, { timeout: 1500, strict: false }).catch(() => false);
+
+		await this.pressSequentially(textbox, text, false);
+		await this.nap({ multiplier: 3 });
+		await textbox.press("Enter");
+		await this.nap();
+	}
+
+	// find an active context
+	async findo(funco: () => Promise<unknown>, visited: number[] = this.player.state.visited) {
+		const scopeulator = this.scopeulation.tranform();
+		const findulator = (() => {
+			const mapper: {
+				[key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
+			} = {
+				Posts: { ids: [ "search-post-unit", "search-sdui-unit", "search-post-with-content-preview", ], strat: "testId" },
+				Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
+				Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
+				Communities: { ids: ["search-community"], strat: "testId" },
+				People: { ids: ["search-author"], strat: "testId" },
+			};
+
+			// If not a user provided URL, we might need a different scope
+			return mapper[scopeulator.scope];
+		})();
+
+		// TODO: refactor --------------------------
+		try {
+			if (!scopeulator.type) {
+				await this.click(
+					scopeulator.scope === "Posts"
+						? this.page.getByRole("button", { name: scopeulator.scope }).first()
+						: this.page.locator(`#search-results-page-tab-${scopeulator.scope.toLowerCase()}`).first()
+				);
+			}
+
+			if (visited.length === 0) {
+				// Function to click a sort option by its text
+				const clickSortOptionByText = async () => {
+					const scopes: Scope[] = ["Posts", "Comments", "Media"];
+					const sorts: Sort[] = ["Hot", "Top", "New", "Comments"];
+					if (
+						scopeulator.sort ||
+						!scopes.includes(scopeulator.scope) ||
+						!sorts.includes(this.opts.args.sort)
+					) {
+						return;
+					}
+
+					// Click the sort dropdown
+					const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
+					await this.click(sortLocator);
+
+					// Normalize the text to handle spacing differences
+					const normalizedText =
+						this.opts.args.scope === "Comments" &&
+						(this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+							? "Top"
+							: this.opts.args.sort.trim();
+					const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
+
+					try {
+						// Locate the option by its display text
+						const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
+
+						// First scroll the option into view
+						await sortOption.scrollIntoViewIfNeeded();
+
+						// Wait a brief moment to ensure it's properly visible
+						// await this.page.waitForTimeout(200);
+
+						// Get the parent 'a' element which is the actual clickable link
+						const parentLink = sortOption.locator("xpath=./ancestor::a");
+						// Click the link
+						await this.click(parentLink);
+
+						Logger.log(`Successfully clicked on the "${normalizedOption}" sort option`);
+					} catch (error) {
+						Logger.error(`Failed to click sort option "${normalizedOption}":`, error);
+
+						// Alternative approach using evaluate if the above fails
+						try {
+							await this.page.evaluate((text) => {
+								const elements = Array.from(document.querySelectorAll("li a span"));
+								const targetElement = elements.find((el) => el.textContent?.includes(text));
+								if (targetElement) {
+									targetElement.closest("a")?.click();
+									return true;
+								}
+								return false;
+							}, normalizedOption);
+							Logger.log(`Clicked on "${normalizedOption}" using evaluate method`);
+						} catch (evalError) {
+							Logger.error(`Alternative method also failed:`, evalError);
+						}
+					}
+				};
+				await clickSortOptionByText();
+				await this.nap();
+
+				// Function to click a time range option by its text
+				const clickTimeRangeByText = async () => {
+					const scopes: Scope[] = ["Posts", "Media"];
+					const sorts: Sort[] = ["Relevance", "Top", "Comments"];
+					const filters: Filter[] = ["Year", "Month", "Week", "Today", "Hour"];
+					if (
+						scopeulator.t ||
+						scopeulator.sort === "communities" ||
+						!scopes.includes(scopeulator.scope) ||
+						!sorts.includes(this.opts.args.sort) ||
+						!filters.includes(this.opts.args.filter)
+					) {
+						return;
+					}
+					// Click the time range dropdown
+					const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
+					await this.click(sortLocator.nth(1));
+
+					// Now find and click the option
+					const optionText =
+						this.opts.args.filter === "Today"
+							? this.opts.args.filter.trim()
+							: "Past " + this.opts.args.filter.trim().toLowerCase();
+					try {
+						// First approach - target by the exact text
+						const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
+
+						// Get the containing link element
+						const linkElement = exactOption.locator("xpath=./ancestor::a");
+
+						// Scroll into view and click
+						await linkElement.scrollIntoViewIfNeeded();
+						await this.click(linkElement);
+
+						Logger.log(`Clicked on "${optionText}" time range option`);
+						return true;
+					} catch (error) {
+						Logger.error(`Failed to click time range "${optionText}":`, error);
+
+						// Try alternative approach using the specific structure
+						try {
+							// Find all list items in the dropdown
+							const listItems = this.page.locator(
+								"search-sort-dropdown-menu#search_modifier_time_range li"
+							);
+							const count = await listItems.count();
+
+							for (let i = 0; i < count; i++) {
+								const item = listItems.nth(i);
+								const text = await item.locator("span span.text-14").textContent();
+
+								if (text?.trim().includes(optionText)) {
+									// Find the link within this item
+									const link = item.locator("a");
+									await link.scrollIntoViewIfNeeded();
+									await this.page.waitForTimeout(200);
+									await link.click();
+
+									Logger.log(`Clicked on "${optionText}" time range option (alternative method)`);
+									return true;
+								}
+							}
+
+							Logger.error(`Could not find time range option "${optionText}" among ${count} options`);
+							return false;
+						} catch (alternativeError) {
+							Logger.error(`Alternative method also failed:`, alternativeError);
+							return false;
+						}
+					}
+				};
+				await clickTimeRangeByText();
+			}
+		} catch (e) {
+			Logger.warn("Error in findo function:", e);
+		}
+		// ------------------------------------------
+
+		for (let i = 0; i < Math.max(this.opts.settings.start.attempts, 1); i++) {
+			Logger.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
+			await this.nap();
+			await this.scrollabit();
+
+			// Wait for thread elements to be available
+			const { locator, count } = await this.find(findulator.ids, findulator.strat);
+
+			// Filter out indices we've already tried
+			const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
+				(index) => !visited.includes(index)
+			);
+			this.bang("available threads", availableIndices.length > 0, {
+				triedIndices: visited,
+				availableIndices,
+			});
+
+			// Randomly select an index from the available indices
+			const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+			try {
+				const thread = locator.nth(index);
+				await this.click(thread);
+				try {
+					this.bang(
+						"max attempts",
+						this.opts.settings.start.attempts === 0,
+						this.opts.settings.start.attempts
+					);
+					return { index, visited };
+				} catch (e) {
+					const funky = await funco();
+					return { index, funky, visited };
+				}
+			} catch (e) {
+				Logger.warn("error in findo loop", e);
+				visited.push(index);
+				await this.page.reload({ waitUntil: "load" });
+				await this.onIteration(this.visited[this.visited.length - 1]);
+			}
+		}
+
+		throw error(
+			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
+		);
+	}
+	async	joinConversation() {
+			await this.click('a:has-text("See full discussion")', { timeout: 1500 }).catch(()=>false);
+			const { locator } = await this.find(
+				[
+					'div[contenteditable="true"][data-lexical-editor="true"]',
+					'shreddit-composer div[contenteditable="true"]',
+				],
+				"selector"
+			);
+			return locator;
+		}
+
+	// actionable scenario when user is doing something on a post: TODO: finish
+	// async actionado() {
+	// 	const compleations: string[] = [];
+	// 	const acto = rando() && ["comment", "reply"].includes(this.opts.settings.start.feature);
+	// 	this.bang("acto?", acto);
+
+	// 	//
+	// 	const actionable = this.opts.args.artifacters.find(
+	// 		(art) => art.type === "selections" && art.data.find((d: string) => ["join", "vote"].includes(d))
+	// 	)?.data as string[];
+	// 	this.bang("Actionable", actionable.length > 0, { actionable });
+	// 	if (!actionable.includes("vote")) actionable.push("vote");
+
+	// 	// Execute each actionable function from the selectionator
+	// 	const actions: Record<string, () => Promise<void>> = {
+	// 		join: async () => {
+	// 			await this.subreddit.joiner();
+	// 		},
+	// 		vote: async () => {
+	// 			await this.subreddit.voter(false);
+	// 		},
+	// 	};
+
+	// 	for (const selection of actionable) {
+	// 		try {
+	// 			if (!compleations.includes("join")) this.bang("action", rando(), { selection });
+	// 			await actions[selection]();
+	// 			compleations.push(selection);
+	// 		} catch (error) {
+	// 			Logger.warn(`Error performing action "${selection}":`, error);
+	// 		}
+	// 	}
+	// 	this.bang("Actionable completions", compleations.length, { compleations });
+	// 	return compleations.length;
+	// }
+
+	// patterns scopeulation
+	readonly scopeulation = {
+		subreddit(url: string) {
+			const pattern = /\/r\/[^/]+\/?$/;
+			return pattern.test(url);
 		},
-		ai: {
-			model: ai.model, // Model is always taken from the global 'ai' object; opts.ai.model is ignored.
-			decorators: {
-				...ai.decorators,
-				...opts?.ai?.decorators,
-			},
+
+		comments(url: string) {
+			const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
+			return pattern.test(url);
+		},
+
+		search(url: string) {
+			const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
+			return pattern.test(url);
+		},
+
+		user(url: string) {
+			const pattern = /\/user\/[^/]+\/?$/;
+			return pattern.test(url);
+		},
+
+		tranform: () => {
+			const scopes: Scope[] = ["People", "Communities"];
+			const url = this.visited[this.visited.length - 1];
+			const scope =
+				scopes.includes(this.opts.args.scope) &&
+				(this.scopeulation.subreddit(url) ||
+					this.scopeulation.comments(url) ||
+					this.scopeulation.search(url))
+					? "Posts"
+					: this.opts.args.scope;
+			const Url = new URL(url);
+			const type = Url.searchParams.get("type");
+			const sort = Url.searchParams.get("sort");
+			const t = Url.searchParams.get("t");
+			const community = scope === "Communities" || type === "communities";
+			const people = scope === "People" || type === "people" || this.scopeulation.user(url);
+			return { url, scope, Url, type, sort, t, community, people };
 		},
 	};
-	options.settings.start.rando.max = options.settings.start.rando.min;
-	options.settings.start.iterations.max = options.settings.start.iterations.min;
-	options.settings.start.variations.max = options.settings.start.variations.min;
 
-	options.settings.timeouts.naps.multiplier = undefined;
-	options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
-	options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
-	Logger.debug("Options", options);
-	return options;
+	// post
+	readonly post = {
+		title: () => this.txtContent('h1[id^="post-title-"][slot="title"]'),
+		raw: async () => {
+			const locator = this.page.locator("#i18n-shreddit-post-translator-content >> shreddit-post");
+			await locator.waitFor();
+			// Screenshot the element only (no surrounding content)
+			const screenshot = (await locator.screenshot({ scale: "css", type: "jpeg", quality: 72 })).toString(
+				"base64"
+			);
+			const content = await locator.evaluate((root) => {
+				const relevantAttrPrefixes = [
+					"post-",
+					"subreddit-",
+					"author-",
+					"content-",
+					"comment-",
+					"domain",
+					"id",
+					"title",
+					"href",
+					"src",
+					"datetime",
+				];
+
+				const extractAttributes = (el: Element) => {
+					const data: Record<string, string> = {};
+					for (const { name, value } of el.attributes) {
+						if (relevantAttrPrefixes.some((prefix) => name.startsWith(prefix) || prefix === name)) {
+							data[name] = value;
+						}
+					}
+					return data;
+				};
+
+				const extractTextContent = (node: Node): string => {
+					if (node.nodeType === Node.TEXT_NODE) {
+						return node.textContent?.trim() || "";
+					}
+					if (node.nodeType === Node.ELEMENT_NODE) {
+						return Array.from(node.childNodes)
+							.map(extractTextContent)
+							.filter(Boolean)
+							.join(" ")
+							.replace(/\s+/g, " ")
+							.trim();
+					}
+					return "";
+				};
+
+				const extractMedia = (el: Element) =>
+					Array.from(el.querySelectorAll("img, video"))
+						.map((node) => ({ type: node.tagName.toLowerCase(), src: node.getAttribute("src") }))
+						.filter((item) => item.src);
+
+				return {
+					tag: "shreddit-post",
+					attributes: extractAttributes(root),
+					title: root.querySelector("h1")?.textContent?.trim() || null,
+					flair: root.querySelector("shreddit-post-flair")?.textContent?.trim() || null,
+					body: extractTextContent(root.querySelector('[slot="text-body"]') || root),
+					media: extractMedia(root),
+				};
+			});
+			const comments = await this.post.getComments();
+			return { id: crypto.randomUUID(), url: this.page.url(), content, screenshot, comments };
+		},
+
+		// find a post
+		assert: async () => {
+			const scopeulator = this.scopeulation.tranform();
+			if (scopeulator.community || scopeulator.people) {
+				await this.scrollabit();
+				const posts = this.page.locator("a[slot='title']");
+				const count = await posts.count();
+				const index = random(0, count);
+				const randomPost = posts.nth(index);
+				await this.click(randomPost);
+			}
+		},
+
+		// find a post in the archive thats open
+		archived: async (func: (locator: Locator) => Promise<Locator>) => {
+			await this.nap();
+			const result = await trySequentially([
+				async () => await func.call(this, await this.joinConversation()),
+				async () => await func.call(this, this.page.getByRole("button", { name: "Add a comment" })),
+				// async () => {
+				// 	const triggers = this.page.getByTestId("trigger-button");
+				// 	const count = await triggers.count();
+				// 	for (let i = count - 1; i >= 0; i--) {
+				// 		const trigger = triggers.nth(i);
+				// 		await func(trigger);
+				// 		break; // Exit after the first successful click
+				// 	}
+				// },
+			]);
+			this.bang("Archived or Comment button", result.fulfilled.length > 0, {
+				fulfilled: result.fulfilled,
+				rejected: result.errors,
+			});
+		},
+		// TODO: refactoroo
+		// act: async (inside: string, acted?: boolean | number) => {
+		// 	try {
+		// 		this.bang("act " + inside, acted === undefined);
+		// 		return await this.actionado();
+		// 	} catch (e) {
+		// 		Logger.warn("Error in act function:", e);
+		// 	}
+		// },
+
+		// find a comment
+		getComments: async (max = 36) => {
+			const loca = this.page.locator("shreddit-comment");
+			const count = await loca.count();
+			const length = Math.min(max, count);
+			const comments: { id: string; index: number; text: string; attributes: any; locator: Locator }[] = [];
+			for (let i = 1; i < length; i++) {
+				try {
+					const locator = loca.nth(i);
+					const text = await this.txtContent("div[slot='comment']", locator);
+					const attributes = await this.attributes(locator);
+					comments.push({ id: crypto.randomUUID(), index: i, text, attributes, locator });
+				} catch (error) {
+					Logger.log(`Error processing comment ${i}:`, error);
+					continue; // Skip this comment and continue with the next
+				}
+			}
+			return comments;
+		},
+
+		// add a comment to the main thread
+		addComment: async (comment: () => Promise<string>) => {
+			// const inside = "addComment";
+			// const acted = await this.post.act(inside);
+			// Continue with comment input
+			await this.pressSequentially(
+				this.page.locator("#subgrid-container").getByRole("textbox"),
+				await comment()
+			);
+
+			// Submit comment
+			await this.click(this.page.locator('button.button-primary[slot="submit-button"]'));
+			// await this.post.act(inside, acted);
+		},
+
+		// reply to a comment
+		replyToComment: async (locator: Locator, reply: () => Promise<string>) => {
+			// const inside = "replyToComment";
+			// const acted = await this.post.act(inside);
+
+			await locator.scrollIntoViewIfNeeded();
+			await this.nap();
+			// Click the reply button
+			const comment = locator.locator("shreddit-comment-action-row button").first();
+			await this.click(comment);
+
+			// Wait for the reply box to be visible
+			const replyBox = locator.locator(
+				"shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
+			);
+			await replyBox.waitFor();
+			await this.type(await reply());
+
+			// Click the submit button
+			await this.click(replyBox.locator("button[slot='submit-button']").first());
+
+			// await this.post.act(inside, acted);
+		},
+
+		// visit the subreddit
+		visitCommunity: async () => {
+			// Click the "Join" button
+			await this.click(
+				this.bang("'visit' button", this.page.locator('span.avatar a[href^="/r/"]').first())
+			);
+		},
+	};
+
+	// subreddit
+	readonly subreddit = {
+		// assert can post
+		canPost: async () => {
+			await this.nap();
+			await this.click(this.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+		},
+
+		// vote on a post
+		voter: async () => {
+			const scopeulator = this.scopeulation.tranform();
+			if (!scopeulator.community && !scopeulator.people) {
+				const banger = await this.joinConversation();
+				this.bang("vote", banger);
+			}
+			await this.scrollabit();
+			const ups = this.page.getByRole("button", { name: "Upvote" });
+			const downs = this.page.getByRole("button", { name: "Downvote" });
+			const upCount = await ups.count();
+			const downCount = await downs.count();
+
+			// ensure we don't exceed the number of available votes
+			const count = Math.min(upCount, downCount) - 1;
+			const length = Math.min(
+				count,
+				rando(this.opts.settings.start.rando.min, this.opts.settings.start.rando.max)
+			);
+			this.bang("Vote count", length, { upCount, downCount, count, length });
+			for (let i = 0; i < length; i++) {
+				await this.click(rando(100) <= 95 ? ups.nth(i) : downs.nth(i));
+			}
+
+			return {
+				ups: { locator: ups, count: upCount },
+				downs: { locator: downs, count: downCount },
+			};
+		},
+
+		// check the member is joined the subreddit or not if not then join the subreddit.
+		joiner: async () => {
+			await this.scrollabit();
+			// Click the "Join" button
+			await this.click(
+				this.bang("'Join' button", this.page.getByRole("button", { name: "Join", exact: true }).first())
+			);
+		},
+	};
+
+	// create a new post
+	async poster(contents: () => Promise<{ title: string; content: string }>) {
+		await this.nap();
+		const titleLocator = this.page.locator("#innerTextArea").first();
+		const bodyLocator = this.page.locator('div[slot="rte"][aria-label="Post body text field"]');
+
+		const postTypeValue = await this.page.locator('r-post-type-select[name="type"]').getAttribute("value");
+		this.bang("Post type", postTypeValue === "TEXT");
+		this.bang("Post body text field", await bodyLocator.innerText());
+		this.bang("Post title text field", await titleLocator.count());
+
+		const { title, content } = await contents();
+		await this.pressSequentially(titleLocator, title);
+		await this.pressSequentially(bodyLocator, content);
+
+		const submitButton = this.page
+			.locator("r-post-form-submit-button#submit-post-button")
+			.getByRole("button");
+		await this.click(submitButton);
+
+		// const traverse = async (
+		//   condition: (ele: {
+		//     element: Element | null;
+		//     tagName: string | undefined;
+		//     ariaLabel: string | null | undefined;
+		//   }) => boolean
+		// ) => {
+		//   while (condition(await this.getFocusedElement())) {
+		//     this.page.keyboard.press("Tab");
+		//   }
+		// };
+
+		// // enter comment
+		// // await traverse((ele) => {
+		// //   return ele.ariaLabel !== "Post body text field";
+		// // });
+		// // await this.type(content);
+		// // submit
+		// await traverse((ele) => {
+		//   return ele.tagName !== "R-POST-FORM-SUBMIT-BUTTON";
+		// });
+
+		// await this.page.keyboard.press("Enter");
+		// await this.nap();
+	}
+}
+
+export default async function (
+	ctx: BrowserContext,
+	opts: Partial<Options>,
+	action: (url?: string) => Promise<unknown>
+) {
+	// setup options
+	const options = configure(opts);
+
+	// start the plugin
+	const reddit = new Reddit(ctx, options, action);
+	await reddit.init();
+
+	Logger.info("Feature:", {
+		feature: options.settings.start.feature,
+		artifacts: options.args.artifacters,
+	});
+	Logger.info("Options:", {
+		options: options,
+	});
+
+	return { reddit };
 }

@@ -1,6 +1,6 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../reddit.js";
-import Reddit from "../../page.js";
+import { Options } from "../../configure.js";
+import Reddit from "../../reddit.js";
 
 export default async function (context: BrowserContext, opts: Options) {
   // Step 1 - Init

@@ -1,0 +1,103 @@
+// File: reddit.ts
+import { Logger } from "../../lib/logger.js";
+import { AI, Opts, Artifact, Settings } from "../../lib/types/index.js";
+
+export const BASE_URL: string = "https://www.reddit.com";
+
+//
+export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
+export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
+export type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
+
+export interface Args {
+	search: string[];
+	scope: Scope;
+	sort: Sort;
+	filter: Filter;
+	artifacters: Artifact[];
+}
+export interface Options extends Opts<Args> {}
+export const args: Args = {
+	search: [],//["popeye"],
+	scope: "People", // "Posts", "Communities", "Comments", "Media", "People"
+	sort: "Relevance",
+	filter: "All",
+	artifacters: [{ type: "selections", data: ["vote"] }],
+};
+export const settings: Settings = {
+	start: {
+		urls: [],//["https://www.reddit.com/user/PyramidBlack/"],//["https://www.reddit.com/r/publicdomain/comments/1hn0t95/brutus_from_popeye/"], //["https://www.reddit.com/r/PowerScaling/comments/y9vrel/being_completely_reasonable_with_no_memes_or/"],
+		all: true,
+		new: true,
+		attempts: 9,
+		feature: "reddit",
+		rando: { min: 0, max: 0 },
+		iterations: { min: 0, max: 0 },
+		variations: { min: 0, max: 0 },
+	},
+	timeouts: {
+		navigate: 60,
+		default: 30,
+		wait: 15,
+		artifacto: { delay: 120 },
+		naps: { min: 256, max: 512 },
+	},
+};
+export const ai: AI = {
+	model: "o4-mini",
+	decorators: {
+		system: "You are a Reddit-native assistant",
+		human: "reddit content creator",
+		audience: "reddit website users",
+		background: "surfing reddit",
+		tone: "adaptive",
+	},
+};
+export function configure(opts?: Partial<Options>) {
+	Logger.debug("Opts", { opts });
+	const search = opts?.args?.search || args.search;
+	const urls = [
+		...(opts?.settings?.start?.urls || []),
+		...settings.start.urls, // Append default start URLs
+	];
+	const options: Options = {
+		run: opts?.run ?? {},
+		args: { ...args, ...opts?.args }, // opts.args overrides default args
+		settings: {
+			start: {
+				...settings.start, // Default start settings
+				...opts?.settings?.start, // opts.settings.start overrides defaults
+				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
+				// It uses the global 'settings.start.urls'.
+				urls: [
+					...(search.length && !urls.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
+					...urls,
+				].filter(Boolean), // Remove any falsy URL entries
+			},
+			timeouts: {
+				...settings.timeouts, // Default timeout settings
+				...opts?.settings?.timeouts, // opts.settings.timeouts overrides defaults
+				// Specific timeouts are then hardcoded, overriding any previous values:
+				navigate: 1000 * 60,
+				default: 1000 * 30,
+				wait: 1000 * 15,
+			},
+		},
+		ai: {
+			model: ai.model, // Model is always taken from the global 'ai' object; opts.ai.model is ignored.
+			decorators: {
+				...ai.decorators,
+				...opts?.ai?.decorators,
+			},
+		},
+	};
+	options.settings.start.rando.max = options.settings.start.rando.min;
+	options.settings.start.iterations.max = options.settings.start.iterations.min;
+	options.settings.start.variations.max = options.settings.start.variations.min;
+
+	options.settings.timeouts.naps.multiplier = undefined;
+	options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
+	options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
+	Logger.debug("Options", options);
+	return options;
+}

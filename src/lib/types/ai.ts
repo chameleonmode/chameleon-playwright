@@ -217,38 +217,23 @@ export type Action =
 export type Model = "gpt-4.1" | "o4-mini";
 export type Kind = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term" | "";
 export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
+export type Target = "comment" | "post" | "unknown";
 
-	export type RedditPost = {
-		url: string;
-		rawHTML: string;
-		comments?: RedditComment[];
-	};
-	export type RedditComment = {
-		index: number;
-		text: string;
-		attributes: string;
-	};
-	export type CommentTarget = {
-		type: "post" | "comment";
-    index?: number; // Optional index for comments
-		text?: string;
-		attributes?: string;
-	};
-
-	export type RedditCommentPrompt = {
-		post: RedditPost;
-		target?: CommentTarget;
-	};
+export type RedditComment = { id: string; index: number; text: string; attributes: any; locator?: any };
+export type CommentTarget = { type: Target; comment?: RedditComment };
+export type RedditCommentPrompt = {
+	post: { id: string; url: string; content?: any; comments?: RedditComment[] };
+	target?: CommentTarget;
+};
 
 export interface Input {
-	type?: Kind;
 	data: string[] | RedditCommentPrompt;
-	reason: string;
-  user_intent: string; // user intent for context
+	user_intent: string; // user intent for context
 }
 export interface Output {
 	type: Kind;
 	data: string;
+	id: string;
 	reason: any;
 }
 export interface Decorations {
@@ -267,11 +252,9 @@ export interface AI {
 }
 
 export namespace requests {
-	export type Type = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term";
 	export interface Generators {
 		sys?: string;
-		type?: Type;
-		context?: string;
+		type?: Kind;
 		input: Input;
 		range: Ranger;
 	}

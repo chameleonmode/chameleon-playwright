@@ -23,7 +23,7 @@ async function txtContent(selector: string, locator: Locator) {
 	return await firstVisible(location);
 }
 async function main() {
-	// spawn detached so Chrome keeps running after your script exits:
+	// // spawn detached so Chrome keeps running after your script exits:
 	// const child = spawn(
 	//   getChromePath(),
 	//   [`--remote-debugging-port=9613`, `--user-data-dir=/Users/dev/src/chameleon-playwright/.cache/examples`],
@@ -35,83 +35,84 @@ async function main() {
 	// // allow parent to exit independently:
 	// child.unref();
 	const browser = await chromium.connectOverCDP(`http://localhost:9613`);
-	const page = await browser.contexts()[0].newPage();
-	await page.goto(
-		"https://www.reddit.com/r/AskReddit/comments/1kptz1u/people_over_35_whats_something_you_genuinely_miss/"
-	);
+	const page = browser.contexts()[0].pages()[0];
+	// const page = await browser.contexts()[0].newPage();
+	// await page.goto(
+	// 	"https://www.reddit.com/r/whatisit/comments/1li4jky/bitcoin_token_things_found_on_car_door_handle/"
+	// );
+	const locator = page.locator("#i18n-shreddit-post-translator-content >> shreddit-post");
+	await locator.waitFor();
+	// Screenshot the element only (no surrounding content)
+	const screenshot = (
+		await locator.screenshot({
+			scale: "css",
+			type: "jpeg",
+			quality: 72,
+		})
+	).toString("base64");
+	const content = await locator.evaluate((root) => {
+		const relevantAttrPrefixes = [
+			"post-",
+			"subreddit-",
+			"author-",
+			"content-",
+			"comment-",
+			"domain",
+			"id",
+			"title",
+			"href",
+			"src",
+			"datetime",
+		];
 
-	// Wait for the target div to be present
-	await page.waitForSelector("#i18n-shreddit-post-translator-content");
-	// Recursively serialize light DOM + shadow DOM
-	const rawHTML = await page.$eval("#i18n-shreddit-post-translator-content", (root) => {
-		const relevantTags = new Set([
-			"shreddit-post",
-			"div",
-			"h1",
-			"h2",
-			"h3",
-			"p",
-			"img",
-			"video",
-			"a",
-			"time",
-			"span",
-		]);
-		const allowedAttrs = ["id", "class", "href", "src", "alt", "title", "datetime"];
-		const attrPrefixes = ["post-", "data-", "content-", "subreddit-", "author-", "comment-"];
-
-		function serialize(node: any) {
-			let html = "";
-
-			if (node.nodeType === Node.ELEMENT_NODE) {
-				const tag = node.tagName.toLowerCase();
-				if (!relevantTags.has(tag)) return "";
-
-				html += `<${tag}`;
-
-				for (const attr of node.attributes) {
-					const name = attr.name;
-					if (allowedAttrs.includes(name) || attrPrefixes.some((prefix) => name.startsWith(prefix))) {
-						html += ` ${name}="${attr.value.replace(/"/g, "&quot;")}"`;
-					}
-				}
-
-				html += ">";
-				for (const child of node.childNodes) {
-					html += serialize(child);
-				}
-
-				// Shadow DOM support
-				const shadow = node.shadowRoot;
-				if (shadow) {
-					for (const child of shadow.childNodes) {
-						html += serialize(child);
-					}
-				}
-
-				html += `</${tag}>`;
-			} else if (node.nodeType === Node.TEXT_NODE) {
-				const clean = node.textContent?.trim();
-				if (clean) {
-					html += clean.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+		const extractAttributes = (el: Element) => {
+			const data: Record<string, string> = {};
+			for (const { name, value } of el.attributes) {
+				if (relevantAttrPrefixes.some((prefix) => name.startsWith(prefix) || prefix === name)) {
+					data[name] = value;
 				}
 			}
+			return data;
+		};
 
-			return html.replace(/\s+/g, " ").trim(); // Normalize whitespace
-		}
+		const extractTextContent = (node: Node): string => {
+			if (node.nodeType === Node.TEXT_NODE) {
+				return node.textContent?.trim() || "";
+			}
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				return Array.from(node.childNodes)
+					.map(extractTextContent)
+					.filter(Boolean)
+					.join(" ")
+					.replace(/\s+/g, " ")
+					.trim();
+			}
+			return "";
+		};
 
-		return serialize(root);
+		const extractMedia = (el: Element) =>
+			Array.from(el.querySelectorAll("img, video"))
+				.map((node) => ({ type: node.tagName.toLowerCase(), src: node.getAttribute("src") }))
+				.filter((item) => item.src);
+
+		return {
+			tag: "shreddit-post",
+			attributes: extractAttributes(root),
+			title: root.querySelector("h1")?.textContent?.trim() || null,
+			flair: root.querySelector("shreddit-post-flair")?.textContent?.trim() || null,
+			body: extractTextContent(root.querySelector('[slot="text-body"]') || root),
+			media: extractMedia(root),
+		};
 	});
-
-	Logger.log("Cleaned HTML payload:", rawHTML);
+	Logger.log("Post data:", content);
 
 	const commentoe = async () => {
 		try {
 			const loca = page.locator("shreddit-comment");
 			const count = await loca.count();
 			const length = count;
-			const comments: { index: number; text: string; attributes: any; locator: Locator }[] = [];
-			for (let i = 0; i < length; i++) {
+			const comments: { id: string; index: number; text: string; attributes: any; locator: Locator }[] = [];
+			for (let i = 1; i < 10; i++) {
 				try {
 					const locator = loca.nth(i);
 					const text = await txtContent("div[slot='comment']", locator);
@@ -123,7 +124,7 @@ async function main() {
 						}
 						return attrs;
 					});
-					comments.push({ index: i, text, attributes, locator });
+					comments.push({ id: crypto.randomUUID(), index: i, text, attributes, locator });
 				} catch (error) {
 					Logger.log(`Error processing comment ${i}:`, error);
 					continue; // Skip this comment and continue with the next
@@ -136,7 +137,8 @@ async function main() {
 		}
 	};
 	const comments = await commentoe();
-	const randomComment = rando(comments);
+	// const randomComment = rando(comments);
+	// Logger.log("Random Comment:", randomComment);
 	const result = await promptee.robot({
 		model: "o4-mini",
 		decorators: {
@@ -144,21 +146,12 @@ async function main() {
 			human: "Reddit content creator",
 			audience: "Reddit website users",
 			background: "I am surfing reddit",
-			system: "You are a Reddit content creator who is replying to comments on posts.",
+			system: "You are a Reddit-native assistant",
 		},
 		task: "generate_reddit_reply",
 		image: {
-			des: "page screenshot",
-			b64: [
-				(
-					await page.screenshot({
-						fullPage: true,
-						scale: "css",
-						type: "jpeg",
-						quality: 18,
-					})
-				).toString("base64"),
-			],
+			des: "post screenshot",
+			b64: [screenshot],
 		},
 		generations: {
 			type: "reply",
@@ -166,26 +159,20 @@ async function main() {
 			input: {
 				data: {
 					post: {
+						id: crypto.randomUUID(),
 						url: page.url(),
-						rawHTML,
-						comments: comments.map((c) => ({
-							index: c.index,
-							text: c.text,
-							attributes: c.attributes,
-						})),
+						content: content,
+						comments: comments,
 					},
 					target: {
-						type: "comment",
-						text: randomComment.text,
-						attributes: randomComment.attributes,
-						index: randomComment.index,
+						type: "unknown"
 					},
 				},
-				reason: "Replying to a nostalgic comment about early internet culture.",
-				user_intent: "Generate a reply to this comment",
+				user_intent: "Select a comment aligned with users metadata and generate a reply to it",
 			},
 		},
 	});
+
 	Logger.log("result", { result });
 }
 

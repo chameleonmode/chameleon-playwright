@@ -1,9 +1,10 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { error, rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { requests, Opts } from "../lib/types/index.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
+import { count } from "console";
 
 export abstract class Base {
 	readonly visited: string[] = [];
@@ -61,27 +62,32 @@ export abstract class Base {
 		});
 	}
 
-	async firstVisible(location: Locator) {
+	async txtContent(selector: string, locator?: Locator) {
+		const location = locator?.locator(selector) || this.page.locator(selector);
 		const locations = await location.count();
 		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }); // banger
+
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
 			if (await element.isVisible()) {
-				await element.scrollIntoViewIfNeeded({ timeout: this.opts.settings.timeouts.wait });
+				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
 				if (!text) continue; // Skip if no text content
-				return { element, text };
+				return this.bang("txtContent: " + selector, text, { element, text });
 			}
 		}
-		throw this.error(`No visible elements found for selector: ${location}`, { locations, location });
+		throw error(`No visible elements found for selector: ${location}`, { locations, location });
 	}
 
-	async txtContent(selector: string, locator?: Locator) {
-		const location = locator?.locator(selector) || this.page.locator(selector);
-		try {
-			const { element, text } = await this.firstVisible(location); //this.banger(, { location }); // banger
-			return this.bang("txtContent: " + selector, text, { element, text });
-		} catch {}
+	async attributes(locator: Locator) {
+		const attributes = await locator.evaluate((node) => {
+			const attrs: Record<string, string> = {};
+			for (const attr of node.attributes) {
+				attrs[attr.name] = attr.value;
+			}
+			return attrs;
+		});
+		return this.bang("attributes: " + locator, attributes, { locator, attributes });
 	}
 
 	async selectAll(locator?: Locator, clear = false) {
@@ -107,19 +113,34 @@ export abstract class Base {
 		});
 	}
 
-	async click(locator: Locator, { strict = true, timeout = this.opts.settings.timeouts.default } = {}) {
+	async assert(locator: Locator, { timeout = 1000 * 6 } = {}) {
+		// Expectorations
+		const expecto = await tryForEach([
+			expect(locator).toBeEnabled({ timeout }),
+			expect(locator).toBeVisible({ timeout }),
+		]);
+		this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
+
+		// Locatorations
+		await locator.waitFor({ timeout });
+		return this.bang(`assert: ${locator}`, locator, { timeout, locator });
+	}
+
+	async click(locator: Locator, options?: { strict?: boolean; timeout?: number }): Promise<Locator>;
+	async click(selector: string, options?: { strict?: boolean; timeout?: number }): Promise<Locator>;
+	async click(
+		thang: string | Locator,
+		options: { strict?: boolean; timeout?: number } = {}
+	): Promise<Locator> {
+		const locator = typeof thang === "string" ? this.page.locator(thang).first() : thang;
+		const { strict = true, timeout = this.opts.settings.timeouts.wait } = options;
 		await this.nap();
+		const count = await locator.count();
+		this.banger(count, { locator, count }); // banger
 
 		if (strict) {
-			// Expectorations
-			const expecto = await tryForEach([
-				expect(locator).toBeEnabled({ timeout }),
-				expect(locator).toBeVisible({ timeout }),
-			]);
-			this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
-
-			// Locatorations
-			await locator.waitFor({ timeout });
+			// Ensure the locator is visible and enabled before clicking
+			await this.assert(locator, { timeout });
 		}
 
 		// Click the locator
@@ -130,11 +151,12 @@ export abstract class Base {
 		this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
 
 		await this.nap();
+		return this.bang(`click: ${locator}`, locator, { options, locator });
 	}
 
-	async scrollabit() {
+	async scrollabit(times = rando(3, 6)) {
 		// Scroll down multiple times with delay to simulate natural scrolling
-		for (let i = 0; i < rando(3, 6); i++) {
+		for (let i = 0; i < times; i++) {
 			await this.nap();
 			try {
 				// if already scrolled till end break
@@ -177,22 +199,45 @@ export abstract class Base {
 	// Find elements by testId, selector, or text
 	// This function will return the first found element based on the strategy
 	async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
-		for (const id of ids) {
-			const locator =
-				strategy === "testId"
-					? this.page.getByTestId(id)
-					: strategy === "selector"
-					? this.page.locator(id)
-					: this.page.getByText(id);
+		for (const selector of ids) {
+			const target = (() => {
+				switch (strategy) {
+					case "testId":
+						return this.page.getByTestId(selector);
+					case "selector":
+						return this.page.locator(selector);
+					case "text":
+						return this.page.getByText(selector);
+					default:
+						throw error(`Unknown strategy: ${strategy}`);
+				}
+			})();
 
-			const count = await locator.count();
+			try {
+				const findVisibleAncestor = async (current: Locator, maxDepth = 25, timeout = 50): Promise<Locator> => {
+					Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
+					if (maxDepth < 0) throw error(`Max depth reached while finding visible ancestor for ${selector}`);
 
-			if (count > 0) {
-				return { count, locator, id };
+					for (const location of await current.all()) {
+						if (await location.isVisible({timeout}).catch(() => false)) return location;
+
+						const siblings = location.locator(":scope > *"); // all children of the parent
+						for (const sibling of await siblings.all()) {
+							Logger.log(`Sibling: <${location}>`, sibling);
+							if (await sibling.isVisible({timeout}).catch(() => false)) return sibling;
+						}
+						return findVisibleAncestor(location.locator(".."), maxDepth - 1);
+					}
+					throw error(`No visible ancestor found for ${selector}`);
+				};
+				const locator = strategy === "testId" ? target : await findVisibleAncestor(target);
+				return { target, locator, selector, count: await locator.count() };
+			} catch (e) {
+				Logger.warn(`Failed to resolve ${strategy} locator for ${selector}`, e);
 			}
 		}
 
-		throw this.error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+		throw error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
 	}
 
 	// Find frames by selector seperate for find
@@ -213,7 +258,7 @@ export abstract class Base {
 			}
 		}
 
-		throw this.error(`No frames found for selectors: ${selectors.join(", ")}`);
+		throw error(`No frames found for selectors: ${selectors.join(", ")}`);
 	}
 
 	async dimensions() {
@@ -251,20 +296,18 @@ export abstract class Base {
 		});
 	}
 
-	error(message: unknown, cause?: unknown) {
-		const error = new Error(`${message}`, { cause });
-		const pretty = { cause, stack: error.stack, opts: this.opts };
-		Logger.error(`(error/${this.opts.settings.start.feature}): ${error.message}`, pretty);
-		return error;
-	}
-
 	bang<T>(message: unknown, expect: T, source?: unknown) {
 		Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
 		if (expect) return expect;
-		throw this.error(message, { source, expect });
+		throw error(message, { source, expect });
 	}
 
 	banger<T>(expect: T, source?: unknown) {
 		return this.bang(``, expect, source);
+	}
+
+	bing<T>(expect: unknown, returnz: T, source?: unknown) {
+		if (this.banger(expect)) return returnz;
+		throw error("", { source, expect });
 	}
 }
