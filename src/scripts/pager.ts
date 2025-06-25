@@ -1,26 +1,20 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { error, rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { requests, Opts } from "../lib/types/index.js";
 import { promptee } from "../lib/requests.js";
 import { Logger } from "../lib/logger.js";
-import { count } from "console";
 
-export abstract class Base {
-	readonly visited: string[] = [];
+export abstract class Pager {
 	public page!: Page;
 	constructor(
 		readonly ctx: BrowserContext,
 		readonly opts: Opts<unknown>,
 		readonly scenario: (url: string) => Promise<number | unknown>
 	) {}
-	status() {
-		const todo = this.opts.settings.start.urls.length;
-		const done = this.visited.length;
-		return { todo, done };
-	}
-	abstract onTry(url: string): Promise<void | Error>;
-	abstract onIteration(url: string): Promise<void | Error>;
+	abstract status(): unknown;
+	abstract onWhile(url: string): Promise<void | Error>;
+	abstract onReIteration(url: string): Promise<void | Error>;
 
 	async init() {
 		this.page = this.opts.settings.start.new
@@ -76,7 +70,7 @@ export abstract class Base {
 				return this.bang("txtContent: " + selector, text, { element, text });
 			}
 		}
-		throw error(`No visible elements found for selector: ${location}`, { locations, location });
+		throw Logger.ror(`No visible elements found for selector: ${location}`, { locations, location });
 	}
 
 	async attributes(locator: Locator) {
@@ -209,14 +203,14 @@ export abstract class Base {
 					case "text":
 						return this.page.getByText(selector);
 					default:
-						throw error(`Unknown strategy: ${strategy}`);
+						throw Logger.ror(`Unknown strategy: ${strategy}`);
 				}
 			})();
 
 			try {
 				const findVisibleAncestor = async (current: Locator, maxDepth = 25, timeout = 50): Promise<Locator> => {
 					Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
-					if (maxDepth < 0) throw error(`Max depth reached while finding visible ancestor for ${selector}`);
+					if (maxDepth < 0) throw Logger.ror(`Max depth reached while finding visible ancestor for ${selector}`);
 
 					for (const location of await current.all()) {
 						if (await location.isVisible({timeout}).catch(() => false)) return location;
@@ -228,7 +222,7 @@ export abstract class Base {
 						}
 						return findVisibleAncestor(location.locator(".."), maxDepth - 1);
 					}
-					throw error(`No visible ancestor found for ${selector}`);
+					throw Logger.ror(`No visible ancestor found for ${selector}`);
 				};
 				const locator = strategy === "testId" ? target : await findVisibleAncestor(target);
 				return { target, locator, selector, count: await locator.count() };
@@ -237,7 +231,7 @@ export abstract class Base {
 			}
 		}
 
-		throw error(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+		throw Logger.ror(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
 	}
 
 	// Find frames by selector seperate for find
@@ -258,7 +252,7 @@ export abstract class Base {
 			}
 		}
 
-		throw error(`No frames found for selectors: ${selectors.join(", ")}`);
+		throw Logger.ror(`No frames found for selectors: ${selectors.join(", ")}`);
 	}
 
 	async dimensions() {
@@ -299,7 +293,7 @@ export abstract class Base {
 	bang<T>(message: unknown, expect: T, source?: unknown) {
 		Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
 		if (expect) return expect;
-		throw error(message, { source, expect });
+		throw Logger.ror(message, { source, expect });
 	}
 
 	banger<T>(expect: T, source?: unknown) {
@@ -308,6 +302,6 @@ export abstract class Base {
 
 	bing<T>(expect: unknown, returnz: T, source?: unknown) {
 		if (this.banger(expect)) return returnz;
-		throw error("", { source, expect });
+		throw Logger.ror("", { source, expect });
 	}
 }

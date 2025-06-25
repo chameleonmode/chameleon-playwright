@@ -1,29 +1,31 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../configure.js";
-import Reddit from "../../reddit.js";
+import { Options } from "../../../configure.js";
+import Reddit from "../../../reddit.js";
+import { Subreddit } from "../subreddit.js";
 
 export default async function (context: BrowserContext, opts: Options) {
 	// Step 1 - Init
-	const { reddit } = await Reddit(context, opts, async (url) => {
+	const { reddit } = await Reddit(context, opts, async (_) => {
+			const subreddit = new Subreddit(reddit);
 		// find post content from a comment
-		await reddit.post.assert();
+		await reddit.navigateIntoPost();
 
 		// Get the post title and comment text
 		// const titled = await reddit.post.title();
 		const b64 = [await reddit.screenshot()];
-		const comments = await reddit.post.getComments();
+		const comments = await reddit.getComments();
 		const context = `The post will be based on ${reddit.page.url()}`;
 
 		// Check if the user is on the right page
 		// if (reddit.scopeulation.tranform().community) await reddit.page.goBack();
-		await reddit.post.visitCommunity();
+		await subreddit.visitCommunity();
 
 		// Check if the user is on the right page
-		await reddit.subreddit.canPost();
+		await subreddit.canPost();
 		b64.push(await reddit.screenshot());
 
 		// Create a new post
-		await reddit.poster(async () => {
+		await subreddit.poster(async () => {
 			const titlee = await reddit.ask({
 				task: `generate_post_title.`,
 				image: { des: "page screenshots", b64 },

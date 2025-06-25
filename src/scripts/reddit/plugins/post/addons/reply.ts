@@ -1,19 +1,22 @@
 import { BrowserContext } from "@playwright/test";
-import { error, rando } from "../../../../lib/utils.js";
-import { Options } from "../../configure.js";
-import Pager from "../../reddit.js";
-import { promptee } from "../../../../lib/requests.js";
+import { promptee } from "../../../../../lib/requests.js";
+import { Options } from "../../../configure.js";
+import Reddit from "../../../reddit.js";
+import { Post } from "../post.js";
 
 export default async function (context: BrowserContext, opts: Options) {
 	// Step 1 - Init
-	const { reddit } = await Pager(context, opts, async (_) => {
+	const { reddit } = await Reddit(context, opts, async (_) => {
+		const post = new Post(reddit);
 		// Step 1.5 - define the scenario
-		await reddit.post.assert();
-		await reddit.post.archived(reddit.assert);
+		await reddit.navigateIntoPost();
+		await post.archived(reddit.assert);
 
 		// Get the post content, screenshot, and comments
-		const { content, screenshot, comments, id, url } = await reddit.post.raw();
+		const { content, screenshot, comments, id, url } = await post.raw();
 		// const comment = rando(comments);
+
+		// Step 1.6 - Generate a reply
 		const result = await promptee.robot({
 			model: "o4-mini",
 			decorators: reddit.opts.ai.decorators,
@@ -37,9 +40,7 @@ export default async function (context: BrowserContext, opts: Options) {
 			},
 		});
 		const comment = reddit.banger(comments.find((c) => c.id === result[0].id));
-
-		// Step 1.6 - Generate a reply
-		await reddit.post.replyToComment(comment.locator, async () => {
+		await post.replyToComment(comment.locator, async () => {
 			await reddit.nap();
 			return result[0].data;
 		});

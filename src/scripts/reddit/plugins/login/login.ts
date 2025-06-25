@@ -1,12 +1,12 @@
 import { Reddit } from "../../reddit.js";
 
 export class Login {
-	constructor(readonly reddit: Reddit) {}
+	constructor(readonly pager: Reddit) {}
 	// Check authentication
 	async checkLoginAuthentication() {
-		const locato = this.reddit.page.locator("#login-button").first();
-		this.reddit.bang("Login button", await locato.isVisible(), locato);
-		await this.reddit.click(locato);
+		const locato = this.pager.page.locator("#login-button").first();
+		this.pager.bang("Login button", await locato.isVisible(), locato);
+		await this.pager.click(locato);
 	}
 
 	// Login with credentials
@@ -14,15 +14,15 @@ export class Login {
 		await this.checkLoginAuthentication();
 
 		//
-		const loginUserNameInput = this.reddit.page.locator("faceplate-text-input#login-username input");
-		await this.reddit.pressSequentially(loginUserNameInput, email);
-		await this.reddit.page.keyboard.press("Tab");
+		const loginUserNameInput = this.pager.page.locator("faceplate-text-input#login-username input");
+		await this.pager.pressSequentially(loginUserNameInput, email);
+		await this.pager.page.keyboard.press("Tab");
 
-		const loginUserPassword = this.reddit.page.locator("faceplate-text-input#login-password input");
-		await this.reddit.pressSequentially(loginUserPassword, password);
+		const loginUserPassword = this.pager.page.locator("faceplate-text-input#login-password input");
+		await this.pager.pressSequentially(loginUserPassword, password);
 
-		const loginUserButton = this.reddit.page.getByRole("button", { name: "Log In" });
-		await this.reddit.click(loginUserButton);
+		const loginUserButton = this.pager.page.getByRole("button", { name: "Log In" });
+		await this.pager.click(loginUserButton);
 	}
 
 	// Login google
@@ -30,7 +30,7 @@ export class Login {
 		await this.checkLoginAuthentication();
 
 		// Step 2: Find and click the Google sign-in button inside iframe
-		const { frame } = await this.reddit.findFrame([
+		const { frame } = await this.pager.findFrame([
 			'iframe[src*="accounts.google.com/gsi/button"]',
 			'iframe[allow="identity-credentials-get"]',
 			'iframe[id^="gsi_"]',
@@ -40,7 +40,7 @@ export class Login {
 		await frame.locator('div[role="button"]').click();
 
 		// Step 3: Handle the Google authentication popup
-		const popup = await this.reddit.page.waitForEvent("popup");
+		const popup = await this.pager.page.waitForEvent("popup");
 		await popup.waitForLoadState();
 
 		// Check if we have saved accounts to select from
@@ -52,18 +52,18 @@ export class Login {
 
 		// Enter email
 		const emailInput = popup.getByLabel("Email or phone");
-		await this.reddit.pressSequentially(emailInput, email);
+		await this.pager.pressSequentially(emailInput, email);
 
 		// Click next after email
 		const nextButton = popup.locator("div#identifierNext button");
-		await this.reddit.click(nextButton);
+		await this.pager.click(nextButton);
 
 		// Enter password if needed
 		const passwordInput = popup.getByLabel("Enter your password");
-		await this.reddit.pressSequentially(passwordInput, password);
+		await this.pager.pressSequentially(passwordInput, password);
 
 		// Complete login
 		const passwordNextButton = popup.locator("div#passwordNext button");
-		await this.reddit.click(passwordNextButton);
+		await this.pager.click(passwordNextButton);
 	}
 }

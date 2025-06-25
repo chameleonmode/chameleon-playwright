@@ -1,6 +1,6 @@
 import { Logger } from "../lib/logger.js";
 import { delay } from "../lib/utils.js";
-import { Base } from "./base.js";
+import { Pager } from "./pager.js";
 
 export interface State {
   visited: number[];
@@ -13,7 +13,7 @@ export class Player {
   };
 
   // ctor
-  constructor(readonly actor: Base) {}
+  constructor(readonly actor: Pager) {}
 
   async play() {
     Logger.log("Delay", { delay: this.actor.opts.settings.timeouts.artifacto.delay });
@@ -25,7 +25,7 @@ export class Player {
 
       // if on next variation
       Logger.log(`Url: ${j + 1} of ${length}`, url);
-      while (!((await this.actor.onTry(url)) instanceof Error)) {
+      while (!((await this.actor.onWhile(url)) instanceof Error)) {
         this.state.visited.length = 0;
         for (let i = 0; i < this.actor.opts.settings.start.iterations.max; i++) {
           Logger.log(`Iteration: ${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
@@ -33,7 +33,7 @@ export class Player {
           // if on next iteration
           if (i > 0) {
 						await delay(this.actor.opts.settings.timeouts.artifacto.delay);
-						await this.actor.onIteration(url);
+						await this.actor.onReIteration(url);
 					}
 
           // on each iteration

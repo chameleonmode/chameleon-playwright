@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-import { Logger } from "./logger.js";
 
 /**
  * sleeps for a specified number of milliseconds.
@@ -91,13 +90,6 @@ export async function tryForEach<T>(promises: Promise<T>[]) {
 	);
 
 	return { fulfilled, errors };
-}
-
-export async function error(message: unknown, cause?: unknown) {
-	const error = new Error(`${message}`, { cause });
-	const pretty = { cause, stack: error.stack };
-	Logger.error(`(error): ${error.message}`, pretty);
-	return error;
 }
 
 export async function trySequentially<T>(promises: (() => Promise<T>)[], { first = true } = {}) {

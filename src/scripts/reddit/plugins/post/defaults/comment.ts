@@ -1,19 +1,22 @@
 import { BrowserContext } from "@playwright/test";
-import { Options } from "../../configure.js";
-import Reddit from "../../reddit.js";
-import { promptee } from "../../../../lib/requests.js";
+import { promptee } from "../../../../../lib/requests.js";
+import { Options } from "../../../configure.js";
+import Reddit from "../../../reddit.js";
+import { Post } from "../post.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
 	// Step 1 - Init
-	const { reddit } = await Reddit(ctx, opts, async (url) => {
-		// Step 1.5 - define the scenario
-		await reddit.post.assert();
+	const { reddit } = await Reddit(ctx, opts, async (_) => {
+		await reddit.navigateIntoPost();
+		
+		const post = new Post(reddit);
+
 		// Click the comment button
-		await reddit.post.archived(reddit.click);
-		const { content, screenshot, comments } = await reddit.post.raw();
+		await post.archived(reddit.click);
+		const { content, screenshot, comments } = await post.raw();
 
 		// Step 1.6 - Generate a comment
-		await reddit.post.addComment(async () => {
+		await post.addComment(async () => {
 			const result = await promptee.robot({
 				model: "o4-mini",
 				decorators: reddit.opts.ai.decorators,
