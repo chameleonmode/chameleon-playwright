@@ -296,89 +296,61 @@ export class Reddit extends Pager {
 		await this.nap();
 	}
 
-
 	// Join a conversation by clicking the "See full discussion" link and making sure post is open
 	async joinConversation() {
-		// await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
-		// await this.scrollabit(3);
+		await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
+		await this.scrollabit(3);
 
-		// const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
-		// const closed = await archived.isVisible().catch(() => false);
-		// this.banger(!closed, archived);
+		const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
+		const closed = await archived.isVisible().catch(() => false);
+		this.banger(!closed, archived);
 
-// const input = this.page
-//   .locator('faceplate-textarea-input[data-testid="trigger-button"][placeholder="Join the conversation"]')
-//   .filter({ has: this.page.locator(':visible') })
-//   .first();
-// 					const firstVisible = async (current: Locator, depth = 18, timeout = 36): Promise<Locator> => {
-// 						if (await current.click({ timeout }).catch(() => false)) return current;
-// 					// Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
+		// 1. Locate visible trigger
+		const triggers = this.page.locator(
+			'comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]'
+		);
+		const count = await triggers.count();
 
-// 					for (const location of await current.all()) {
-// 						if (await location.click({ timeout }).catch(() => false)) return location;
-// 						const siblings = location.locator(":scope > *"); // all children of the parent
-// 						for (const sibling of await siblings.all()) {
-// 							return await firstVisible(sibling, depth - 1);
-// 						}
-// 					}
-// 					throw ror(`Max depth reached while finding visible ancestor for ${input}`);
-// 				};
-// 	const clicker = await firstVisible(input); 
-		// const { locator } = await this.find(
-		// 	[
-		// 		'div[contenteditable="true"][data-lexical-editor="true"]',
-		// 		'shreddit-composer div[contenteditable="true"]',
-		// 	],
-		// 	"selector"
-		// );
-		// return await this.click(locator, { timeout: 600 }).catch(() => false);
-		// return await this.page.getByRole("button", { name: "Add a comment" }).click({ force: true }).catch(() => false);
+		let clicked = false;
 
-// await this.page.waitForSelector('shreddit-composer div[contenteditable="true"]', { timeout: 5000 });
-// Step 1: Focus the real contenteditable div directly
+		for (let i = 0; i < count; i++) {
+			const trigger = triggers.nth(i);
+			if (await trigger.isVisible()) {
+				try {
+					await trigger.click({ force: true });
+					clicked = true;
+					break;
+				} catch (err) {
+					Logger.warn(`Click failed on visible trigger #${i}:`, err);
+				}
+			}
+		}
 
-  // 1. Locate visible trigger
-  const triggers = this.page.locator('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
-  const count = await triggers.count();
+		// 2. Fallback: try to force dispatch focus with JS if no visible trigger worked
+		if (!clicked) {
+			Logger.warn("Trying JS-based fallback trigger...");
+			await this.page.evaluate(() => {
+				const el = document.querySelector(
+					'comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]'
+				);
+				if (el) el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
+			});
+		}
 
-  let clicked = false;
+		// 3. Wait for rich editor to become visible
+		const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
+		await editor.waitFor({ state: "visible", timeout: 5000 });
 
-  for (let i = 0; i < count; i++) {
-    const trigger = triggers.nth(i);
-    if (await trigger.isVisible()) {
-      try {
-        await trigger.click({ force: true });
-        clicked = true;
-        break;
-      } catch (err) {
-        Logger.warn(`Click failed on visible trigger #${i}:`, err);
-      }
-    }
-  }
+		// 4. Focus editor and fill text
+		await editor.click({ force: true });
+		// await editor.fill(commentText);
 
-  // 2. Fallback: try to force dispatch focus with JS if no visible trigger worked
-  if (!clicked) {
-    Logger.warn("Trying JS-based fallback trigger...");
-    await this.page.evaluate(() => {
-      const el = document.querySelector('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
-      if (el) el.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
-    });
-  }
+		// 5. Wait for and click submit
+		// const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
+		// await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
+		// await submitBtn.click({ force: true });
 
-  // 3. Wait for rich editor to become visible
-  const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
-  await editor.waitFor({ state: 'visible', timeout: 5000 });
-
-  // 4. Focus editor and fill text
-  await editor.click({ force: true });
-  // await editor.fill(commentText);
-
-  // 5. Wait for and click submit
-  // const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
-  // await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
-  // await submitBtn.click({ force: true });
-
-return editor;
+		return editor;
 	}
 
 	// find an active context
@@ -415,7 +387,6 @@ return editor;
 			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
 		);
 	}
-
 
 	// Find and click a random post
 	async navigateIntoPost() {
