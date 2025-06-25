@@ -1,9 +1,10 @@
-import { BrowserContext } from "@playwright/test";
-import { random } from "../../lib/utils.js";
+import { BrowserContext, Locator } from "@playwright/test";
+import { rando, random } from "../../lib/utils.js";
 import { configure, Options, Scope, Sort, BASE_URL, Filter } from "./configure.js";
-import { Pager } from "../pager.js";
-import { Player } from "../player.js";
+import { Pager, ror } from "../pager.js";
+import { Findo, Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
+import { RedditComment } from "../../lib/types/ai.js";
 
 class Scopeulation {
 	readonly visited: string[] = [];
@@ -26,14 +27,8 @@ class Scopeulation {
 	}
 
 	user(url: string) {
-		const pattern = /\/user\/[^/]+\/?$/;
+		const pattern = /\.com\/user\/[^/]+/;
 		return pattern.test(url);
-	}
-
-	reStartingPoint(url: string) {
-		return this.comments(url) || this.search(url) || this.user(url)
-			? url
-			: url.replace(/\/?$/, "/") + "search";
 	}
 }
 export const scopeulation = new Scopeulation();
@@ -45,12 +40,12 @@ export class Reddit extends Pager {
 	constructor(
 		readonly ctx: BrowserContext,
 		readonly opts: Options,
-		readonly action?: (url?: string) => Promise<unknown>
+		readonly action?: (url?: string, thread?: Findo) => Promise<unknown>
 	) {
 		super(ctx, opts, async (url: string) => {
 			Logger.log("Scenario URL:", url);
 			const pre = async () => {
-				if (scopeulation.user(url)) {
+				if (scopeulation.user(this.page.url()) || scopeulation.user(url)) {
 					await this.click(
 						this.opts.args.sort === "Posts"
 							? 'a[slot="page-2"]:has-text("Posts")'
@@ -60,7 +55,6 @@ export class Reddit extends Pager {
 					);
 				}
 			};
-
 			if (action && (scopeulation.comments(url) || scopeulation.user(url))) {
 				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
 					try {
@@ -69,7 +63,12 @@ export class Reddit extends Pager {
 						return await action(url);
 					} catch (e) {
 						Logger.warn("Error in action function:", e);
-						await this.page.reload({ waitUntil: "load" });
+						this.opts.settings.start.attempts--;
+						// If we are on a comments page or user page, we need to go back
+						while (!this.page.url().startsWith(url) && this.opts.settings.start.attempts > 0) {
+							await this.page.goBack();
+							await this.nap({ min: 50, max: 75, multiplier: random(3, 6) });
+						}
 					} finally {
 						Logger.log("Action function completed");
 						// TODO: refactoroo
@@ -79,11 +78,24 @@ export class Reddit extends Pager {
 				}
 			} else if (action) {
 				try {
-					const expecto = await this.findo(async () => {
+					const scopeulator = this.scopeulate();
+					try {
+						await scopeulator.click();
+						await scopeulator.clickSortOptionByText();
+						await scopeulator.clickTimeRangeByText();
+					} catch (e) {
+						Logger.warn("Error in findo setup:", e);
+					}
+					const findulator = await scopeulator.findulator();
+					await this.scrollabit();
+
+					// Wait for thread elements to be available
+					const threads = await findulator.find.locator.all();
+					const expecto = await this.findo(threads, async (thread) => {
 						await pre();
-						return await action();
+						return await action(url, thread);
 					});
-					return expecto.index;
+					return expecto;
 				} catch (e) {
 					Logger.warn("Error in action function:", e);
 				} finally {
@@ -99,10 +111,9 @@ export class Reddit extends Pager {
 	}
 
 	scopeulate() {
-		const scopes: Scope[] = ["People", "Communities"];
 		const url = scopeulation.visited[scopeulation.visited.length - 1];
 		const scope =
-			scopes.includes(this.opts.args.scope) &&
+			["People", "Communities"].includes(this.opts.args.scope) &&
 			(scopeulation.subreddit(url) || scopeulation.comments(url) || scopeulation.search(url))
 				? "Posts"
 				: this.opts.args.scope;
@@ -112,7 +123,106 @@ export class Reddit extends Pager {
 		const t = Url.searchParams.get("t");
 		const community = scope === "Communities" || type === "communities";
 		const people = scope === "People" || type === "people" || scopeulation.user(url);
-		const scoped = { url, scope, Url, type, sort, t, community, people };
+		const scoped = {
+			url,
+			scope,
+			Url,
+			type,
+			sort,
+			t,
+			community,
+			people,
+			findulator: async () => {
+				const mapper: {
+					[key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
+				} = {
+					Posts: {
+						ids: ["search-post-unit", "search-post-with-content-preview"],
+						strat: "testId",
+					},
+					Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
+					Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
+					Communities: { ids: ["search-community"], strat: "testId" },
+					People: { ids: ["search-author"], strat: "testId" },
+				};
+				const scoped = mapper[scope];
+
+				// If not a user provided URL, we might need a different scope
+				return { scope: scoped, find: await this.find(scoped.ids, scoped.strat) };
+			},
+			clickSortOptionByText: async () => {
+				const scopes: Scope[] = ["Posts", "Comments", "Media"];
+				const sorts: Sort[] = ["Hot", "Top", "New", "Comments"];
+				const skips = sort || !scopes.includes(scope) || !sorts.includes(this.opts.args.sort);
+				if (skips) return;
+				// Click the sort dropdown
+				const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
+				await this.click(sortLocator);
+
+				// Normalize the text to handle spacing differences
+				const normalizedText =
+					this.opts.args.scope === "Comments" &&
+					(this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
+						? "Top"
+						: this.opts.args.sort.trim();
+				const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
+				// Locate the option by its display text
+				const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
+
+				// First scroll the option into view
+				await sortOption.scrollIntoViewIfNeeded();
+
+				// Wait a brief moment to ensure it's properly visible
+				// await this.page.waitForTimeout(200);
+
+				// Get the parent 'a' element which is the actual clickable link
+				const parentLink = sortOption.locator("xpath=./ancestor::a");
+				// Click the link
+				await this.click(parentLink);
+				await this.nap();
+			},
+			clickTimeRangeByText: async () => {
+				const scopes: Scope[] = ["Posts", "Media"];
+				const sorts: Sort[] = ["Relevance", "Top", "Comments"];
+				const filters: Filter[] = ["Year", "Month", "Week", "Today", "Hour"];
+				const skips =
+					t ||
+					!scopes.includes(scope) ||
+					!sorts.includes(this.opts.args.sort) ||
+					!filters.includes(this.opts.args.filter);
+				if (skips) return;
+
+				// Click the time range dropdown
+				const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
+				await this.click(sortLocator.nth(1));
+
+				// Now find and click the option
+				const optionText =
+					this.opts.args.filter === "Today"
+						? this.opts.args.filter.trim()
+						: "Past " + this.opts.args.filter.trim().toLowerCase();
+				// First approach - target by the exact text
+				const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
+
+				// Get the containing link element
+				const linkElement = exactOption.locator("xpath=./ancestor::a");
+
+				// Scroll into view and click
+				await linkElement.scrollIntoViewIfNeeded();
+				await this.click(linkElement);
+
+				Logger.log(`Clicked on "${optionText}" time range option`);
+			},
+			click: async () => {
+				if (type) return;
+				// Click the appropriate tab based on the scope
+				await this.click(
+					scope === "Posts"
+						? this.page.getByRole("button", { name: scope }).first()
+						: this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first()
+				);
+			},
+		};
 		return Logger.return(`Scoped:`, scoped);
 	}
 
@@ -149,7 +259,11 @@ export class Reddit extends Pager {
 	// on every retry/iteration
 	override async onReIteration(url: string) {
 		await this.nap();
-		while (!this.page.url().startsWith(scopeulation.reStartingPoint(url))) {
+		const until = () =>
+			scopeulation.comments(url) || scopeulation.search(url) || scopeulation.user(url)
+				? url
+				: url.replace(/\/?$/, "/") + "search";
+		while (!this.page.url().startsWith(until())) {
 			await this.page.goBack({ waitUntil: "load" });
 			await this.nap({ multiplier: random(3, 6) });
 		}
@@ -174,7 +288,7 @@ export class Reddit extends Pager {
 		await this.click(textbox);
 
 		const clearButton = locator.getByRole("button", { name: "Clear search" });
-		await this.click(clearButton, { timeout: 1500, strict: false }).catch(() => false);
+		if (await clearButton.isVisible().catch(() => false)) await clearButton.click().catch(() => false);
 
 		await this.pressSequentially(textbox, text, false);
 		await this.nap({ multiplier: 3 });
@@ -182,257 +296,145 @@ export class Reddit extends Pager {
 		await this.nap();
 	}
 
+
+	// Join a conversation by clicking the "See full discussion" link and making sure post is open
+	async joinConversation() {
+		// await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
+		// await this.scrollabit(3);
+
+		// const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
+		// const closed = await archived.isVisible().catch(() => false);
+		// this.banger(!closed, archived);
+
+// const input = this.page
+//   .locator('faceplate-textarea-input[data-testid="trigger-button"][placeholder="Join the conversation"]')
+//   .filter({ has: this.page.locator(':visible') })
+//   .first();
+// 					const firstVisible = async (current: Locator, depth = 18, timeout = 36): Promise<Locator> => {
+// 						if (await current.click({ timeout }).catch(() => false)) return current;
+// 					// Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
+
+// 					for (const location of await current.all()) {
+// 						if (await location.click({ timeout }).catch(() => false)) return location;
+// 						const siblings = location.locator(":scope > *"); // all children of the parent
+// 						for (const sibling of await siblings.all()) {
+// 							return await firstVisible(sibling, depth - 1);
+// 						}
+// 					}
+// 					throw ror(`Max depth reached while finding visible ancestor for ${input}`);
+// 				};
+// 	const clicker = await firstVisible(input); 
+		// const { locator } = await this.find(
+		// 	[
+		// 		'div[contenteditable="true"][data-lexical-editor="true"]',
+		// 		'shreddit-composer div[contenteditable="true"]',
+		// 	],
+		// 	"selector"
+		// );
+		// return await this.click(locator, { timeout: 600 }).catch(() => false);
+		// return await this.page.getByRole("button", { name: "Add a comment" }).click({ force: true }).catch(() => false);
+
+// await this.page.waitForSelector('shreddit-composer div[contenteditable="true"]', { timeout: 5000 });
+// Step 1: Focus the real contenteditable div directly
+
+  // 1. Locate visible trigger
+  const triggers = this.page.locator('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
+  const count = await triggers.count();
+
+  let clicked = false;
+
+  for (let i = 0; i < count; i++) {
+    const trigger = triggers.nth(i);
+    if (await trigger.isVisible()) {
+      try {
+        await trigger.click({ force: true });
+        clicked = true;
+        break;
+      } catch (err) {
+        Logger.warn(`Click failed on visible trigger #${i}:`, err);
+      }
+    }
+  }
+
+  // 2. Fallback: try to force dispatch focus with JS if no visible trigger worked
+  if (!clicked) {
+    Logger.warn("Trying JS-based fallback trigger...");
+    await this.page.evaluate(() => {
+      const el = document.querySelector('comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]');
+      if (el) el.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+    });
+  }
+
+  // 3. Wait for rich editor to become visible
+  const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
+  await editor.waitFor({ state: 'visible', timeout: 5000 });
+
+  // 4. Focus editor and fill text
+  await editor.click({ force: true });
+  // await editor.fill(commentText);
+
+  // 5. Wait for and click submit
+  // const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
+  // await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
+  // await submitBtn.click({ force: true });
+
+return editor;
+	}
+
 	// find an active context
-	async findo(funco: () => Promise<unknown>, visited: number[] = this.player.state.visited) {
-		const scopeulator = this.scopeulate();
-		const findulator = (() => {
-			const mapper: {
-				[key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
-			} = {
-				Posts: {
-					ids: ["search-post-unit", "search-sdui-unit", "search-post-with-content-preview"],
-					strat: "testId",
-				},
-				Media: { ids: ["div[data-id='search-media-post-unit']"], strat: "selector" },
-				Comments: { ids: ["search-sdui-comment-unit"], strat: "testId" },
-				Communities: { ids: ["search-community"], strat: "testId" },
-				People: { ids: ["search-author"], strat: "testId" },
-			};
+	async findo<T>(posts: Locator[], funco: (findo: Findo) => Promise<T>): Promise<T> {
+		const url = new URL(this.page.url());
 
-			// If not a user provided URL, we might need a different scope
-			return mapper[scopeulator.scope];
-		})();
-
-		// TODO: refactor --------------------------
-		try {
-			if (!scopeulator.type) {
-				await this.click(
-					scopeulator.scope === "Posts"
-						? this.page.getByRole("button", { name: scopeulator.scope }).first()
-						: this.page.locator(`#search-results-page-tab-${scopeulator.scope.toLowerCase()}`).first()
-				);
-			}
-
-			if (visited.length === 0) {
-				// Function to click a sort option by its text
-				const clickSortOptionByText = async () => {
-					const scopes: Scope[] = ["Posts", "Comments", "Media"];
-					const sorts: Sort[] = ["Hot", "Top", "New", "Comments"];
-					if (
-						scopeulator.sort ||
-						!scopes.includes(scopeulator.scope) ||
-						!sorts.includes(this.opts.args.sort)
-					) {
-						return;
-					}
-
-					// Click the sort dropdown
-					const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
-					await this.click(sortLocator);
-
-					// Normalize the text to handle spacing differences
-					const normalizedText =
-						this.opts.args.scope === "Comments" &&
-						(this.opts.args.sort === "Comments" || this.opts.args.sort === "Hot")
-							? "Top"
-							: this.opts.args.sort.trim();
-					const normalizedOption = normalizedText === "Comments" ? "Comment count" : normalizedText;
-
-					try {
-						// Locate the option by its display text
-						const sortOption = this.page.locator(`li a span:has-text("${normalizedOption}")`).first();
-
-						// First scroll the option into view
-						await sortOption.scrollIntoViewIfNeeded();
-
-						// Wait a brief moment to ensure it's properly visible
-						// await this.page.waitForTimeout(200);
-
-						// Get the parent 'a' element which is the actual clickable link
-						const parentLink = sortOption.locator("xpath=./ancestor::a");
-						// Click the link
-						await this.click(parentLink);
-
-						Logger.log(`Successfully clicked on the "${normalizedOption}" sort option`);
-					} catch (error) {
-						Logger.error(`Failed to click sort option "${normalizedOption}":`, error);
-
-						// Alternative approach using evaluate if the above fails
-						try {
-							await this.page.evaluate((text) => {
-								const elements = Array.from(document.querySelectorAll("li a span"));
-								const targetElement = elements.find((el) => el.textContent?.includes(text));
-								if (targetElement) {
-									targetElement.closest("a")?.click();
-									return true;
-								}
-								return false;
-							}, normalizedOption);
-							Logger.log(`Clicked on "${normalizedOption}" using evaluate method`);
-						} catch (evalError) {
-							Logger.error(`Alternative method also failed:`, evalError);
-						}
-					}
-				};
-				await clickSortOptionByText();
-				await this.nap();
-
-				// Function to click a time range option by its text
-				const clickTimeRangeByText = async () => {
-					const scopes: Scope[] = ["Posts", "Media"];
-					const sorts: Sort[] = ["Relevance", "Top", "Comments"];
-					const filters: Filter[] = ["Year", "Month", "Week", "Today", "Hour"];
-					if (
-						scopeulator.t ||
-						scopeulator.sort === "communities" ||
-						!scopes.includes(scopeulator.scope) ||
-						!sorts.includes(this.opts.args.sort) ||
-						!filters.includes(this.opts.args.filter)
-					) {
-						return;
-					}
-					// Click the time range dropdown
-					const sortLocator = this.page.locator(`search-sort-dropdown-menu`);
-					await this.click(sortLocator.nth(1));
-
-					// Now find and click the option
-					const optionText =
-						this.opts.args.filter === "Today"
-							? this.opts.args.filter.trim()
-							: "Past " + this.opts.args.filter.trim().toLowerCase();
-					try {
-						// First approach - target by the exact text
-						const exactOption = this.page.locator(`li a span:has-text("${optionText}")`).first();
-
-						// Get the containing link element
-						const linkElement = exactOption.locator("xpath=./ancestor::a");
-
-						// Scroll into view and click
-						await linkElement.scrollIntoViewIfNeeded();
-						await this.click(linkElement);
-
-						Logger.log(`Clicked on "${optionText}" time range option`);
-						return true;
-					} catch (error) {
-						Logger.error(`Failed to click time range "${optionText}":`, error);
-
-						// Try alternative approach using the specific structure
-						try {
-							// Find all list items in the dropdown
-							const listItems = this.page.locator(
-								"search-sort-dropdown-menu#search_modifier_time_range li"
-							);
-							const count = await listItems.count();
-
-							for (let i = 0; i < count; i++) {
-								const item = listItems.nth(i);
-								const text = await item.locator("span span.text-14").textContent();
-
-								if (text?.trim().includes(optionText)) {
-									// Find the link within this item
-									const link = item.locator("a");
-									await link.scrollIntoViewIfNeeded();
-									await this.page.waitForTimeout(200);
-									await link.click();
-
-									Logger.log(`Clicked on "${optionText}" time range option (alternative method)`);
-									return true;
-								}
-							}
-
-							Logger.error(`Could not find time range option "${optionText}" among ${count} options`);
-							return false;
-						} catch (alternativeError) {
-							Logger.error(`Alternative method also failed:`, alternativeError);
-							return false;
-						}
-					}
-				};
-				await clickTimeRangeByText();
-			}
-		} catch (e) {
-			Logger.warn("Error in findo function:", e);
-		}
-		// ------------------------------------------
-
-		for (let i = 0; i < Math.max(this.opts.settings.start.attempts, 1); i++) {
-			Logger.debug(`Attempts remaining: ${this.opts.settings.start.attempts}`, i);
-			await this.nap();
-			await this.scrollabit();
-
-			// Wait for thread elements to be available
-			const { locator, count } = await this.find(findulator.ids, findulator.strat);
-
-			// Filter out indices we've already tried
-			const availableIndices = Array.from({ length: count }, (_, i) => i).filter(
-				(index) => !visited.includes(index)
+		for (const listing of posts) {
+			this.banger(this.opts.settings.start.attempts > 0, this.opts.settings.start.attempts);
+			const existing = this.player.state.visited.some(
+				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
 			);
-			this.bang("available threads", availableIndices.length > 0, {
-				triedIndices: visited,
-				availableIndices,
-			});
-
-			// Randomly select an index from the available indices
-			const index = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+			if (existing) continue; // Skip already visited listings
 			try {
-				const thread = locator.nth(index);
-				await this.click(thread);
-				try {
-					this.bang(
-						"max attempts",
-						this.opts.settings.start.attempts === 0,
-						this.opts.settings.start.attempts
-					);
-					return { index, visited };
-				} catch (e) {
-					const funky = await funco();
-					return { index, funky, visited };
+				const thread = { listing, attributes: await this.attributes(listing) };
+				this.player.state.visited.push(thread);
+				await thread.listing.scrollIntoViewIfNeeded();
+				await this.nap();
+				await thread.listing.click({ position: { x: 5, y: 5 } });
+				await this.nap();
+				return await funco(thread);
+			} catch {
+				this.opts.settings.start.attempts--;
+				while (true && this.opts.settings.start.attempts > 0) {
+					const pUrl = new URL(this.page.url());
+					if (pUrl.pathname === url.pathname) break; // If we are at the base URL
+
+					await this.page.goBack();
+					await this.nap();
 				}
-			} catch (e) {
-				Logger.warn("error in findo loop", e);
-				visited.push(index);
-				await this.page.reload({ waitUntil: "load" });
-				await this.onReIteration(scopeulation.visited[scopeulation.visited.length - 1]);
 			}
 		}
 
-		throw Logger.ror(
+		throw ror(
 			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
 		);
 	}
 
-	// Join a conversation by clicking the "See full discussion" link and making sure post is open
-	async joinConversation() {
-		await this.click('a:has-text("See full discussion")', { timeout: 1500 }).catch(() => false);
-		const { locator } = await this.find(
-			[
-				'div[contenteditable="true"][data-lexical-editor="true"]',
-				'shreddit-composer div[contenteditable="true"]',
-			],
-			"selector"
-		);
-		return locator;
-	}
 
 	// Find and click a random post
 	async navigateIntoPost() {
 		const scopeulator = this.scopeulate();
-		if (scopeulator.community || scopeulator.people) {
-			await this.scrollabit();
-			const posts = this.page.locator("a[slot='title']");
-			const count = await posts.count();
-			const index = Math.floor(Math.random() * count);
-			const randomPost = posts.nth(index);
-			await this.click(randomPost);
-		}
+		if (!scopeulator.community && !scopeulator.people) return;
+
+		await this.scrollabit();
+		const posts = this.page.locator(
+			`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`
+		);
+		return await posts.all();
 	}
 
 	// Get comments from post with limit
-	async getComments(max = 36) {
+	async getComments(max = 1000) {
 		const loca = this.page.locator("shreddit-comment");
 		const count = await loca.count();
 		const length = Math.min(max, count);
-		const comments: { id: string; index: number; text: string; attributes: any; locator: any }[] = [];
+		const comments: RedditComment[] = [];
 
 		// Extract comment data
 		for (let i = 1; i < length; i++) {
@@ -442,7 +444,7 @@ export class Reddit extends Pager {
 				const attributes = await this.attributes(locator);
 				comments.push({ id: crypto.randomUUID(), index: i, text, attributes, locator });
 			} catch (error) {
-				console.log(`Error processing comment ${i}:`, error);
+				Logger.warn(`Error processing comment ${i}:`, error);
 				continue;
 			}
 		}
@@ -453,7 +455,7 @@ export class Reddit extends Pager {
 export default async function (
 	ctx: BrowserContext,
 	opts: Partial<Options>,
-	action: (url?: string) => Promise<unknown>
+	action: (url?: string, thread?: Findo) => Promise<unknown>
 ) {
 	// setup options
 	const options = configure(opts);

@@ -2,17 +2,18 @@ import { BrowserContext } from "@playwright/test";
 import { Options } from "../../../configure.js";
 import Reddit from "../../../reddit.js";
 import { Subreddit } from "../subreddit.js";
+import { promptee } from "../../../../../lib/requests.js";
 
 export default async function (context: BrowserContext, opts: Options) {
 	// Step 1 - Init
 	const { reddit } = await Reddit(context, opts, async (_) => {
-			const subreddit = new Subreddit(reddit);
+		const subreddit = new Subreddit(reddit);
 		// find post content from a comment
 		await reddit.navigateIntoPost();
 
 		// Get the post title and comment text
 		// const titled = await reddit.post.title();
-		const b64 = [await reddit.screenshot()];
+		const b64 = [await reddit.screenshot(reddit.page.locator('body'))];
 		const comments = await reddit.getComments();
 		const context = `The post will be based on ${reddit.page.url()}`;
 
@@ -22,11 +23,13 @@ export default async function (context: BrowserContext, opts: Options) {
 
 		// Check if the user is on the right page
 		await subreddit.canPost();
-		b64.push(await reddit.screenshot());
+		b64.push(await reddit.screenshot(reddit.page.locator('body')));
 
 		// Create a new post
 		await subreddit.poster(async () => {
-			const titlee = await reddit.ask({
+			const titlee = await promptee.robot({
+				model: "o4-mini",
+				decorators: reddit.opts.ai.decorators,
 				task: `generate_post_title.`,
 				image: { des: "page screenshots", b64 },
 				generations: {
@@ -44,9 +47,11 @@ export default async function (context: BrowserContext, opts: Options) {
 					if (data.type === "title") return data;
 				})
 			);
-			b64.push(await reddit.screenshot());
+			b64.push(await reddit.screenshot(reddit.page.locator('body')));
 
-			const contentlee = await reddit.ask({
+			const contentlee = await promptee.robot({
+				model: "o4-mini",
+				decorators: reddit.opts.ai.decorators,
 				task: `create_post_content`,
 				image: { des: "page screenshots", b64 },
 				generations: {

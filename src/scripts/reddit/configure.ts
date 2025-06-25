@@ -26,7 +26,7 @@ export const args: Args = {
 };
 export const settings: Settings = {
 	start: {
-		urls: [],//["https://www.reddit.com/user/PyramidBlack/"],//["https://www.reddit.com/r/publicdomain/comments/1hn0t95/brutus_from_popeye/"], //["https://www.reddit.com/r/PowerScaling/comments/y9vrel/being_completely_reasonable_with_no_memes_or/"],
+		urls: [],
 		all: true,
 		new: true,
 		attempts: 9,
@@ -54,12 +54,32 @@ export const ai: AI = {
 	},
 };
 export function configure(opts?: Partial<Options>) {
-	Logger.debug("Opts", { opts });
 	const search = opts?.args?.search || args.search;
 	const urls = [
 		...(opts?.settings?.start?.urls || []),
 		...settings.start.urls, // Append default start URLs
 	];
+	if(!search.length && !urls.length) {
+		args.scope = "Posts"; 
+		args.sort = "Relevance"; 
+		args.filter = "All"; 
+
+		// If no search terms or URLs are provided, default to BASE_URL
+		// search.push("robotomation"); // Default search term
+		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
+		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
+		urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL
+		
+		settings.start.attempts = 12;
+		settings.start.new = false;
+		settings.start.rando = { min: 9, max: 9 }; //
+		settings.start.iterations = { min: 1, max: 1 }; // 
+		settings.start.variations = { min: 1, max: 1 };
+		Logger.warn("No search terms or URLs provided, using default values.");
+
+		//["https://www.reddit.com/r/publicdomain/comments/1hn0t95/brutus_from_popeye/"], //["https://www.reddit.com/r/PowerScaling/comments/y9vrel/being_completely_reasonable_with_no_memes_or/"],
+	}
+	Logger.debug("Opts", { opts });
 	const options: Options = {
 		run: opts?.run ?? {},
 		args: { ...args, ...opts?.args }, // opts.args overrides default args

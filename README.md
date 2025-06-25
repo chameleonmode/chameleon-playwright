@@ -86,3 +86,35 @@
 		// 	})(),
 		// ]);
 		// this.bang("Navigation", tried.fulfilled.length > 0, { url, tried });
+
+
+						// Try alternative approach using the specific structure
+						try {
+							// Find all list items in the dropdown
+							const listItems = this.page.locator(
+								"search-sort-dropdown-menu#search_modifier_time_range li"
+							);
+							const count = await listItems.count();
+
+							for (let i = 0; i < count; i++) {
+								const item = listItems.nth(i);
+								const text = await item.locator("span span.text-14").textContent();
+
+								if (text?.trim().includes(optionText)) {
+									// Find the link within this item
+									const link = item.locator("a");
+									await link.scrollIntoViewIfNeeded();
+									await this.page.waitForTimeout(200);
+									await link.click();
+
+									Logger.log(`Clicked on "${optionText}" time range option (alternative method)`);
+									return true;
+								}
+							}
+
+							Logger.error(`Could not find time range option "${optionText}" among ${count} options`);
+							return false;
+						} catch (alternativeError) {
+							Logger.error(`Alternative method also failed:`, alternativeError);
+							return false;
+						}

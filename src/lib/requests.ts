@@ -55,6 +55,7 @@ export namespace promptee {
 	async function requesito(route: string, ctx: requests.Genoration) {
 		ctx.decorators.tone ||= rando(tones);
 		const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
+		Logger.log("Requesting:", ctx.generations);
 		return await req<Response>("/robo/" + route, args);
 	}
 

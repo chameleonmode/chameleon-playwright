@@ -11,7 +11,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 		// Step 1.5 - define the scenario
 		await reddit.navigateIntoPost();
 		// Click the comment button
-		await post.archived(reddit.click);
+		await reddit.joinConversation();
 		const { content, screenshot, comments } = await post.raw();
 
 		// Step 1.6 - Generate a comment
@@ -30,7 +30,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 								id: crypto.randomUUID(),
 								url: reddit.page.url(),
 								content,
-								comments,
+								comments: comments.slice(0, 36),
 							},
 							target: {
 								type: "post",

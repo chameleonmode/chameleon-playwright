@@ -1,10 +1,15 @@
 // src/scripts/pages/base.page.ts
 import { BrowserContext, Locator, Page, expect } from "@playwright/test";
 import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
-import { requests, Opts } from "../lib/types/index.js";
-import { promptee } from "../lib/requests.js";
+import { Opts } from "../lib/types/index.js";
 import { Logger } from "../lib/logger.js";
 
+export function ror(message: unknown, cause?: unknown) {
+	const error = new Error(`${message}`, { cause });
+	const pretty = { cause, stack: error.stack };
+	Logger.error(`(error): ${error.message}`, pretty);
+	return error;
+}
 export abstract class Pager {
 	public page!: Page;
 	constructor(
@@ -59,7 +64,7 @@ export abstract class Pager {
 	async txtContent(selector: string, locator?: Locator) {
 		const location = locator?.locator(selector) || this.page.locator(selector);
 		const locations = await location.count();
-		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }); // banger
+		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, false); // banger
 
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
@@ -67,10 +72,10 @@ export abstract class Pager {
 				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
 				if (!text) continue; // Skip if no text content
-				return this.bang("txtContent: " + selector, text, { element, text });
+				return this.bang("txtContent: " + selector, text, { element, text }, false);
 			}
 		}
-		throw Logger.ror(`No visible elements found for selector: ${location}`, { locations, location });
+		throw ror(`No visible elements found for selector: ${location}`, { locations, location });
 	}
 
 	async attributes(locator: Locator) {
@@ -81,7 +86,7 @@ export abstract class Pager {
 			}
 			return attrs;
 		});
-		return this.bang("attributes: " + locator, attributes, { locator, attributes });
+		return this.bang("attributes: " + locator, attributes, { locator, attributes }, false);
 	}
 
 	async selectAll(locator?: Locator, clear = false) {
@@ -168,8 +173,9 @@ export abstract class Pager {
 
 				// Throws when at bottom or can't scroll further
 				this.bang(
-					{ y, scrollTop, clientHeight, scrollHeight },
-					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight
+					`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`,
+					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight,
+					{ y, scrollTop, clientHeight, scrollHeight }
 				);
 
 				if (rando()) await this.page.mouse.wheel(0, y);
@@ -192,7 +198,7 @@ export abstract class Pager {
 
 	// Find elements by testId, selector, or text
 	// This function will return the first found element based on the strategy
-	async find(ids: string[], strategy: "testId" | "selector" | "text" = "testId") {
+	async find(ids: string[], strategy: "testId" | "selector" | "text") {
 		for (const selector of ids) {
 			const target = (() => {
 				switch (strategy) {
@@ -203,35 +209,46 @@ export abstract class Pager {
 					case "text":
 						return this.page.getByText(selector);
 					default:
-						throw Logger.ror(`Unknown strategy: ${strategy}`);
+						throw ror(`Unknown strategy: ${strategy}`);
 				}
 			})();
 
 			try {
-				const findVisibleAncestor = async (current: Locator, maxDepth = 25, timeout = 50): Promise<Locator> => {
-					Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
-					if (maxDepth < 0) throw Logger.ror(`Max depth reached while finding visible ancestor for ${selector}`);
+				const firstVisible = async (current: Locator, depth = 18, timeout = 36): Promise<Locator> => {
+					// Logger.log(`Finding visible ancestor for ${selector} with max depth ${maxDepth}`);
 
 					for (const location of await current.all()) {
-						if (await location.isVisible({timeout}).catch(() => false)) return location;
+						if (await location.isVisible({ timeout }).catch(() => false)) return location;
 
 						const siblings = location.locator(":scope > *"); // all children of the parent
 						for (const sibling of await siblings.all()) {
-							Logger.log(`Sibling: <${location}>`, sibling);
-							if (await sibling.isVisible({timeout}).catch(() => false)) return sibling;
+							// Logger.log(`Sibling: <${location}>`, sibling);
+							if (await sibling.isVisible({ timeout }).catch(() => false)) return sibling;
 						}
-						return findVisibleAncestor(location.locator(".."), maxDepth - 1);
+						if (depth > 0) return firstVisible(location.locator(".."), depth - 1);
 					}
-					throw Logger.ror(`No visible ancestor found for ${selector}`);
+					throw ror(`Max depth reached while finding visible ancestor for ${selector}`);
 				};
-				const locator = strategy === "testId" ? target : await findVisibleAncestor(target);
+				const locator = strategy === "testId" ? target : await firstVisible(target);
 				return { target, locator, selector, count: await locator.count() };
 			} catch (e) {
 				Logger.warn(`Failed to resolve ${strategy} locator for ${selector}`, e);
 			}
 		}
 
-		throw Logger.ror(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+		throw ror(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+	}
+
+	async findAll(ids: string[]) {
+		const locations = [];
+		for (const selector of ids) {
+			const location = await this.find([selector], "selector").catch(() => false);
+			if (!location) continue; // Skip if not found
+			locations.push(location);
+		}
+
+		if (locations.length === 0) throw ror(`No elements found for IDs: ${ids.join(", ")}`);
+		else return locations;
 	}
 
 	// Find frames by selector seperate for find
@@ -252,48 +269,57 @@ export abstract class Pager {
 			}
 		}
 
-		throw Logger.ror(`No frames found for selectors: ${selectors.join(", ")}`);
+		throw ror(`No frames found for selectors: ${selectors.join(", ")}`);
 	}
 
-	async dimensions() {
-		return await this.page.evaluate(() => {
-			return {
-				width: document.documentElement.scrollWidth,
-				height: document.documentElement.scrollHeight,
-			};
-		});
+	// Take a screenshot of the page or a specific locator
+	async screenshot(locator: Locator) {
+		return (
+			await locator.screenshot({
+				scale: "css",
+				type: "jpeg",
+				quality: 72,
+			})
+		).toString("base64");
+
+		// if (clip) {
+		// 	const { width, height } = await this.dimensions();
+		// 	return (
+		// 		await this.page.screenshot({
+		// 			fullPage: true,
+		// 			scale: "css",
+		// 			type: "jpeg",
+		// 			quality: 18,
+		// 		})
+		// 	).toString("base64");
+		// }
+		// return (await this.page.screenshot({ fullPage: false })).toString("base64");
 	}
 
-	/**
-	 * Capture only the viewport (not full_page).
-	 */
-	async screenshot(clip: boolean = true) {
-		if (clip) {
-			const { width, height } = await this.dimensions();
-			return (
-				await this.page.screenshot({
-					fullPage: true,
-					scale: "css",
-					type: "jpeg",
-					quality: 18,
-				})
-			).toString("base64");
+	bang<T>(message: string = "banger", expect: T, source?: unknown, print = true) {
+		if (print) {
+			const caller = Logger.getCallerLine();
+			Logger.debug(
+				`bang/${this.opts.settings.start.feature}`,
+				`\x1b[38;5;208mmessage:\x1b[0m`,
+				message,
+				`\n`,
+				`expect:`,
+				expect,
+				`\n`,
+				`source:`,
+				source,
+				`\n`,
+				"caller: {\n\t",
+				caller.method,
+				`\n\t`,
+				caller.filename,
+				"\n",
+				"}"
+			);
 		}
-		return (await this.page.screenshot({ fullPage: false })).toString("base64");
-	}
-
-	async ask(opts: { task: string; image: requests.Image; generations: requests.Generators }) {
-		return await promptee.prompt({
-			model: this.opts.ai.model,
-			decorators: this.opts.ai.decorators,
-			...opts,
-		});
-	}
-
-	bang<T>(message: unknown, expect: T, source?: unknown) {
-		Logger.debug(`(bang/${this.opts.settings.start.feature}): ${message}`, expect, source);
 		if (expect) return expect;
-		throw Logger.ror(message, { source, expect });
+		throw ror(message, { source, expect });
 	}
 
 	banger<T>(expect: T, source?: unknown) {
@@ -302,6 +328,6 @@ export abstract class Pager {
 
 	bing<T>(expect: unknown, returnz: T, source?: unknown) {
 		if (this.banger(expect)) return returnz;
-		throw Logger.ror("", { source, expect });
+		throw ror("", { source, expect });
 	}
 }

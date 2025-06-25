@@ -1,9 +1,15 @@
+import { Locator } from "@playwright/test";
 import { Logger } from "../lib/logger.js";
 import { delay } from "../lib/utils.js";
 import { Pager } from "./pager.js";
 
+export interface Findo {
+	listing: Locator;
+	attributes: Record<string, string>;
+}
+
 export interface State {
-  visited: number[];
+  visited: Findo[];
   iterations: number[];
 }
 export class Player {
@@ -38,7 +44,6 @@ export class Player {
 
           // on each iteration
           const resulto = await this.actor.scenario(url);
-          if (resulto && typeof resulto === "number") this.state.visited.push(resulto);
         }
       }
       this.state.iterations.push(j);
