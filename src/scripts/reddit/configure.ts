@@ -65,10 +65,10 @@ export function configure(opts?: Partial<Options>) {
 		args.filter = "All"; 
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		// search.push("robotomation"); // Default search term
+		search.push("robotomation"); // Default search term
 		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
 		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
-		urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL
+		// urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL
 		
 		settings.start.attempts = 12;
 		settings.start.new = false;
