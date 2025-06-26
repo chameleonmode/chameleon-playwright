@@ -1,4 +1,6 @@
-import { Reddit } from "../../reddit.js";
+import { Findo } from "../../../player.js";
+import { InitParams } from "../../configure.js";
+import Reddito, { Reddit } from "../../reddit.js";
 
 export class Subreddit {
   constructor(readonly pager: Reddit) {}
@@ -36,12 +38,8 @@ export class Subreddit {
 
     // Calculate voting limits to avoid errors
     const count = Math.min(upCount, downCount) - 1;
-    const length = Math.min(
-      count,
-      Math.floor(Math.random() * (this.pager.opts.settings.start.rando.max - this.pager.opts.settings.start.rando.min + 1)) + this.pager.opts.settings.start.rando.min
-    );
-    
-    this.pager.bang("Vote count", length, { upCount, downCount, count, length });
+    const length = Math.min(count, this.pager.opts.settings.start.rando.min);
+    this.pager.bang("Vote count", length > 0, { upCount, downCount, count, length });
     
     // Perform voting with 95% upvote bias
     for (let i = 0; i < length; i++) {
@@ -88,30 +86,14 @@ export class Subreddit {
       .locator("r-post-form-submit-button#submit-post-button")
       .getByRole("button");
     await this.pager.click(submitButton);
-
-    // const traverse = async (
-    //   condition: (ele: {
-    //     element: Element | null;
-    //     tagName: string | undefined;
-    //     ariaLabel: string | null | undefined;
-    //   }) => boolean
-    // ) => {
-    //   while (condition(await this.getFocusedElement())) {
-    //     this.page.keyboard.press("Tab");
-    //   }
-    // };
-
-    // // enter comment
-    // // await traverse((ele) => {
-    // //   return ele.ariaLabel !== "Post body text field";
-    // // });
-    // // await this.type(content);
-    // // submit
-    // await traverse((ele) => {
-    //   return ele.tagName !== "R-POST-FORM-SUBMIT-BUTTON";
-    // });
-
-    // await this.page.keyboard.press("Enter");
-    // await this.nap();
   }
+}
+
+export default async function (
+  params: InitParams,
+  action: (url?: string, thread?: Findo) => Promise<unknown>
+) {
+  const { reddit } = await Reddito(params, action);
+  const subreddit = new Subreddit(reddit);
+  return { reddit, subreddit };
 }

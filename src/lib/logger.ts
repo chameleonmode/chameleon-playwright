@@ -24,7 +24,7 @@ export class Logger {
     const output = objects.map((o) =>
       typeof o === "string" ? o : util.inspect(o, { depth: null, colors: true, compact: true })
     );
-    console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method}):\x1b[0m ${message} {\n ${callerLine.filename},\n`, ...output, `\n}`);
+    console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method})\x1b[0m ${message} {\n ${callerLine.filename},\n`, ...output, `\n}`);
     //console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method}):\x1b[0m {\n ${callerLine.filename},\n \x1b[38;5;208m${message}\x1b[0m,\n`, ...output, `\n}`);
   }
 

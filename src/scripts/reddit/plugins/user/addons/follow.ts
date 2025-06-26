@@ -1,13 +1,11 @@
 import { BrowserContext } from "@playwright/test";
-import { configure, Options } from "../../../configure.js";
-import Reddit from "../../../reddit.js";
-import { User } from "../user.js";
+import { Options } from "../../../configure.js";
+import User from "../user.js";
 
-export default async function (context: BrowserContext, opts: Options) {
-  // Step 1 - Init
-  const options = configure(opts);
-  options.args.scope = "People";
-  const { reddit } = await Reddit(context, options, async () => await new User(reddit).follow());
-  // Step 2 - Play
-  await reddit.player.play();
+export default async function (ctx: BrowserContext, opts: Options) {
+	const { reddit, user } = await User({ ctx, opts }, async (_, __) => await user.follow());
+	reddit.opts.args.scope = "People";
+
+	// Step 2 - Play
+	await reddit.player.play();
 }

@@ -1,6 +1,6 @@
 import { BrowserContext, Locator } from "@playwright/test";
-import { rando, random } from "../../lib/utils.js";
-import { configure, Options, Scope, Sort, BASE_URL, Filter } from "./configure.js";
+import { random } from "../../lib/utils.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter, InitParams } from "./configure.js";
 import { Pager, ror } from "../pager.js";
 import { Findo, Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
@@ -34,7 +34,6 @@ class Scopeulation {
 export const scopeulation = new Scopeulation();
 export class Reddit extends Pager {
 	readonly player = new Player(this);
-	// patterns scopeulation
 
 	// ctor
 	constructor(
@@ -91,7 +90,8 @@ export class Reddit extends Pager {
 
 					// Wait for thread elements to be available
 					const threads = await findulator.find.locator.all();
-					const expecto = await this.findo(threads, async (thread) => {
+					const shuffled = threads.sort(() => Math.random() - 0.5);
+					const expecto = await this.findo(shuffled, async (thread) => {
 						await pre();
 						return await action(url, thread);
 					});
@@ -303,54 +303,46 @@ export class Reddit extends Pager {
 
 		const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
 		const closed = await archived.isVisible().catch(() => false);
-		this.banger(!closed, archived);
+		this.bang(`checking archive`, closed === false, { closed, archived });
 
 		// 1. Locate visible trigger
 		const triggers = this.page.locator(
 			'comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]'
 		);
 		const count = await triggers.count();
-
-		let clicked = false;
-
 		for (let i = 0; i < count; i++) {
 			const trigger = triggers.nth(i);
-			if (await trigger.isVisible()) {
+			if (await trigger.isVisible())
 				try {
 					await trigger.click({ force: true });
-					clicked = true;
-					break;
-				} catch (err) {
-					Logger.warn(`Click failed on visible trigger #${i}:`, err);
-				}
-			}
+					return trigger;
+				} catch {}
 		}
 
 		// 2. Fallback: try to force dispatch focus with JS if no visible trigger worked
-		if (!clicked) {
-			Logger.warn("Trying JS-based fallback trigger...");
-			await this.page.evaluate(() => {
-				const el = document.querySelector(
-					'comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]'
-				);
-				if (el) el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
-			});
-		}
+		Logger.warn("Trying JS-based fallback trigger...");
+		return await this.page.evaluate(() => {
+			const el = document.querySelector(
+				'comment-composer-host faceplate-textarea-input[placeholder="Join the conversation"]'
+			);
+			if (el) el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
+			return el;
+		});
 
-		// 3. Wait for rich editor to become visible
-		const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
-		await editor.waitFor({ state: "visible", timeout: 5000 });
+		// // 3. Wait for rich editor to become visible
+		// const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
+		// await editor.waitFor({ state: "visible", timeout: 5000 });
 
-		// 4. Focus editor and fill text
-		await editor.click({ force: true });
-		// await editor.fill(commentText);
+		// // 4. Focus editor and fill text
+		// await editor.click({ force: true });
+		// // await editor.fill(commentText);
 
-		// 5. Wait for and click submit
-		// const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
-		// await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
-		// await submitBtn.click({ force: true });
+		// // 5. Wait for and click submit
+		// // const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
+		// // await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
+		// // await submitBtn.click({ force: true });
 
-		return editor;
+		// return editor;
 	}
 
 	// find an active context
@@ -401,7 +393,7 @@ export class Reddit extends Pager {
 	}
 
 	// Get comments from post with limit
-	async getComments(max = 1000) {
+	async getComments(max = 36) {
 		const loca = this.page.locator("shreddit-comment");
 		const count = await loca.count();
 		const length = Math.min(max, count);
@@ -424,24 +416,17 @@ export class Reddit extends Pager {
 }
 
 export default async function (
-	ctx: BrowserContext,
-	opts: Partial<Options>,
+	params: InitParams,
 	action: (url?: string, thread?: Findo) => Promise<unknown>
 ) {
 	// setup options
-	const options = configure(opts);
+	const options = configure(params.opts);
 
 	// start the plugin
-	const reddit = new Reddit(ctx, options, action);
+	const reddit = new Reddit(params.ctx, options, action);
 	await reddit.init();
 
-	Logger.info("Feature:", {
-		feature: options.settings.start.feature,
-		artifacts: options.args.artifacters,
-	});
-	Logger.info("Options:", {
-		options: options,
-	});
+	Logger.info("Feature", options.settings.start.feature, options.args.artifacters);
 
 	return { reddit };
 }

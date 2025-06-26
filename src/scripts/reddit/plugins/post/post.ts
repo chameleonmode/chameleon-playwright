@@ -1,6 +1,7 @@
 import { Locator } from "@playwright/test";
-import { Reddit } from "../../reddit.js";
-import { trySequentially } from "../../../../lib/utils.js";
+import Reddito, { Reddit } from "../../reddit.js";
+import { InitParams } from "../../configure.js";
+import { Findo } from "../../../player.js";
 
 export class Post {
 	constructor(readonly pager: Reddit) {}
@@ -11,8 +12,8 @@ export class Post {
 	}
 
 	// Extract full post data with screenshot
-	async raw() {
-		const locator = this.pager.page.locator("#i18n-shreddit-post-translator-content >> shreddit-post");
+	async raw(max = 36) {
+		const locator = this.pager.page.locator("shreddit-post").first();
 		await locator.waitFor();
 
 		// Take screenshot of post element
@@ -74,25 +75,8 @@ export class Post {
 			};
 		});
 
-		const comments = await this.pager.getComments();
+		const comments = await this.pager.getComments(max);
 		return { id: crypto.randomUUID(), url: this.pager.page.url(), content, screenshot, comments };
-	}
-
-	// Handle archived posts or find comment section
-	async archived(func: (locator: Locator) => Promise<unknown>) {
-		await this.pager.nap();
-    return await this.pager.joinConversation();
-
-		// Try multiple strategies to find comment area
-		//  const results = await trySequentially([
-		//     async () => await func.call(this.pager, await this.pager.joinConversation()),
-		//     async () => await func.call(this.pager, this.pager.page.getByRole("button", { name: "Add a comment" })),
-		//   ]);
-
-		// return this.pager.bang("Archived or Comment button", results.fulfilled.length > 0, {
-		//   fulfilled: results.fulfilled,
-		//   rejected: results.errors,
-		// });
 	}
 
 	// Add comment to main thread
@@ -113,7 +97,7 @@ export class Post {
 		await this.pager.nap();
 
 		// Click reply button
-		const comment = locator.locator("shreddit-comment-action-row button").first();
+		const comment = locator.locator('button:has-text("Reply")').first();
 		await this.pager.click(comment);
 
 		// Wait for reply box and type response
@@ -126,4 +110,13 @@ export class Post {
 		// Submit reply
 		await this.pager.click(replyBox.locator("button[slot='submit-button']").first());
 	}
+}
+
+export default async function (
+	params: InitParams,
+	action: (url?: string, thread?: Findo) => Promise<unknown>
+) {
+	const { reddit } = await Reddito(params, action);
+	const post = new Post(reddit);
+	return { reddit, post };
 }

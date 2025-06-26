@@ -1,6 +1,8 @@
 // File: reddit.ts
+import { BrowserContext } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
 import { AI, Opts, Artifact, Settings } from "../../lib/types/index.js";
+import { Findo } from "../player.js";
 
 export const BASE_URL: string = "https://www.reddit.com";
 
@@ -9,6 +11,10 @@ export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
 export type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
 
+export interface InitParams {
+	ctx: BrowserContext;
+	opts: Partial<Options>;
+}
 export interface Args {
 	search: string[];
 	scope: Scope;
@@ -65,11 +71,12 @@ export function configure(opts?: Partial<Options>) {
 		args.filter = "All"; 
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		search.push("robotomation"); // Default search term
+		// search.push("spinach"); // Default search term
 		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
 		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
 		// urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL
-		
+		urls.push("https://www.reddit.com/r/agedlikemilk/comments/1lcpl1n/aged_like_baby_spinach/");
+
 		settings.start.attempts = 12;
 		settings.start.new = false;
 		settings.start.rando = { min: 9, max: 9 }; //
@@ -82,7 +89,7 @@ export function configure(opts?: Partial<Options>) {
 	Logger.debug("Opts", { opts });
 	const options: Options = {
 		run: opts?.run ?? {},
-		args: { ...args, ...opts?.args }, // opts.args overrides default args
+		args: { ...args, ...opts?.args, search },
 		settings: {
 			start: {
 				...settings.start, // Default start settings
