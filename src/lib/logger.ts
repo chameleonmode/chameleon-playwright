@@ -15,6 +15,12 @@ export class Logger {
     const match = callerInfo.match(/^(.+?)\s+\((.+)\)$/);
     const method = match?.[1] || 'unknown';
     const filename = match?.[2] || 'unknown';
+    
+    // Return full stack if method or filename is unknown
+    if (method === 'unknown' || filename === 'unknown') {
+      return { method: 'unknown', filename: stack || 'no stack available' };
+    }
+    
     return { method, filename };
   }
 
