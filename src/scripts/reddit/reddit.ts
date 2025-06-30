@@ -22,8 +22,7 @@ export class Reddit extends Actor<Args> {
 					);
 				}
 			};
-			if (scopeulation.direct(this.opts.settings.start.feature)) {
-				this.opts.settings.start.iterations = { min: 1, max: 1 };
+			if (scopeulation.comments(url) || scopeulation.user(url)) {
 				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
 					try {
 						await pre();
@@ -237,11 +236,6 @@ export class Reddit extends Actor<Args> {
 		const url = new URL(this.page.url());
 
 		for (const listing of posts) {
-			this.bang(
-				"checking listing attempts",
-				this.opts.settings.start.attempts > 0,
-				this.opts.settings.start.attempts
-			);
 			const existing = scopeulation.findos.some(
 				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
 			);
@@ -249,12 +243,14 @@ export class Reddit extends Actor<Args> {
 			try {
 				const thread = { listing, attributes: await this.attributes(listing) };
 				scopeulation.findos.push(thread);
-				await thread.listing.scrollIntoViewIfNeeded();
-				await this.nap();
-				await thread.listing.click({ position: { x: 5, y: 5 } });
-				await this.nap();
+				await this.click(thread.listing);
 				return await funco(thread);
-			} catch {
+			} catch(error) {
+				this.bang(
+					"checking listing attempts",
+					this.opts.settings.start.attempts > 0,
+					{ attempts: this.opts.settings.start.attempts, error }
+				);
 				this.opts.settings.start.attempts--;
 				while (true && this.opts.settings.start.attempts > 0) {
 					const pUrl = new URL(this.page.url());
@@ -303,21 +299,6 @@ export class Reddit extends Actor<Args> {
 			if (el) el.dispatchEvent(new Event("click", { bubbles: true, cancelable: true }));
 			return el;
 		});
-
-		// // 3. Wait for rich editor to become visible
-		// const editor = this.page.locator('shreddit-composer div[contenteditable="true"]');
-		// await editor.waitFor({ state: "visible", timeout: 5000 });
-
-		// // 4. Focus editor and fill text
-		// await editor.click({ force: true });
-		// // await editor.fill(commentText);
-
-		// // 5. Wait for and click submit
-		// // const submitBtn = this.page.locator('shreddit-composer button[type="submit"]');
-		// // await submitBtn.waitFor({ state: 'visible', timeout: 3000 });
-		// // await submitBtn.click({ force: true });
-
-		// return editor;
 	}
 
 	// Find and click a random post

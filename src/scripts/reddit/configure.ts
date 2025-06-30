@@ -1,6 +1,7 @@
 import { BrowserContext } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
 import { AI, Opts, Artifact, Settings, Findo } from "../../lib/types/index.js";
+import { url } from "inspector";
 
 //
 export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
@@ -56,17 +57,12 @@ export class Scopeulation {
 		const people = scope === "People" || type === "people" || this.user(url);
 		return { url, scope, type, sort, t, community, people };
 	}
-
-	direct(feature: string) {
-		const url = this.visited[this.visited.length - 1];
-		return scopeulation.comments(url) || (scopeulation.user(url) && feature == "follow");
-	}
 }
 export const scopeulation = new Scopeulation();
 export const BASE_URL: string = "https://www.reddit.com";
 export const args: Args = {
 	search: [], //["popeye"],
-	scope: "People", // "Posts", "Communities", "Comments", "Media", "People"
+	scope: "People",
 	sort: "Relevance",
 	filter: "All",
 	artifacters: [{ type: "selections", data: ["vote"] }],
@@ -107,12 +103,13 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		...settings.start.urls, // Append default start URLs
 	];
 	if (!search.length && !urls.length) {
-		args.scope = "Communities";
-		args.sort = "Relevance";
+		args.scope = "Communities"; // Default scope
+		args.sort = "Posts";
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
 		search.push("popeye"); // Default search term
+		// urls.push("https://www.reddit.com/user/spikebrennan"); // Default URL
 		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
 		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
 		// urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL

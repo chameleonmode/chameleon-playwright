@@ -37,10 +37,8 @@ export abstract class Actor<T> {
 	}
 
 	async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
-		return await trySequentially([
-			() => this.page.waitForLoadState("load", { timeout }),
-			() => this.page.waitForLoadState("domcontentloaded", { timeout }),
-		]);
+		await this.page.waitForLoadState("load", { timeout });
+		await this.page.waitForLoadState("domcontentloaded", { timeout });
 	}
 
 	async getFocusedElement() {
@@ -120,8 +118,6 @@ export abstract class Actor<T> {
 		return this.bang(`assert: ${locator}`, locator, { timeout, locator });
 	}
 
-	async click(locator: Locator, options?: { strict?: boolean; timeout?: number }): Promise<Locator>;
-	async click(selector: string, options?: { strict?: boolean; timeout?: number }): Promise<Locator>;
 	async click(
 		thang: string | Locator,
 		options: { strict?: boolean; timeout?: number } = {}
