@@ -6,7 +6,7 @@ export class Player {
 	readonly iterations: number[] = [];
 
 	// ctor
-	constructor(readonly actor: Actor) {}
+	constructor(readonly actor: Actor<unknown>) {}
 
 	async play() {
 		Logger.log("Delay", { delay: this.actor.opts.settings.timeouts.artifacto.delay });

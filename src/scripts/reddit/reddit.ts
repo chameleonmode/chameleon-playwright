@@ -1,14 +1,14 @@
 import { Locator, Page } from "@playwright/test";
 import { random, ror } from "../../lib/utils.js";
-import { RedditComment, InitParams, Findo, Funco } from "../../lib/types/index.js";
-import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation } from "./configure.js";
+import { RedditComment, Parameters, Findo, Funco } from "../../lib/types/index.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation, Args } from "./configure.js";
 import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
 
-export class Reddit extends Actor {
-	constructor(readonly page: Page, readonly opts: Options, readonly funco: Funco) {
-		super(page, opts, async (url: string) => {
-			if (!funco) return this.bang("No action function provided", undefined, { url });
+export class Reddit extends Actor<Args> {
+	constructor(setup: { page: Page; options: Options; funco: Funco }) {
+		super(setup.page, setup.options, async (url: string) => {
+			if (!setup.funco) return this.bang("No action function provided", undefined, { url });
 			else Logger.log("Scenario URL", url);
 
 			const pre = async () => {
@@ -22,15 +22,12 @@ export class Reddit extends Actor {
 					);
 				}
 			};
-			if (
-				scopeulation.comments(url) ||
-				(scopeulation.user(url) && this.opts.settings.start.feature == "follow")
-			) {
+			if (scopeulation.direct(this.opts.settings.start.feature)) {
 				this.opts.settings.start.iterations = { min: 1, max: 1 };
 				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
 					try {
 						await pre();
-						return await funco(url);
+						return await setup.funco(url);
 					} catch (e) {
 						Logger.warn("Error in action function", e);
 						// If we are on a comments page or user page, we need to go back
@@ -38,11 +35,6 @@ export class Reddit extends Actor {
 							await this.page.goBack();
 							await this.nap({ min: 50, max: 75, multiplier: random(3, 6) });
 						}
-					} finally {
-						Logger.log("Action function completed");
-						// TODO: refactoroo
-						// reddit.opts.args.search.push(...searches);
-						// reddit.opts.settings.start.iterations = iterations;
 					}
 				}
 			} else {
@@ -61,19 +53,19 @@ export class Reddit extends Actor {
 					// Wait for thread elements to be available
 					const threads = await findulator.find.locator.all();
 					const shuffled = threads.sort(() => Math.random() - 0.5);
-					const expecto = await this.findo(shuffled, async (thread) => {
+					return await this.findo(shuffled, async (thread) => {
 						await pre();
-						return await funco(url, thread);
+						return await setup.funco(url, thread);
 					});
-					return expecto;
 				} catch (e) {
 					Logger.warn("Error in action function", e);
 				} finally {
 					const text = this.opts.args.search[scopeulation.searched.length];
 					scopeulation.searched.push(text);
-					Logger.log("Action function completed", text, scopeulation.searched);
 				}
 			}
+
+			Logger.log("Scenario function completed", scopeulation, url);
 		});
 	}
 
@@ -175,21 +167,16 @@ export class Reddit extends Actor {
 		return this.bang(`scopeulate`, scopeulated, scoped);
 	}
 
-	// check todo's and done
-	override status() {
+	// on every try
+	override async onWhile(url: string): Promise<void | Error> {
+		const basic = scopeulation.subreddit(url) || url === BASE_URL;
 		const todo = this.opts.settings.start.urls.length + this.opts.args.search.length;
 		const visit = this.opts.settings.start.urls.length - scopeulation.visited.length;
 		const search = this.opts.args.search.length - scopeulation.searched.length;
 		const searched = search === 0 && this.opts.args.search.length > 0;
 		const done = scopeulation.visited.length + scopeulation.searched.length;
-		const stats = { todo, done, visit, search, searched };
-		return this.bang(`Status`, stats, scopeulation);
-	}
-
-	// on every try
-	override async onWhile(url: string): Promise<void | Error> {
-		const { visit, search, searched } = this.status();
-		const basic = scopeulation.subreddit(url) || url === BASE_URL;
+		const stats = { todo, done, visit, search, searched, basic };
+		Logger.log(`Status`, stats, scopeulation);
 
 		// check if we have completed all urls we need to also search on
 		if (searched && scopeulation.subreddit(url) && !scopeulation.visited.includes(url)) {
@@ -369,18 +356,13 @@ export class Reddit extends Actor {
 	}
 }
 
-export default async function (params: InitParams<Options>, action: Funco) {
+export default async function (params: Parameters<Options>, funco: Funco) {
 	// setup options
-	const options = configure(params.opts);
-	const page = options.settings.start.new
-		? await params.ctx.newPage()
-		: params.ctx.pages()[params.ctx.pages().length - 1];
+	const config = await configure(params.ctx, params.opts);
 
 	// start the plugin
-	const reddit = new Reddit(page, options, action);
+	const reddit = new Reddit({ ...config, funco });
 	await reddit.init();
-
-	Logger.info("Feature", options.settings.start.feature, options.args.artifacters);
 
 	return { reddit };
 }

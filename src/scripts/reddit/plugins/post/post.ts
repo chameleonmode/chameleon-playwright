@@ -1,24 +1,23 @@
 import { Locator } from "@playwright/test";
-import Reddito from "../../reddit.js";
-import { InitParams, Findo} from "../../../../lib/types/index.js";
+import { Parameters, Funco} from "../../../../lib/types/index.js";
 import { Options } from "../../configure.js";
-import { Actor } from "../../../actor.js";
+import Reddito, { Reddit } from "../../reddit.js";
 
 export class Post {
-	constructor(readonly pager: Actor) {}
+	constructor(readonly actor: Reddit) {}
 
 	// Get post title text
 	async title() {
-		return this.pager.txtContent('h1[id^="post-title-"][slot="title"]');
+		return this.actor.txtContent('h1[id^="post-title-"][slot="title"]');
 	}
 
 	// Extract full post data with screenshot
 	async raw() {
-		const locator = this.pager.page.locator("shreddit-post").first();
+		const locator = this.actor.page.locator("shreddit-post").first();
 		await locator.waitFor();
 
 		// Take screenshot of post element
-		const screenshot = await this.pager.screenshot(locator);
+		const screenshot = await this.actor.screenshot(locator);
 
 		// Extract post content and attributes
 		const content = await locator.evaluate((root) => {
@@ -76,46 +75,43 @@ export class Post {
 			};
 		});
 
-		return { id: crypto.randomUUID(), url: this.pager.page.url(), content, screenshot };
+		return { id: crypto.randomUUID(), url: this.actor.page.url(), content, screenshot };
 	}
 
 	// Add comment to main thread
 	async addComment(comment: () => Promise<string>) {
 		// Type comment in textbox
-		await this.pager.pressSequentially(
-			this.pager.page.locator("#subgrid-container").getByRole("textbox"),
+		await this.actor.pressSequentially(
+			this.actor.page.locator("#subgrid-container").getByRole("textbox"),
 			await comment()
 		);
 
 		// Submit comment
-		await this.pager.click(this.pager.page.locator('button.button-primary[slot="submit-button"]'));
+		await this.actor.click(this.actor.page.locator('button.button-primary[slot="submit-button"]'));
 	}
 
 	// Reply to specific comment
 	async replyToComment(locator: Locator, reply: () => Promise<string>) {
 		await locator.scrollIntoViewIfNeeded();
-		await this.pager.nap();
+		await this.actor.nap();
 
 		// Click reply button
 		const comment = locator.locator('button:has-text("Reply")').first();
-		await this.pager.click(comment);
+		await this.actor.click(comment);
 
 		// Wait for reply box and type response
 		const replyBox = locator.locator(
 			"shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
 		);
 		await replyBox.waitFor();
-		await this.pager.type(await reply());
+		await this.actor.type(await reply());
 
 		// Submit reply
-		await this.pager.click(replyBox.locator("button[slot='submit-button']").first());
+		await this.actor.click(replyBox.locator("button[slot='submit-button']").first());
 	}
 }
 
-export default async function (
-	params: InitParams<Options>,
-	action: (url?: string, thread?: Findo) => Promise<unknown>
-) {
+export default async function (params: Parameters<Options>, action: Funco) {
 	const { reddit } = await Reddito(params, action);
 	const post = new Post(reddit);
 	return { reddit, post };

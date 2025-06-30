@@ -4,15 +4,13 @@ import { rando, ror, sleepo, tryForEach, trySequentially } from "../lib/utils.js
 import { Opts } from "../lib/types/index.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
-
-export abstract class Actor {
+export abstract class Actor<T> {
 	readonly player = new Player(this);
 	constructor(
 		readonly page: Page,
-		readonly opts: Opts<unknown>,
+		readonly opts: Opts<T>,
 		readonly scenario: (url: string) => Promise<number | unknown>
 	) {}
-	abstract status(): unknown;
 	abstract onWhile(url: string): Promise<void | Error>;
 	abstract onReIteration(url: string): Promise<void | Error>;
 
@@ -21,7 +19,7 @@ export abstract class Actor {
 		this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
 	}
 
-	async navigate(url: string | undefined, attempt = 0) {
+	async navigate(url: string, attempt = 0) {
 		try {
 			if (url) await this.page.goto(url, { waitUntil: "load" });
 			await this.waitForNavigation();
@@ -31,10 +29,10 @@ export abstract class Actor {
 			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
 			this.bang(
 				"checking navigation attempts",
-				this.opts.settings.start.attempts > attempt++,
+				this.opts.settings.start.attempts > attempt,
 				this.opts.settings.start.attempts
 			);
-			await this.navigate(url, attempt);
+			await this.navigate(url, attempt + 1);
 		}
 	}
 

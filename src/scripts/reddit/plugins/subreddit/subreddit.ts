@@ -1,50 +1,50 @@
-import { Findo, InitParams } from "../../../../lib/types/index.js";
+import { Funco, Parameters } from "../../../../lib/types/index.js";
 import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 
 export class Subreddit {
-  constructor(readonly pager: Reddit) {}
+  constructor(readonly reddit: Reddit) {}
 
   // Assert if user can create a post
   async canPost() {
-    await this.pager.nap();
-    await this.pager.click(this.pager.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
+    await this.reddit.nap();
+    await this.reddit.click(this.reddit.page.locator("#subgrid-container faceplate-tracker[noun=create_post]").first());
   }
 
   // Navigate to subreddit community
   async visitCommunity() {
-    const locator = this.pager.page.locator('span.avatar a[href^="/r/"]');
-    await this.pager.click(
-      this.pager.bang("'visit' button", locator.first(), { locator })
+    const locator = this.reddit.page.locator('span.avatar a[href^="/r/"]');
+    await this.reddit.click(
+      this.reddit.bang("'visit' button", locator.first(), { locator })
     );
   }
 
   // Vote on posts (upvote/downvote)
   async voter() {
-    const scopeulator = this.pager.scopeulate();
+    const scopeulator = this.reddit.scopeulate();
     
     // Join conversation if not in community or people scope
     if (!scopeulator.community && !scopeulator.people) {
-      const banger = await this.pager.joinConversation();
-      this.pager.bang("vote", banger, { scopeulator });
+      const banger = await this.reddit.joinConversation();
+      this.reddit.bang("vote", banger, { scopeulator });
     }
     
-    await this.pager.scrollabit();
+    await this.reddit.scrollabit();
     
     // Get upvote and downvote buttons
-    const ups = this.pager.page.getByRole("button", { name: "Upvote" });
-    const downs = this.pager.page.getByRole("button", { name: "Downvote" });
+    const ups = this.reddit.page.getByRole("button", { name: "Upvote" });
+    const downs = this.reddit.page.getByRole("button", { name: "Downvote" });
     const upCount = await ups.count();
     const downCount = await downs.count();
 
     // Calculate voting limits to avoid errors
     const count = Math.min(upCount, downCount) - 1;
-    const length = Math.min(count, this.pager.opts.settings.start.rando.min);
-    this.pager.bang("Vote count", length > 0, { upCount, downCount, count, length });
+    const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
+    this.reddit.bang("Vote count", length > 0, { upCount, downCount, count, length });
     
     // Perform voting with 95% upvote bias
     for (let i = 0; i < length; i++) {
-      await this.pager.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
+      await this.reddit.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
     }
 
     return {
@@ -55,46 +55,43 @@ export class Subreddit {
 
   // Join subreddit if not already a member
   async joiner() {
-    await this.pager.scrollabit();
+    await this.reddit.scrollabit();
     
     // Click the "Join" button
-    const locator = this.pager.page.getByRole("button", { name: "Join", exact: true }).first();
-    await this.pager.click(
-      this.pager.bang("'Join' button", locator.first(), { locator })
+    const locator = this.reddit.page.getByRole("button", { name: "Join", exact: true }).first();
+    await this.reddit.click(
+      this.reddit.bang("'Join' button", locator.first(), { locator })
     );
   }
 
   // Create a new post with title and content
   async poster(contents: () => Promise<{ title: string; content: string }>) {
-    await this.pager.nap();
+    await this.reddit.nap();
     
     // Locate form elements
-    const titleLocator = this.pager.page.locator("#innerTextArea").first();
-    const bodyLocator = this.pager.page.locator('div[slot="rte"][aria-label="Post body text field"]');
+    const titleLocator = this.reddit.page.locator("#innerTextArea").first();
+    const bodyLocator = this.reddit.page.locator('div[slot="rte"][aria-label="Post body text field"]');
 
     // Verify post type is text
-    const postTypeValue = await this.pager.page.locator('r-post-type-select[name="type"]').getAttribute("value");
-    this.pager.bang("Post type", postTypeValue === "TEXT", { postTypeValue });
-    this.pager.bang("Post body text field", await bodyLocator.innerText(), {bodyLocator});
-    this.pager.bang("Post title text field", await titleLocator.count(), {titleLocator});
+    const postTypeValue = await this.reddit.page.locator('r-post-type-select[name="type"]').getAttribute("value");
+    this.reddit.bang("Post type", postTypeValue === "TEXT", { postTypeValue });
+    this.reddit.bang("Post body text field", await bodyLocator.innerText(), {bodyLocator});
+    this.reddit.bang("Post title text field", await titleLocator.count(), {titleLocator});
 
     // Fill in post content
     const { title, content } = await contents();
-    await this.pager.pressSequentially(titleLocator, title);
-    await this.pager.pressSequentially(bodyLocator, content);
+    await this.reddit.pressSequentially(titleLocator, title);
+    await this.reddit.pressSequentially(bodyLocator, content);
 
     // Submit the post
-    const submitButton = this.pager.page
+    const submitButton = this.reddit.page
       .locator("r-post-form-submit-button#submit-post-button")
       .getByRole("button");
-    await this.pager.click(submitButton);
+    await this.reddit.click(submitButton);
   }
 }
 
-export default async function (
-  params: InitParams<Options>,
-  action: (url?: string, thread?: Findo) => Promise<unknown>
-) {
+export default async function (params: Parameters<Options>, action: Funco) {
   const { reddit } = await Reddito(params, action);
   const subreddit = new Subreddit(reddit);
   return { reddit, subreddit };

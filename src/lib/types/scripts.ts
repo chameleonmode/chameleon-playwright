@@ -32,7 +32,7 @@ export interface Timeouts {
   artifacto: Artifact;
 }
 
-export interface InitParams<T> {
+export interface Parameters<T> {
   ctx: BrowserContext;
   opts: Partial<T>;
 }

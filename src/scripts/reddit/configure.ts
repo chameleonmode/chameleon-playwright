@@ -1,6 +1,6 @@
+import { BrowserContext } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
 import { AI, Opts, Artifact, Settings, Findo } from "../../lib/types/index.js";
-
 
 //
 export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
@@ -15,6 +15,7 @@ export interface Args {
 	artifacters: Artifact[];
 }
 export interface Options extends Opts<Args> {}
+
 export class Scopeulation {
 	findos: Findo[] = [];
 	visited: string[] = [];
@@ -55,6 +56,11 @@ export class Scopeulation {
 		const people = scope === "People" || type === "people" || this.user(url);
 		return { url, scope, type, sort, t, community, people };
 	}
+
+	direct(feature: string) {
+		const url = this.visited[this.visited.length - 1];
+		return scopeulation.comments(url) || (scopeulation.user(url) && feature == "follow");
+	}
 }
 export const scopeulation = new Scopeulation();
 export const BASE_URL: string = "https://www.reddit.com";
@@ -94,16 +100,16 @@ export const ai: AI = {
 		tone: "adaptive",
 	},
 };
-export function configure(opts?: Partial<Options>) {
+export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 	const search = opts?.args?.search || args.search;
 	const urls = [
 		...(opts?.settings?.start?.urls || []),
 		...settings.start.urls, // Append default start URLs
 	];
-	if(!search.length && !urls.length) {
-		args.scope = "Communities"; 
-		args.sort = "Relevance"; 
-		args.filter = "All"; 
+	if (!search.length && !urls.length) {
+		args.scope = "Communities";
+		args.sort = "Relevance";
+		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
 		search.push("popeye"); // Default search term
@@ -115,8 +121,9 @@ export function configure(opts?: Partial<Options>) {
 		settings.start.attempts = 12;
 		settings.start.new = false;
 		settings.start.rando = { min: 9, max: 9 }; //
-		settings.start.iterations = { min: 1, max: 1 }; // 
+		settings.start.iterations = { min: 1, max: 1 }; //
 		settings.start.variations = { min: 1, max: 1 };
+
 		Logger.warn("No search terms or URLs provided, using default values.");
 
 		//["https://www.reddit.com/r/publicdomain/comments/1hn0t95/brutus_from_popeye/"], //["https://www.reddit.com/r/PowerScaling/comments/y9vrel/being_completely_reasonable_with_no_memes_or/"],
@@ -129,6 +136,7 @@ export function configure(opts?: Partial<Options>) {
 			start: {
 				...settings.start, // Default start settings
 				...opts?.settings?.start, // opts.settings.start overrides defaults
+
 				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
 				// It uses the global 'settings.start.urls'.
 				urls: [
@@ -160,6 +168,8 @@ export function configure(opts?: Partial<Options>) {
 	options.settings.timeouts.naps.multiplier = undefined;
 	options.settings.timeouts.naps.max = options.settings.start.variations.min + 512;
 	options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
+
 	Logger.debug("Options", options);
-	return options;
+	const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
+	return { page, options };
 }
