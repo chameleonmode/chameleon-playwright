@@ -1,22 +1,16 @@
-import { BrowserContext, Locator } from "@playwright/test";
-import { RedditComment, InitParams, Findo } from "../../lib/types/index.js";
-import { random } from "../../lib/utils.js";
+import { Locator, Page } from "@playwright/test";
+import { random, ror } from "../../lib/utils.js";
+import { RedditComment, InitParams, Findo, Funco } from "../../lib/types/index.js";
 import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation } from "./configure.js";
-import { Pager, ror } from "../pager.js";
-import { Player } from "../player.js";
+import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
 
-export class Reddit extends Pager {
-	readonly player = new Player(this);
+export class Reddit extends Actor {
+	constructor(readonly page: Page, readonly opts: Options, readonly funco: Funco) {
+		super(page, opts, async (url: string) => {
+			if (!funco) return this.bang("No action function provided", undefined, { url });
+			else Logger.log("Scenario URL", url);
 
-	// ctor
-	constructor(
-		readonly ctx: BrowserContext,
-		readonly opts: Options,
-		readonly action?: (url?: string, thread?: Findo) => Promise<unknown>
-	) {
-		super(ctx, opts, async (url: string) => {
-			Logger.log("Scenario URL:", url);
 			const pre = async () => {
 				if (scopeulation.user(this.page.url()) || scopeulation.user(url)) {
 					await this.click(
@@ -28,15 +22,17 @@ export class Reddit extends Pager {
 					);
 				}
 			};
-			if (action && (scopeulation.comments(url) || scopeulation.user(url))) {
+			if (
+				scopeulation.comments(url) ||
+				(scopeulation.user(url) && this.opts.settings.start.feature == "follow")
+			) {
+				this.opts.settings.start.iterations = { min: 1, max: 1 };
 				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
 					try {
-						this.opts.settings.start.iterations = { min: 1, max: 1 };
 						await pre();
-						return await action(url);
+						return await funco(url);
 					} catch (e) {
-						Logger.warn("Error in action function:", e);
-						this.opts.settings.start.attempts--;
+						Logger.warn("Error in action function", e);
 						// If we are on a comments page or user page, we need to go back
 						while (!this.page.url().startsWith(url) && this.opts.settings.start.attempts > 0) {
 							await this.page.goBack();
@@ -49,7 +45,7 @@ export class Reddit extends Pager {
 						// reddit.opts.settings.start.iterations = iterations;
 					}
 				}
-			} else if (action) {
+			} else {
 				try {
 					const scopeulator = this.scopeulate();
 					try {
@@ -57,7 +53,7 @@ export class Reddit extends Pager {
 						await scopeulator.clickSortOptionByText();
 						await scopeulator.clickTimeRangeByText();
 					} catch (e) {
-						Logger.warn("Error in findo setup:", e);
+						Logger.warn("Error in findo setup", e);
 					}
 					const findulator = await scopeulator.findulator();
 					await this.scrollabit();
@@ -67,45 +63,24 @@ export class Reddit extends Pager {
 					const shuffled = threads.sort(() => Math.random() - 0.5);
 					const expecto = await this.findo(shuffled, async (thread) => {
 						await pre();
-						return await action(url, thread);
+						return await funco(url, thread);
 					});
 					return expecto;
 				} catch (e) {
-					Logger.warn("Error in action function:", e);
+					Logger.warn("Error in action function", e);
 				} finally {
 					const text = this.opts.args.search[scopeulation.searched.length];
 					scopeulation.searched.push(text);
 					Logger.log("Action function completed", text, scopeulation.searched);
 				}
-			} else {
-				Logger.warn("No action provided", url);
 			}
-			return undefined;
 		});
 	}
 
 	scopeulate() {
-		const url = scopeulation.visited[scopeulation.visited.length - 1];
-		const scope =
-			["People", "Communities"].includes(this.opts.args.scope) &&
-			(scopeulation.subreddit(url) || scopeulation.comments(url) || scopeulation.search(url))
-				? "Posts"
-				: this.opts.args.scope;
-		const Url = new URL(url);
-		const type = Url.searchParams.get("type");
-		const sort = Url.searchParams.get("sort");
-		const t = Url.searchParams.get("t");
-		const community = scope === "Communities" || type === "communities";
-		const people = scope === "People" || type === "people" || scopeulation.user(url);
-		const scoped = {
-			url,
-			scope,
-			Url,
-			type,
-			sort,
-			t,
-			community,
-			people,
+		const scoped = scopeulation.scoped(this.opts.args.scope);
+		const scopeulated = {
+			...scoped,
 			findulator: async () => {
 				const mapper: {
 					[key in Scope]: { ids: string[]; strat: "testId" | "selector" | "text" };
@@ -119,15 +94,15 @@ export class Reddit extends Pager {
 					Communities: { ids: ["search-community"], strat: "testId" },
 					People: { ids: ["search-author"], strat: "testId" },
 				};
-				const scoped = mapper[scope];
+				const scope = mapper[scoped.scope];
 
 				// If not a user provided URL, we might need a different scope
-				return { scope: scoped, find: await this.find(scoped.ids, scoped.strat) };
+				return { scope, find: await this.find(scope.ids, scope.strat) };
 			},
 			clickSortOptionByText: async () => {
 				const scopes: Scope[] = ["Posts", "Comments", "Media"];
 				const sorts: Sort[] = ["Hot", "Top", "New", "Comments"];
-				const skips = sort || !scopes.includes(scope) || !sorts.includes(this.opts.args.sort);
+				const skips = scoped.sort || !scopes.includes(scoped.scope) || !sorts.includes(this.opts.args.sort);
 				if (skips) return;
 				// Click the sort dropdown
 				const sortLocator = this.page.locator(`search-sort-dropdown-menu`).first();
@@ -160,8 +135,8 @@ export class Reddit extends Pager {
 				const sorts: Sort[] = ["Relevance", "Top", "Comments"];
 				const filters: Filter[] = ["Year", "Month", "Week", "Today", "Hour"];
 				const skips =
-					t ||
-					!scopes.includes(scope) ||
+					scoped.t ||
+					!scopes.includes(scoped.scope) ||
 					!sorts.includes(this.opts.args.sort) ||
 					!filters.includes(this.opts.args.filter);
 				if (skips) return;
@@ -188,16 +163,16 @@ export class Reddit extends Pager {
 				Logger.log(`Clicked on "${optionText}" time range option`);
 			},
 			click: async () => {
-				if (type) return;
+				if (scoped.type) return;
 				// Click the appropriate tab based on the scope
 				await this.click(
-					scope === "Posts"
-						? this.page.getByRole("button", { name: scope }).first()
-						: this.page.locator(`#search-results-page-tab-${scope.toLowerCase()}`).first()
+					scoped.scope === "Posts"
+						? this.page.getByRole("button", { name: scoped.scope }).first()
+						: this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`).first()
 				);
 			},
 		};
-		return Logger.return(`Scoped:`, scoped);
+		return this.bang(`scopeulate`, scopeulated, scoped);
 	}
 
 	// check todo's and done
@@ -208,7 +183,7 @@ export class Reddit extends Pager {
 		const searched = search === 0 && this.opts.args.search.length > 0;
 		const done = scopeulation.visited.length + scopeulation.searched.length;
 		const stats = { todo, done, visit, search, searched };
-		return Logger.return(`Status:`, stats);
+		return this.bang(`Status`, stats, scopeulation);
 	}
 
 	// on every try
@@ -270,6 +245,45 @@ export class Reddit extends Pager {
 		await this.nap();
 	}
 
+	// find an active context
+	async findo<T>(posts: Locator[], funco: (findo: Findo) => Promise<T>): Promise<T> {
+		const url = new URL(this.page.url());
+
+		for (const listing of posts) {
+			this.bang(
+				"checking listing attempts",
+				this.opts.settings.start.attempts > 0,
+				this.opts.settings.start.attempts
+			);
+			const existing = scopeulation.findos.some(
+				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
+			);
+			if (existing) continue; // Skip already visited listings
+			try {
+				const thread = { listing, attributes: await this.attributes(listing) };
+				scopeulation.findos.push(thread);
+				await thread.listing.scrollIntoViewIfNeeded();
+				await this.nap();
+				await thread.listing.click({ position: { x: 5, y: 5 } });
+				await this.nap();
+				return await funco(thread);
+			} catch {
+				this.opts.settings.start.attempts--;
+				while (true && this.opts.settings.start.attempts > 0) {
+					const pUrl = new URL(this.page.url());
+					if (pUrl.pathname === url.pathname) break; // If we are at the base URL
+
+					await this.page.goBack();
+					await this.nap();
+				}
+			}
+		}
+
+		throw ror(
+			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
+		);
+	}
+
 	// Join a conversation by clicking the "See full discussion" link and making sure post is open
 	async joinConversation() {
 		await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
@@ -319,41 +333,6 @@ export class Reddit extends Pager {
 		// return editor;
 	}
 
-	// find an active context
-	async findo<T>(posts: Locator[], funco: (findo: Findo) => Promise<T>): Promise<T> {
-		const url = new URL(this.page.url());
-
-		for (const listing of posts) {
-			this.bang("checking listing attempts", this.opts.settings.start.attempts > 0, this.opts.settings.start.attempts);
-			const existing = this.player.state.visited.some(
-				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
-			);
-			if (existing) continue; // Skip already visited listings
-			try {
-				const thread = { listing, attributes: await this.attributes(listing) };
-				this.player.state.visited.push(thread);
-				await thread.listing.scrollIntoViewIfNeeded();
-				await this.nap();
-				await thread.listing.click({ position: { x: 5, y: 5 } });
-				await this.nap();
-				return await funco(thread);
-			} catch {
-				this.opts.settings.start.attempts--;
-				while (true && this.opts.settings.start.attempts > 0) {
-					const pUrl = new URL(this.page.url());
-					if (pUrl.pathname === url.pathname) break; // If we are at the base URL
-
-					await this.page.goBack();
-					await this.nap();
-				}
-			}
-		}
-
-		throw ror(
-			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
-		);
-	}
-
 	// Find and click a random post
 	async navigateIntoPost() {
 		const scopeulator = this.scopeulate();
@@ -390,15 +369,15 @@ export class Reddit extends Pager {
 	}
 }
 
-export default async function (
-	params: InitParams<Options>,
-	action: (url?: string, thread?: Findo) => Promise<unknown>
-) {
+export default async function (params: InitParams<Options>, action: Funco) {
 	// setup options
 	const options = configure(params.opts);
+	const page = options.settings.start.new
+		? await params.ctx.newPage()
+		: params.ctx.pages()[params.ctx.pages().length - 1];
 
 	// start the plugin
-	const reddit = new Reddit(params.ctx, options, action);
+	const reddit = new Reddit(page, options, action);
 	await reddit.init();
 
 	Logger.info("Feature", options.settings.start.feature, options.args.artifacters);

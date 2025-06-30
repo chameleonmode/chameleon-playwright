@@ -2,10 +2,10 @@ import { Locator } from "@playwright/test";
 import Reddito from "../../reddit.js";
 import { InitParams, Findo} from "../../../../lib/types/index.js";
 import { Options } from "../../configure.js";
-import { Pager } from "../../../pager.js";
+import { Actor } from "../../../actor.js";
 
 export class Post {
-	constructor(readonly pager: Pager) {}
+	constructor(readonly pager: Actor) {}
 
 	// Get post title text
 	async title() {

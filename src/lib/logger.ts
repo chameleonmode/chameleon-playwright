@@ -34,11 +34,6 @@ export class Logger {
     //console.log(`[${this.prefix()}] \x1b[${color}m${level}\x1b[0m \x1b[95m(${callerLine.method}):\x1b[0m {\n ${callerLine.filename},\n \x1b[38;5;208m${message}\x1b[0m,\n`, ...output, `\n}`);
   }
 
-  static return<T>(message: string = "INFO", objects: T): T {
-    this.print("LOG", "32", message, [objects]);
-    return objects;
-  }
-
   static log(message: string = "INFO", ...objects: any[]): any {
     this.print("LOG", "32", message, objects);
   }

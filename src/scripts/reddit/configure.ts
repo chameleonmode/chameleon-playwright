@@ -1,5 +1,5 @@
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings } from "../../lib/types/index.js";
+import { AI, Opts, Artifact, Settings, Findo } from "../../lib/types/index.js";
 
 
 //
@@ -15,33 +15,51 @@ export interface Args {
 	artifacters: Artifact[];
 }
 export interface Options extends Opts<Args> {}
-export const BASE_URL: string = "https://www.reddit.com";
-export const scopeulation = {
-	visited: [] as string[],
-	searched: [] as string[],
+export class Scopeulation {
+	findos: Findo[] = [];
+	visited: string[] = [];
+	searched: string[] = [];
 
-	subreddit(url: string) {
+	subreddit(url: string): boolean {
 		const pattern = /\/r\/[^/]+\/?$/;
 		return pattern.test(url);
-	},
+	}
 
-	comments(url: string) {
+	comments(url: string): boolean {
 		const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
 		return pattern.test(url);
-	},
+	}
 
-	search(url: string) {
+	search(url: string): boolean {
 		const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
 		return pattern.test(url);
-	},
+	}
 
-	user(url: string) {
+	user(url: string): boolean {
 		const pattern = /\.com\/user\/[^/]+/;
 		return pattern.test(url);
 	}
+
+	scoped(current: Scope) {
+		const url = this.visited[this.visited.length - 1];
+		const scope =
+			["People", "Communities"].includes(current) &&
+			(this.subreddit(url) || this.comments(url) || this.search(url))
+				? "Posts"
+				: current;
+		const Url = new URL(url);
+		const type = Url.searchParams.get("type");
+		const sort = Url.searchParams.get("sort");
+		const t = Url.searchParams.get("t");
+		const community = scope === "Communities" || type === "communities";
+		const people = scope === "People" || type === "people" || this.user(url);
+		return { url, scope, type, sort, t, community, people };
+	}
 }
+export const scopeulation = new Scopeulation();
+export const BASE_URL: string = "https://www.reddit.com";
 export const args: Args = {
-	search: [],//["popeye"],
+	search: [], //["popeye"],
 	scope: "People", // "Posts", "Communities", "Comments", "Media", "People"
 	sort: "Relevance",
 	filter: "All",
@@ -83,7 +101,7 @@ export function configure(opts?: Partial<Options>) {
 		...settings.start.urls, // Append default start URLs
 	];
 	if(!search.length && !urls.length) {
-		args.scope = "Posts"; 
+		args.scope = "Communities"; 
 		args.sort = "Relevance"; 
 		args.filter = "All"; 
 

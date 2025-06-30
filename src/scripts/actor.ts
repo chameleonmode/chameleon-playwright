@@ -1,19 +1,14 @@
 // src/scripts/pages/base.page.ts
-import { BrowserContext, Locator, Page, expect } from "@playwright/test";
-import { rando, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { Locator, Page, expect } from "@playwright/test";
+import { rando, ror, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
 import { Opts } from "../lib/types/index.js";
 import { Logger } from "../lib/logger.js";
+import { Player } from "./player.js";
 
-export function ror(message: unknown, cause?: unknown) {
-	const error = new Error(`${message}`, { cause });
-	const pretty = { cause, stack: error.stack };
-	Logger.error(`(error): ${error.message}`, pretty);
-	return error;
-}
-export abstract class Pager {
-	public page!: Page;
+export abstract class Actor {
+	readonly player = new Player(this);
 	constructor(
-		readonly ctx: BrowserContext,
+		readonly page: Page,
 		readonly opts: Opts<unknown>,
 		readonly scenario: (url: string) => Promise<number | unknown>
 	) {}
@@ -22,9 +17,6 @@ export abstract class Pager {
 	abstract onReIteration(url: string): Promise<void | Error>;
 
 	async init() {
-		this.page = this.opts.settings.start.new
-			? await this.ctx.newPage()
-			: this.ctx.pages()[this.ctx.pages().length - 1];
 		this.page.setDefaultTimeout(this.opts.settings.timeouts.default);
 		this.page.setDefaultNavigationTimeout(this.opts.settings.timeouts.navigate);
 	}
@@ -37,7 +29,11 @@ export abstract class Pager {
 		} catch (e) {
 			Logger.error("Error navigating to URL:", e);
 			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-			this.bang("checking navigation attempts", this.opts.settings.start.attempts > attempt++, this.opts.settings.start.attempts);
+			this.bang(
+				"checking navigation attempts",
+				this.opts.settings.start.attempts > attempt++,
+				this.opts.settings.start.attempts
+			);
 			await this.navigate(url, attempt);
 		}
 	}
@@ -68,6 +64,7 @@ export abstract class Pager {
 
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
+			await sleepo(this.opts.settings.timeouts.naps);
 			if (await element.isVisible()) {
 				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
@@ -330,7 +327,8 @@ export abstract class Pager {
 	}
 
 	bing<T>(message: string, expect: unknown, returnz: T, source: unknown) {
-		if (this.bang(message, expect, source)) return returnz;
+		const caller = Logger.getCallerLine();
+		if (this.bang(message, expect, source, { caller })) return returnz;
 		throw ror(message, { source, expect });
 	}
 }

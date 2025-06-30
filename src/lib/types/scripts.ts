@@ -42,3 +42,5 @@ export interface Findo {
 	attributes: Record<string, string>;
 }
 
+export type Funco = (url?: string, thread?: Findo) => Promise<unknown>;
+
