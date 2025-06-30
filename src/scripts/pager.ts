@@ -37,15 +37,15 @@ export abstract class Pager {
 		} catch (e) {
 			Logger.error("Error navigating to URL:", e);
 			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-			this.banger(this.opts.settings.start.attempts > attempt++);
+			this.bang("checking navigation attempts", this.opts.settings.start.attempts > attempt++, this.opts.settings.start.attempts);
 			await this.navigate(url, attempt);
 		}
 	}
 
 	async waitForNavigation(timeout = this.opts.settings.timeouts.navigate) {
-		return await tryForEach([
-			this.page.waitForLoadState("load", { timeout }),
-			this.page.waitForLoadState("domcontentloaded", { timeout }),
+		return await trySequentially([
+			() => this.page.waitForLoadState("load", { timeout }),
+			() => this.page.waitForLoadState("domcontentloaded", { timeout }),
 		]);
 	}
 
@@ -64,7 +64,7 @@ export abstract class Pager {
 	async txtContent(selector: string, locator?: Locator) {
 		const location = locator?.locator(selector) || this.page.locator(selector);
 		const locations = await location.count();
-		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, false); // banger
+		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, { print: false }); // banger
 
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
@@ -72,7 +72,7 @@ export abstract class Pager {
 				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
 				if (!text) continue; // Skip if no text content
-				return this.bang("txtContent: " + selector, text, { element, text }, false);
+				return this.bang("txtContent: " + selector, text, { element, text }, { print: false });
 			}
 		}
 		throw ror(`No visible elements found for selector: ${location}`, { locations, location });
@@ -86,7 +86,7 @@ export abstract class Pager {
 			}
 			return attrs;
 		});
-		return this.bang("attributes: " + locator, attributes, { locator, attributes }, false);
+		return this.bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
 	}
 
 	async selectAll(locator?: Locator, clear = false) {
@@ -135,7 +135,7 @@ export abstract class Pager {
 		const { strict = true, timeout = this.opts.settings.timeouts.wait } = options;
 		await this.nap();
 		const count = await locator.count();
-		this.banger(count, { locator, count }); // banger
+		this.bang("checking element count", count, { locator, count }); // banger
 
 		if (strict) {
 			// Ensure the locator is visible and enabled before clicking
@@ -144,7 +144,10 @@ export abstract class Pager {
 
 		// Click the locator
 		const locato = await trySequentially(
-			[() => locator.scrollIntoViewIfNeeded({ timeout }), () => locator.click({ timeout, force: true })],
+			[
+				async () => await locator.scrollIntoViewIfNeeded({ timeout }),
+				async () => await locator.click({ timeout, force: true }),
+			],
 			{ first: false }
 		);
 		this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
@@ -296,9 +299,13 @@ export abstract class Pager {
 		// return (await this.page.screenshot({ fullPage: false })).toString("base64");
 	}
 
-	bang<T>(message: string = "banger", expect: T, source?: unknown, print = true) {
+	bang<T>(
+		message: string,
+		expect: T,
+		source: unknown,
+		{ print = true, caller = Logger.getCallerLine() } = {}
+	) {
 		if (print) {
-			const caller = Logger.getCallerLine();
 			Logger.debug(
 				`bang/${this.opts.settings.start.feature}`,
 				`\x1b[38;5;208mmessage:\x1b[0m`,
@@ -322,12 +329,8 @@ export abstract class Pager {
 		throw ror(message, { source, expect });
 	}
 
-	banger<T>(expect: T, source?: unknown) {
-		return this.bang(``, expect, source);
-	}
-
-	bing<T>(expect: unknown, returnz: T, source?: unknown) {
-		if (this.banger(expect)) return returnz;
-		throw ror("", { source, expect });
+	bing<T>(message: string, expect: unknown, returnz: T, source: unknown) {
+		if (this.bang(message, expect, source)) return returnz;
+		throw ror(message, { source, expect });
 	}
 }

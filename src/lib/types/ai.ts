@@ -253,7 +253,6 @@ export interface AI {
 
 export namespace requests {
 	export interface Generators {
-		sys?: string;
 		type?: Kind;
 		input: Input;
 		range: Ranger;

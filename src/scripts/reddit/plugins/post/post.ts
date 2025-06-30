@@ -1,10 +1,11 @@
 import { Locator } from "@playwright/test";
-import Reddito, { Reddit } from "../../reddit.js";
-import { InitParams } from "../../configure.js";
-import { Findo } from "../../../player.js";
+import Reddito from "../../reddit.js";
+import { InitParams, Findo} from "../../../../lib/types/index.js";
+import { Options } from "../../configure.js";
+import { Pager } from "../../../pager.js";
 
 export class Post {
-	constructor(readonly pager: Reddit) {}
+	constructor(readonly pager: Pager) {}
 
 	// Get post title text
 	async title() {
@@ -12,7 +13,7 @@ export class Post {
 	}
 
 	// Extract full post data with screenshot
-	async raw(max = 36) {
+	async raw() {
 		const locator = this.pager.page.locator("shreddit-post").first();
 		await locator.waitFor();
 
@@ -75,8 +76,7 @@ export class Post {
 			};
 		});
 
-		const comments = await this.pager.getComments(max);
-		return { id: crypto.randomUUID(), url: this.pager.page.url(), content, screenshot, comments };
+		return { id: crypto.randomUUID(), url: this.pager.page.url(), content, screenshot };
 	}
 
 	// Add comment to main thread
@@ -113,7 +113,7 @@ export class Post {
 }
 
 export default async function (
-	params: InitParams,
+	params: InitParams<Options>,
 	action: (url?: string, thread?: Findo) => Promise<unknown>
 ) {
 	const { reddit } = await Reddito(params, action);

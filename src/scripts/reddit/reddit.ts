@@ -1,37 +1,11 @@
 import { BrowserContext, Locator } from "@playwright/test";
+import { RedditComment, InitParams, Findo } from "../../lib/types/index.js";
 import { random } from "../../lib/utils.js";
-import { configure, Options, Scope, Sort, BASE_URL, Filter, InitParams } from "./configure.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation } from "./configure.js";
 import { Pager, ror } from "../pager.js";
-import { Findo, Player } from "../player.js";
+import { Player } from "../player.js";
 import { Logger } from "../../lib/logger.js";
-import { RedditComment } from "../../lib/types/ai.js";
 
-class Scopeulation {
-	readonly visited: string[] = [];
-	readonly searched: string[] = [];
-	constructor() {}
-
-	subreddit(url: string) {
-		const pattern = /\/r\/[^/]+\/?$/;
-		return pattern.test(url);
-	}
-
-	comments(url: string) {
-		const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
-		return pattern.test(url);
-	}
-
-	search(url: string) {
-		const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
-		return pattern.test(url);
-	}
-
-	user(url: string) {
-		const pattern = /\.com\/user\/[^/]+/;
-		return pattern.test(url);
-	}
-}
-export const scopeulation = new Scopeulation();
 export class Reddit extends Pager {
 	readonly player = new Player(this);
 
@@ -350,7 +324,7 @@ export class Reddit extends Pager {
 		const url = new URL(this.page.url());
 
 		for (const listing of posts) {
-			this.banger(this.opts.settings.start.attempts > 0, this.opts.settings.start.attempts);
+			this.bang("checking listing attempts", this.opts.settings.start.attempts > 0, this.opts.settings.start.attempts);
 			const existing = this.player.state.visited.some(
 				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
 			);
@@ -386,10 +360,11 @@ export class Reddit extends Pager {
 		if (!scopeulator.community && !scopeulator.people) return;
 
 		await this.scrollabit();
-		const posts = this.page.locator(
+		const locator = this.page.locator(
 			`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`
 		);
-		return await posts.all();
+		const posts = await locator.all();
+		return this.bing("found posts", posts.length, posts, { locator, scopeulator });
 	}
 
 	// Get comments from post with limit
@@ -416,7 +391,7 @@ export class Reddit extends Pager {
 }
 
 export default async function (
-	params: InitParams,
+	params: InitParams<Options>,
 	action: (url?: string, thread?: Findo) => Promise<unknown>
 ) {
 	// setup options

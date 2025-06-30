@@ -1,21 +1,12 @@
-import { Locator } from "@playwright/test";
 import { Logger } from "../lib/logger.js";
+import { Findo } from "../lib/types/index.js";
 import { delay } from "../lib/utils.js";
 import { Pager } from "./pager.js";
 
-export interface Findo {
-	listing: Locator;
-	attributes: Record<string, string>;
-}
-
-export interface State {
-  visited: Findo[];
-  iterations: number[];
-}
 export class Player {
-  readonly state: State = {
-    visited: [],
-    iterations: [],
+  readonly state = {
+    visited: [] as Findo[],
+    iterations: [] as number[],
   };
 
   // ctor

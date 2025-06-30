@@ -1,5 +1,5 @@
-import { Findo } from "../../../player.js";
-import { InitParams } from "../../configure.js";
+import { Findo, InitParams } from "../../../../lib/types/index.js";
+import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 
 export class Subreddit {
@@ -13,8 +13,9 @@ export class Subreddit {
 
   // Navigate to subreddit community
   async visitCommunity() {
+    const locator = this.pager.page.locator('span.avatar a[href^="/r/"]');
     await this.pager.click(
-      this.pager.bang("'visit' button", this.pager.page.locator('span.avatar a[href^="/r/"]').first())
+      this.pager.bang("'visit' button", locator.first(), { locator })
     );
   }
 
@@ -25,7 +26,7 @@ export class Subreddit {
     // Join conversation if not in community or people scope
     if (!scopeulator.community && !scopeulator.people) {
       const banger = await this.pager.joinConversation();
-      this.pager.bang("vote", banger);
+      this.pager.bang("vote", banger, { scopeulator });
     }
     
     await this.pager.scrollabit();
@@ -57,8 +58,9 @@ export class Subreddit {
     await this.pager.scrollabit();
     
     // Click the "Join" button
+    const locator = this.pager.page.getByRole("button", { name: "Join", exact: true }).first();
     await this.pager.click(
-      this.pager.bang("'Join' button", this.pager.page.getByRole("button", { name: "Join", exact: true }).first())
+      this.pager.bang("'Join' button", locator.first(), { locator })
     );
   }
 
@@ -72,9 +74,9 @@ export class Subreddit {
 
     // Verify post type is text
     const postTypeValue = await this.pager.page.locator('r-post-type-select[name="type"]').getAttribute("value");
-    this.pager.bang("Post type", postTypeValue === "TEXT");
-    this.pager.bang("Post body text field", await bodyLocator.innerText());
-    this.pager.bang("Post title text field", await titleLocator.count());
+    this.pager.bang("Post type", postTypeValue === "TEXT", { postTypeValue });
+    this.pager.bang("Post body text field", await bodyLocator.innerText(), {bodyLocator});
+    this.pager.bang("Post title text field", await titleLocator.count(), {titleLocator});
 
     // Fill in post content
     const { title, content } = await contents();
@@ -90,7 +92,7 @@ export class Subreddit {
 }
 
 export default async function (
-  params: InitParams,
+  params: InitParams<Options>,
   action: (url?: string, thread?: Findo) => Promise<unknown>
 ) {
   const { reddit } = await Reddito(params, action);

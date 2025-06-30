@@ -1,6 +1,6 @@
 import { Logger } from "../../src/lib/logger.js";
 import { promptee } from "../../src/lib/requests.js";
-import { configure, settings, Scope, Sort, args } from "../../src/scripts/reddit/reddit.js";
+import { configure, settings, Scope, Sort, args } from "../../src/scripts/reddit/configure.js";
 import { rando } from "../../src/lib/utils.js";
 import { AI, Settings } from "../../src/lib/types/index.js";
 
@@ -30,13 +30,10 @@ import { AI, Settings } from "../../src/lib/types/index.js";
       task: `generate search terms`,
       generations: {
         type: "term",
-        sys: "you are creating variations of search terms",
-        context: "current search terms",
         range: { min, max },
         input: {
-          type: "search",
           data: options.args.search,
-          reason: "list of search terms to generate variations for",
+          user_intent: "list of search terms to generate variations for",
         },
       },
     });
