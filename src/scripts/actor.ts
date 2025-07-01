@@ -60,8 +60,8 @@ export abstract class Actor<T> {
 
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
-			await sleepo(this.opts.settings.timeouts.naps);
 			if (await element.isVisible()) {
+				await sleepo(this.opts.settings.timeouts.naps);
 				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
 				if (!text) continue; // Skip if no text content
@@ -103,6 +103,7 @@ export abstract class Actor<T> {
 			delay: rando(64, 128),
 			timeout: 1000 * 60 * 5,
 		});
+		await this.nap();
 	}
 
 	async assert(locator: Locator, { timeout = 1000 * 6 } = {}) {

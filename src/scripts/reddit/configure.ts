@@ -26,6 +26,10 @@ export class Scopeulation {
 	subreddit = (url: string) => /\/r\/[^/]+\/?$/.test(url);
 	comments = (url: string) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
 	search = (url: string) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
+	iterative = (url: string) =>
+		this.comments(url) || this.search(url) || this.user(url)
+			? url
+			: url.replace(/\/?(search)?$/, "/search");
 
 	existing(thread: Thread) {
 		if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {

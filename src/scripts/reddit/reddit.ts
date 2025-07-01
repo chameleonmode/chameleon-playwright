@@ -33,33 +33,25 @@ export class Reddit extends Actor<Args> {
 					}
 				};
 			} else {
+				const scopeulator = this.scopeulate();
 				try {
-					const scopeulator = this.scopeulate();
-					try {
-						await scopeulator.click();
-						await scopeulator.clickSortOptionByText();
-						await scopeulator.clickTimeRangeByText();
-					} catch (e) {
-						Logger.warn("Error in findo setup", e);
-					}
-					const findulator = await scopeulator.findulator();
-					await this.scrollabit();
-
-					// Wait for thread elements to be available
-					const threads = await findulator.find.locator.all();
-					const shuffled = threads.sort(() => Math.random() - 0.5);
-					return await this.findo(shuffled, async (thread) => {
-						await pre();
-						return await setup.funco(url, thread);
-					});
+					await scopeulator.click();
+					await scopeulator.clickSortOptionByText();
+					await scopeulator.clickTimeRangeByText();
 				} catch (e) {
-					Logger.warn("Error in action function", e);
-				} finally {
-					const text = this.opts.args.search[scopeulation.searched.length];
-					scopeulation.searched.push(text);
+					Logger.warn("Error in findo setup", e);
 				}
-			}
+				const findulator = await scopeulator.findulator();
+				await this.scrollabit();
 
+				// Wait for thread elements to be available
+				const threads = await findulator.find.locator.all();
+				const shuffled = threads.sort(() => Math.random() - 0.5);
+				return await this.findo(shuffled, async (thread) => {
+					await pre();
+					return await setup.funco(url, thread);
+				});
+			}
 			Logger.log("Scenario function completed", scopeulation, url);
 		});
 	}
@@ -163,13 +155,12 @@ export class Reddit extends Actor<Args> {
 	}
 
 	async backscratcher(url: URL, error?: unknown) {
-		bang("backscratcher checking listing attempts", error && this.opts.settings.start.attempts-- > 0, {
+		bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
 			attempts: this.opts.settings.start.attempts,
 			error,
 		});
 		while (await this.page.evaluate(() => window.history.length > 1)) {
-			const pUrl = new URL(this.page.url());
-			if (pUrl.pathname === url.pathname) break; // If we are at the base URL
+			if (new URL(this.page.url()).pathname === url.pathname) break; // If we are at the base URL
 
 			await this.page.goBack();
 			await this.nap();
@@ -203,15 +194,7 @@ export class Reddit extends Actor<Args> {
 
 	// on every retry/iteration
 	override async onReIteration(url: string) {
-		await this.nap();
-		const until = () =>
-			scopeulation.comments(url) || scopeulation.search(url) || scopeulation.user(url)
-				? url
-				: url.replace(/\/?$/, "/") + "search";
-		while (!this.page.url().startsWith(until())) {
-			await this.page.goBack({ waitUntil: "load" });
-			await this.nap({ multiplier: random(3, 6) });
-		}
+		await this.backscratcher(new URL(scopeulation.iterative(url)));
 	}
 
 	// on navigation needed
@@ -233,12 +216,12 @@ export class Reddit extends Actor<Args> {
 		await this.click(textbox);
 
 		const clearButton = locator.getByRole("button", { name: "Clear search" });
-		if (await clearButton.isVisible().catch(() => false)) await clearButton.click().catch(() => false);
+		if (await clearButton.isVisible()) await clearButton.click().catch(() => false);
 
 		await this.pressSequentially(textbox, text, false);
-		await this.nap({ multiplier: 3 });
 		await textbox.press("Enter");
 		await this.nap();
+		scopeulation.searched.push(text);
 	}
 
 	// find an active context
