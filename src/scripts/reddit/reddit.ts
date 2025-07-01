@@ -375,6 +375,7 @@ export class Reddit extends Actor<Args> {
 				});
 				if (!thread || !thread.listing) continue;
 				await this.click(thread.listing);
+				await this.nap();
 				return await funco(thread);
 			} catch (error) {
 				await this.backscratcher(url, error);

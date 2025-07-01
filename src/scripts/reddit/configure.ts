@@ -103,9 +103,9 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		// search.push("popeye"); // Default search term
-		// urls.push(BASE_URL); // Default URL
-		urls.push("https://www.reddit.com/search/?q=popeye&type=posts"); // Default URL
+		search.push("spinach"); // Default search term
+		urls.push(BASE_URL); // Default URL
+		// urls.push("https://www.reddit.com/search/?q=popeye&type=posts"); // Default URL
 		// urls.push("https://www.reddit.com/user/spikebrennan"); // Default URL
 		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
 		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
