@@ -1,4 +1,4 @@
-import { tones, Output, requests, App, Model, Decorations } from "./types/index.js";
+import { requests, App } from "./types/index.js";
 import { Logger } from "./logger.js";
 import { rando } from "./utils.js";
 
@@ -52,30 +52,30 @@ export namespace promptee {
 		[string: string]: any;
 	};
 
-	async function requesito(route: string, ctx: requests.Genoration) {
-		ctx.decorators.tone ||= rando(tones);
+	async function requesito<T>(route: string, ctx: requests.Prompt<T>) {
+		ctx.decorators.tone ||= "adaptive to the task, data, user metadata and user intent";
 		const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
 		Logger.log("Requesting:", ctx.generations);
 		return await req<Response>("/robo/" + route, args);
 	}
 
-	function responsito(request: Response) {
-		const out = request.reply as Output[];
+	function responsito<T>(request: Response) {
+		const out = request.reply as requests.Output<T>[];
 		return out;
 	}
 
-	export async function prompt(ctx: requests.Prompt) {
+	export async function prompt<T>(ctx: requests.Prompt<T>) {
 		const request = await requesito("prompt", ctx);
 		return responsito(request);
 	}
 
-	export async function genorate(ctx: requests.Genoration) {
+	export async function genorate<T>(ctx: requests.Prompt<T>) {
 		const request = await requesito("genorate", ctx);
 		return responsito(request);
 	}
 
-	export async function robot(ctx: requests.Prompt) {
-    const request = await requesito("robot", ctx);
-    return responsito(request);
+	export async function robot<T, TT>(ctx: requests.Prompt<T>) {
+    const request = await requesito<T>("robot", ctx);
+    return responsito<TT>(request);
 	}
 }

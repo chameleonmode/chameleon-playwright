@@ -1,9 +1,21 @@
 import { Locator, Page } from "@playwright/test";
-import { random, er, bang, bing } from "../../lib/utils.js";
-import { RedditComment, Parameters, Thread, Funco } from "../../lib/types/index.js";
-import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation, Args } from "./configure.js";
+import { er, bang, bing, sleepo, delay } from "../../lib/utils.js";
+import { Parameters, Thread, Funco } from "../../lib/types/index.js";
+import {
+	configure,
+	Options,
+	Scope,
+	Sort,
+	BASE_URL,
+	Filter,
+	scopeulation,
+	Args,
+	RedditComment,
+	RankingOrderReply,
+} from "./configure.js";
 import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
+import { promptee } from "../../lib/requests.js";
 
 export class Reddit extends Actor<Args> {
 	constructor(setup: { page: Page; options: Options; funco: Funco }) {
@@ -45,12 +57,73 @@ export class Reddit extends Actor<Args> {
 				await this.scrollabit();
 
 				// Wait for thread elements to be available
-				const threads = await findulator.find.locator.all();
-				const shuffled = threads.sort(() => Math.random() - 0.5);
-				return await this.findo(shuffled, async (thread) => {
-					await pre();
-					return await setup.funco(url, thread);
-				});
+				let idx = 0;
+				const threads: Thread[][] = [[]];
+				const count = await findulator.find.locator.count();
+				for (let i = 0; i < count; i++) {
+					const thread = findulator.find.locator.nth(i);
+					const { id, content, screenshot } = await this.raw(thread, false);
+					if (threads[idx].length >= 10) threads[++idx] = []; // Create a new batch every 10 threads
+					threads[idx].push({
+						id,
+						content,
+						listing: thread,
+						attributes: await this.attributes(thread),
+					});
+				}
+
+				const rank = async () => {
+					for (const batch of threads) {
+						const promptmise = promptee.robot<Thread[], RankingOrderReply[]>({
+							model: "o4-mini",
+							task: "reddit_thread_ranking",
+							decorators: this.opts.ai.decorators,
+							// image: { des: "thread screenshots in order", b64 },
+							generations: {
+								type: "ranking",
+								range: { min: 1, max: 1 },
+								input: {
+									data: batch.map((t) => ({
+										id: t.id,
+										attributes: t.attributes,
+										content: t.content,
+									})),
+									user_intent: `Rank all of these threads ${
+										this.opts.settings.start.feature
+									} on from ${this.page.url()}`,
+								},
+							},
+						});
+
+						const wait = async (count = 0) => {
+							try {
+								while (count++ < 10) {
+									await this.scrollabit();
+									const racer = await Promise.race([promptmise, delay(100)]);
+									if (typeof racer === "number") continue;
+									return racer[0].data
+										.sort((a) => a.rank)
+										.map((item) => {
+											const thread = batch.find((t) => t.id === item.id);
+											return thread?.listing;
+										}) as Locator[];
+								}
+							} catch (error) {
+								Logger.warn("Error in ranking wait", error);
+							}
+							return batch.map((t) => t.listing) as Locator[];
+						};
+						try {
+							return await this.findo(await wait(), async (thread) => {
+								await pre();
+								return await setup.funco(url, thread);
+							});
+						} catch (error) {
+							Logger.warn("Error in findo after ranking", batch, error);
+						}
+					}
+				};
+				return await rank(); // Final ranking if any threads left
 			}
 			Logger.log("Scenario function completed", scopeulation, url);
 		});
@@ -144,14 +217,80 @@ export class Reddit extends Actor<Args> {
 			click: async () => {
 				if (scoped.type) return;
 				// Click the appropriate tab based on the scope
-				await this.click(
+				const tab =
 					scoped.scope === "Posts"
-						? this.page.getByRole("button", { name: scoped.scope }).first()
-						: this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`).first()
-				);
+						? this.page.getByRole("button", { name: scoped.scope })
+						: this.page.locator(`#search-results-page-tab-${scoped.scope.toLowerCase()}`);
+				await this.click(tab);
 			},
 		};
 		return bang(`scopeulate`, scopeulated, scoped);
+	}
+
+	// Extract full post data with screenshot
+	async raw(locator: Locator = this.page.locator("shreddit-post").first(), screenshots = true) {
+		await locator.waitFor();
+
+		// Take screenshot of post element
+		const screenshot = screenshots ? await this.screenshot(locator) : "";
+
+		// Extract post content and attributes
+		const content = await locator.evaluate((root) => {
+			const relevantAttrPrefixes = [
+				"post-",
+				"subreddit-",
+				"author-",
+				"content-",
+				"comment-",
+				"domain",
+				"id",
+				"title",
+				"href",
+				"src",
+				"datetime",
+			];
+
+			const extractAttributes = (el: Element) => {
+				const data: Record<string, string> = {};
+				for (const { name, value } of el.attributes) {
+					if (relevantAttrPrefixes.some((prefix) => name.startsWith(prefix) || prefix === name)) {
+						data[name] = value;
+					}
+				}
+				return data;
+			};
+
+			const extractTextContent = (node: Node): string => {
+				if (node.nodeType === Node.TEXT_NODE) {
+					return node.textContent?.trim() || "";
+				}
+				if (node.nodeType === Node.ELEMENT_NODE) {
+					return Array.from(node.childNodes)
+						.map(extractTextContent)
+						.filter(Boolean)
+						.join(" ")
+						.replace(/\s+/g, " ")
+						.trim();
+				}
+				return "";
+			};
+
+			const extractMedia = (el: Element) =>
+				Array.from(el.querySelectorAll("img, video"))
+					.map((node) => ({ type: node.tagName.toLowerCase(), src: node.getAttribute("src") }))
+					.filter((item) => item.src);
+
+			return {
+				tag: root.tagName.toLowerCase(),
+				attributes: extractAttributes(root),
+				title: root.querySelector("h1")?.textContent?.trim(),
+				flair: root.querySelector("shreddit-post-flair")?.textContent?.trim(),
+				body: extractTextContent(root.querySelector('[slot="text-body"]') || root),
+				media: extractMedia(root),
+			};
+		});
+
+		return { id: crypto.randomUUID(), url: this.page.url(), content, screenshot };
 	}
 
 	async backscratcher(url: URL, error?: unknown) {
@@ -229,8 +368,12 @@ export class Reddit extends Actor<Args> {
 		const url = new URL(this.page.url());
 		for (const listing of posts) {
 			try {
-				const thread = scopeulation.existing({ listing, attributes: await this.attributes(listing) });
-				if (!thread) continue;
+				const thread = scopeulation.existing({
+					id: crypto.randomUUID(),
+					listing,
+					attributes: await this.attributes(listing),
+				});
+				if (!thread || !thread.listing) continue;
 				await this.click(thread.listing);
 				return await funco(thread);
 			} catch (error) {

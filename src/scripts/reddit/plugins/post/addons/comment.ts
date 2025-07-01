@@ -1,6 +1,6 @@
 import { BrowserContext } from "@playwright/test";
 import { promptee } from "../../../../../lib/requests.js";
-import { Options } from "../../../configure.js";
+import { Options, RedditCommentPrompt } from "../../../configure.js";
 import Post from "../post.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
@@ -11,15 +11,15 @@ export default async function (ctx: BrowserContext, opts: Options) {
 					posts.sort(() => Math.random() - 0.5),
 					async (_) => {
 						await reddit.joinConversation();
-						return await post.raw();
+						return await reddit.raw();
 					}
 			  )
-			: await post.raw();
+			: await reddit.raw();
 
 		// Step 1.6 - Generate a comment
 		const postee = { id: raw.id, url: raw.url, content: raw.content, comments: await reddit.getComments() };
 		await post.addComment(async () => {
-			const result = await promptee.robot({
+			const result = await promptee.robot<RedditCommentPrompt, string>({
 				model: "o4-mini",
 				decorators: reddit.opts.ai.decorators,
 				task: "generate_reddit_comment",

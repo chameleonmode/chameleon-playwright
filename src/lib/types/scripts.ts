@@ -38,8 +38,10 @@ export interface Parameters<T> {
 }
 
 export interface Thread {
-	listing: Locator;
+  id: string;
+	listing?: Locator;
 	attributes: Record<string, string>;
+  [key: string]: any;
 }
 
 export type Funco = (url?: string, thread?: Thread) => Promise<unknown>;

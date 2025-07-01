@@ -1,7 +1,6 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
 import { AI, Opts, Artifact, Settings, Thread } from "../../lib/types/index.js";
-import { url } from "inspector";
 
 //
 export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
@@ -96,15 +95,17 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 	const search = opts?.args?.search || args.search;
 	const urls = [
 		...(opts?.settings?.start?.urls || []),
-		...settings.start.urls, // Append default start URLs
-	];
+		...(opts?.args?.search.length && !opts?.settings?.start?.urls.length ? [BASE_URL] : [])
+	].filter(Boolean);
 	if (!search.length && !urls.length) {
-		args.scope = "Communities"; // Default scope
-		args.sort = "Posts";
+		args.scope = "Posts"; // Default scope
+		args.sort = "Relevance"; // Default sort
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		search.push("popeye"); // Default search term
+		// search.push("popeye"); // Default search term
+		// urls.push(BASE_URL); // Default URL
+		urls.push("https://www.reddit.com/search/?q=popeye&type=posts"); // Default URL
 		// urls.push("https://www.reddit.com/user/spikebrennan"); // Default URL
 		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
 		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
@@ -118,8 +119,6 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		settings.start.variations = { min: 1, max: 1 };
 
 		Logger.warn("No search terms or URLs provided, using default values.");
-
-		//["https://www.reddit.com/r/publicdomain/comments/1hn0t95/brutus_from_popeye/"], //["https://www.reddit.com/r/PowerScaling/comments/y9vrel/being_completely_reasonable_with_no_memes_or/"],
 	}
 	Logger.debug("Opts", { opts });
 	const options: Options = {
@@ -129,13 +128,7 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 			start: {
 				...settings.start, // Default start settings
 				...opts?.settings?.start, // opts.settings.start overrides defaults
-
-				// URLs are then specifically re-calculated, overriding any 'urls' from opts.settings.start:
-				// It uses the global 'settings.start.urls'.
-				urls: [
-					...(search.length && !urls.length ? [BASE_URL] : []), // Prepend BASE_URL if search terms exist
-					...urls,
-				].filter(Boolean), // Remove any falsy URL entries
+				urls
 			},
 			timeouts: {
 				...settings.timeouts, // Default timeout settings
@@ -165,4 +158,17 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 	Logger.debug("Options", options);
 	const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
 	return { page, options };
+}
+
+export type Target = "comment" | "post" | "unknown";
+export type RedditComment = { id: string; index: number; text: string; attributes: any; locator?: any };
+export type CommentTarget = { type: Target; comment?: RedditComment };
+export type RedditCommentPrompt = {
+	post: { id: string; url: string; content?: any; comments?: RedditComment[] };
+	target?: CommentTarget;
+};
+export type RankingOrderReply = {
+	id: string;
+	rank: number;
+	reason: string;
 }
