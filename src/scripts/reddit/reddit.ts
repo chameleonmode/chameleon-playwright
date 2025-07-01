@@ -1,6 +1,6 @@
 import { Locator, Page } from "@playwright/test";
-import { random, ror } from "../../lib/utils.js";
-import { RedditComment, Parameters, Findo, Funco } from "../../lib/types/index.js";
+import { random, er, bang, bing } from "../../lib/utils.js";
+import { RedditComment, Parameters, Thread, Funco } from "../../lib/types/index.js";
 import { configure, Options, Scope, Sort, BASE_URL, Filter, scopeulation, Args } from "./configure.js";
 import { Actor } from "../actor.js";
 import { Logger } from "../../lib/logger.js";
@@ -8,7 +8,7 @@ import { Logger } from "../../lib/logger.js";
 export class Reddit extends Actor<Args> {
 	constructor(setup: { page: Page; options: Options; funco: Funco }) {
 		super(setup.page, setup.options, async (url: string) => {
-			if (!setup.funco) return this.bang("No action function provided", undefined, { url });
+			if (!setup.funco) return bang("No action function provided", undefined, { url });
 			else Logger.log("Scenario URL", url);
 
 			const pre = async () => {
@@ -23,19 +23,15 @@ export class Reddit extends Actor<Args> {
 				}
 			};
 			if (scopeulation.comments(url) || scopeulation.user(url)) {
-				for (let i = 0; i < this.opts.settings.start.attempts; i++) {
+				const attempter = async () => {
 					try {
 						await pre();
 						return await setup.funco(url);
 					} catch (e) {
-						Logger.warn("Error in action function", e);
-						// If we are on a comments page or user page, we need to go back
-						while (!this.page.url().startsWith(url) && this.opts.settings.start.attempts > 0) {
-							await this.page.goBack();
-							await this.nap({ min: 50, max: 75, multiplier: random(3, 6) });
-						}
+						await this.backscratcher(new URL(url), e);
+						return attempter();
 					}
-				}
+				};
 			} else {
 				try {
 					const scopeulator = this.scopeulate();
@@ -163,7 +159,21 @@ export class Reddit extends Actor<Args> {
 				);
 			},
 		};
-		return this.bang(`scopeulate`, scopeulated, scoped);
+		return bang(`scopeulate`, scopeulated, scoped);
+	}
+
+	async backscratcher(url: URL, error?: unknown) {
+		bang("backscratcher checking listing attempts", error && this.opts.settings.start.attempts-- > 0, {
+			attempts: this.opts.settings.start.attempts,
+			error,
+		});
+		while (await this.page.evaluate(() => window.history.length > 1)) {
+			const pUrl = new URL(this.page.url());
+			if (pUrl.pathname === url.pathname) break; // If we are at the base URL
+
+			await this.page.goBack();
+			await this.nap();
+		}
 	}
 
 	// on every try
@@ -232,39 +242,20 @@ export class Reddit extends Actor<Args> {
 	}
 
 	// find an active context
-	async findo<T>(posts: Locator[], funco: (findo: Findo) => Promise<T>): Promise<T> {
+	async findo<T>(posts: Locator[], funco: (current: Thread) => Promise<T>): Promise<T> {
 		const url = new URL(this.page.url());
-
 		for (const listing of posts) {
-			const existing = scopeulation.findos.some(
-				(v) => JSON.stringify(v.listing) === JSON.stringify(listing)
-			);
-			if (existing) continue; // Skip already visited listings
 			try {
-				const thread = { listing, attributes: await this.attributes(listing) };
-				scopeulation.findos.push(thread);
+				const thread = scopeulation.existing({ listing, attributes: await this.attributes(listing) });
+				if (!thread) continue;
 				await this.click(thread.listing);
 				return await funco(thread);
-			} catch(error) {
-				this.bang(
-					"checking listing attempts",
-					this.opts.settings.start.attempts > 0,
-					{ attempts: this.opts.settings.start.attempts, error }
-				);
-				this.opts.settings.start.attempts--;
-				while (true && this.opts.settings.start.attempts > 0) {
-					const pUrl = new URL(this.page.url());
-					if (pUrl.pathname === url.pathname) break; // If we are at the base URL
-
-					await this.page.goBack();
-					await this.nap();
-				}
+			} catch (error) {
+				await this.backscratcher(url, error);
 			}
 		}
 
-		throw ror(
-			`Failed to find a thread with open comments after ${this.opts.settings.start.attempts} attempts.`
-		);
+		throw er(`Failed to find a thread.`, this.opts.settings.start.attempts);
 	}
 
 	// Join a conversation by clicking the "See full discussion" link and making sure post is open
@@ -274,7 +265,7 @@ export class Reddit extends Actor<Args> {
 
 		const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
 		const closed = await archived.isVisible().catch(() => false);
-		this.bang(`checking archive`, closed === false, { closed, archived });
+		bang(`checking archive`, closed === false, { closed, archived });
 
 		// 1. Locate visible trigger
 		const triggers = this.page.locator(
@@ -311,7 +302,7 @@ export class Reddit extends Actor<Args> {
 			`a[slot='title'], shreddit-profile-comment a.absolute[href][aria-label^='Thread for']`
 		);
 		const posts = await locator.all();
-		return this.bing("found posts", posts.length, posts, { locator, scopeulator });
+		return bing("found posts", posts.length, posts, { locator, scopeulator });
 	}
 
 	// Get comments from post with limit

@@ -1,4 +1,5 @@
 import { Funco, Parameters } from "../../../../lib/types/index.js";
+import { bang } from "../../../../lib/utils.js";
 import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 
@@ -15,7 +16,7 @@ export class Subreddit {
   async visitCommunity() {
     const locator = this.reddit.page.locator('span.avatar a[href^="/r/"]');
     await this.reddit.click(
-      this.reddit.bang("'visit' button", locator.first(), { locator })
+      bang("'visit' button", locator.first(), { locator })
     );
   }
 
@@ -26,7 +27,7 @@ export class Subreddit {
     // Join conversation if not in community or people scope
     if (!scopeulator.community && !scopeulator.people) {
       const banger = await this.reddit.joinConversation();
-      this.reddit.bang("vote", banger, { scopeulator });
+      bang("vote", banger, { scopeulator });
     }
     
     await this.reddit.scrollabit();
@@ -40,7 +41,7 @@ export class Subreddit {
     // Calculate voting limits to avoid errors
     const count = Math.min(upCount, downCount) - 1;
     const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
-    this.reddit.bang("Vote count", length > 0, { upCount, downCount, count, length });
+    bang("Vote count", length > 0, { upCount, downCount, count, length });
     
     // Perform voting with 95% upvote bias
     for (let i = 0; i < length; i++) {
@@ -60,7 +61,7 @@ export class Subreddit {
     // Click the "Join" button
     const locator = this.reddit.page.getByRole("button", { name: "Join", exact: true }).first();
     await this.reddit.click(
-      this.reddit.bang("'Join' button", locator.first(), { locator })
+      bang("'Join' button", locator.first(), { locator })
     );
   }
 
@@ -74,9 +75,9 @@ export class Subreddit {
 
     // Verify post type is text
     const postTypeValue = await this.reddit.page.locator('r-post-type-select[name="type"]').getAttribute("value");
-    this.reddit.bang("Post type", postTypeValue === "TEXT", { postTypeValue });
-    this.reddit.bang("Post body text field", await bodyLocator.innerText(), {bodyLocator});
-    this.reddit.bang("Post title text field", await titleLocator.count(), {titleLocator});
+    bang("Post type", postTypeValue === "TEXT", { postTypeValue });
+    bang("Post body text field", await bodyLocator.innerText(), {bodyLocator});
+    bang("Post title text field", await titleLocator.count(), {titleLocator});
 
     // Fill in post content
     const { title, content } = await contents();

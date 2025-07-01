@@ -1,3 +1,4 @@
+import { bang } from "../../../../lib/utils.js";
 import { Reddit } from "../../reddit.js";
 
 export class Login {
@@ -5,7 +6,7 @@ export class Login {
 	// Check authentication
 	async checkLoginAuthentication() {
 		const locato = this.pager.page.locator("#login-button").first();
-		this.pager.bang("Login button", await locato.isVisible(), locato);
+		bang("Login button", await locato.isVisible(), locato);
 		await this.pager.click(locato);
 	}
 

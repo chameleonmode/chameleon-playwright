@@ -17,6 +17,11 @@ export const delay = (ms: number) => {
 	});
 };
 
+export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
+	const ms = random(min, max);
+	const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
+	return await delay(span);
+}
 /**
  * Generates a random integer between the smallest and largest values provided.
  * @example
@@ -68,19 +73,6 @@ export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | 
 		: thing && typeof thing === "number"
 		? Math.floor(Math.random() * thing)
 		: Math.random() < 0.5;
-}
-
-export function ror(message: unknown, cause?: unknown) {
-	const error = new Error(`${message}`, { cause });
-	const pretty = { cause, stack: error.stack };
-	Logger.error(`(error): ${error.message}`, pretty);
-	return error;
-}
-
-export async function sleepo({ min = 256, max = 512, multiplier = 0 } = {}) {
-	const ms = random(min, max);
-	const span = Math.floor(ms * (multiplier > 0 ? multiplier : rando(3, 6)));
-	return await delay(span);
 }
 
 export async function tryForEach<T>(promises: Promise<T>[]) {
@@ -213,4 +205,47 @@ export async function launcher() {
 	// allow parent to exit independently:
 	child.unref();
 	await delay(3000); // Give it a moment to start up
+}
+
+export function er(message: unknown, cause?: unknown) {
+	const error = new Error(`${message}`, { cause });
+	const pretty = { cause, stack: error.stack };
+	Logger.error(`(error): ${error.message}`, pretty);
+	return error;
+}
+
+export function bang<T>(
+	message: string,
+	expect: T,
+	source: unknown,
+	{ print = true, caller = Logger.getCallerLine() } = {}
+) {
+	if (print) {
+		Logger.debug(
+			`bang`,
+			`\x1b[38;5;208mmessage:\x1b[0m`,
+			message,
+			`\n`,
+			`expect:`,
+			expect,
+			`\n`,
+			`source:`,
+			source,
+			`\n`,
+			"caller: {\n\t",
+			caller.method,
+			`\n\t`,
+			caller.filename,
+			"\n",
+			"}"
+		);
+	}
+	if (expect) return expect;
+	throw er(message, { source, expect });
+}
+
+export function bing<T>(message: string, expect: unknown, returnz: T, source: unknown) {
+	const caller = Logger.getCallerLine();
+	if (bang(message, expect, source, { caller })) return returnz;
+	throw er(message, { source, expect });
 }

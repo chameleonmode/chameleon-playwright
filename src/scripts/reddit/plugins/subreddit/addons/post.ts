@@ -2,6 +2,7 @@ import { BrowserContext } from "@playwright/test";
 import { Options } from "../../../configure.js";
 import Subreddit from "../subreddit.js";
 import { promptee } from "../../../../../lib/requests.js";
+import { bang } from "../../../../../lib/utils.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
 	const { reddit, subreddit } = await Subreddit({ ctx, opts }, async (_, __) => {
@@ -38,7 +39,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 					},
 				},
 			});
-			const titler = reddit.bang(
+			const titler = bang(
 				"post title response",
 				titlee.find((data) => {
 					if (data.type === "title") return data;
@@ -61,7 +62,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 					},
 				},
 			});
-			const contentler = reddit.bang(
+			const contentler = bang(
 				"post content response",
 				contentlee.find((data) => {
 					if (data.type === "post") return data;

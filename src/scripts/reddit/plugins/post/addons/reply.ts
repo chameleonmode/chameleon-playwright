@@ -1,5 +1,6 @@
 import { BrowserContext } from "@playwright/test";
-import { CommentTarget, RedditComment } from "../../../../../lib/types/index.js";
+import { bang } from "../../../../../lib/utils.js";
+import { CommentTarget } from "../../../../../lib/types/index.js";
 import { promptee } from "../../../../../lib/requests.js";
 import { Options } from "../../../configure.js";
 import Post from "../post.js";
@@ -23,7 +24,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 							await reddit.nap();
 
 							const discussion = await reddit.getComments();
-							target.comment = reddit.bang(
+							target.comment = bang(
 								"checking comment match",
 								discussion.find((c) => thread?.attributes["data-ks-id"] === c.attributes.thingid),
 								{ thread, discussion }
@@ -61,7 +62,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 			},
 		});
 
-		const comment = reddit.bang(
+		const comment = bang(
 			"finding comment",
 			comments.find((c) => c.id === (target.comment?.id ? target.comment.id : result[0].id)),
 			{ target, result }

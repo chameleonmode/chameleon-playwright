@@ -37,10 +37,10 @@ export interface Parameters<T> {
   opts: Partial<T>;
 }
 
-export interface Findo {
+export interface Thread {
 	listing: Locator;
 	attributes: Record<string, string>;
 }
 
-export type Funco = (url?: string, thread?: Findo) => Promise<unknown>;
+export type Funco = (url?: string, thread?: Thread) => Promise<unknown>;
 

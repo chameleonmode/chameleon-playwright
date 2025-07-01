@@ -1,6 +1,6 @@
-import { BrowserContext } from "@playwright/test";
+import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings, Findo } from "../../lib/types/index.js";
+import { AI, Opts, Artifact, Settings, Thread } from "../../lib/types/index.js";
 import { url } from "inspector";
 
 //
@@ -18,28 +18,20 @@ export interface Args {
 export interface Options extends Opts<Args> {}
 
 export class Scopeulation {
-	findos: Findo[] = [];
+	threaded: Thread[] = [];
 	visited: string[] = [];
 	searched: string[] = [];
 
-	subreddit(url: string): boolean {
-		const pattern = /\/r\/[^/]+\/?$/;
-		return pattern.test(url);
-	}
+	user = (url: string) => /\.com\/user\/[^/]+/.test(url);
+	subreddit = (url: string) => /\/r\/[^/]+\/?$/.test(url);
+	comments = (url: string) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
+	search = (url: string) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
 
-	comments(url: string): boolean {
-		const pattern = /\/r\/[^/]+\/comments(?:\/.*)?$/;
-		return pattern.test(url);
-	}
-
-	search(url: string): boolean {
-		const pattern = /\/r\/[^/]+\/search(?:\/.*)?$/;
-		return pattern.test(url);
-	}
-
-	user(url: string): boolean {
-		const pattern = /\.com\/user\/[^/]+/;
-		return pattern.test(url);
+	existing(thread: Thread) {
+		if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
+			scopeulation.threaded.push(thread);
+			return thread;
+		}
 	}
 
 	scoped(current: Scope) {

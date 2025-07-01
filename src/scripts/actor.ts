@@ -1,6 +1,6 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { rando, ror, sleepo, tryForEach, trySequentially } from "../lib/utils.js";
+import { rando, er, sleepo, tryForEach, trySequentially, bang } from "../lib/utils.js";
 import { Opts } from "../lib/types/index.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
@@ -27,7 +27,7 @@ export abstract class Actor<T> {
 		} catch (e) {
 			Logger.error("Error navigating to URL:", e);
 			await sleepo({ min: 1000 * 7, max: 1000 * 14, multiplier: 1 });
-			this.bang(
+			bang(
 				"checking navigation attempts",
 				this.opts.settings.start.attempts > attempt,
 				this.opts.settings.start.attempts
@@ -56,7 +56,7 @@ export abstract class Actor<T> {
 	async txtContent(selector: string, locator?: Locator) {
 		const location = locator?.locator(selector) || this.page.locator(selector);
 		const locations = await location.count();
-		this.bang(`firstVisible: ${location}`, locations > 0, { location, locations }, { print: false }); // banger
+		bang(`firstVisible: ${location}`, locations > 0, { location, locations }, { print: false }); // banger
 
 		for (let i = 0; i < locations; i++) {
 			const element = location.nth(i);
@@ -65,10 +65,10 @@ export abstract class Actor<T> {
 				await element.scrollIntoViewIfNeeded();
 				const text = await element.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
 				if (!text) continue; // Skip if no text content
-				return this.bang("txtContent: " + selector, text, { element, text }, { print: false });
+				return bang("txtContent: " + selector, text, { element, text }, { print: false });
 			}
 		}
-		throw ror(`No visible elements found for selector: ${location}`, { locations, location });
+		throw er(`No visible elements found for selector: ${location}`, { locations, location });
 	}
 
 	async attributes(locator: Locator) {
@@ -79,7 +79,7 @@ export abstract class Actor<T> {
 			}
 			return attrs;
 		});
-		return this.bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
+		return bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
 	}
 
 	async selectAll(locator?: Locator, clear = false) {
@@ -111,11 +111,11 @@ export abstract class Actor<T> {
 			expect(locator).toBeEnabled({ timeout }),
 			expect(locator).toBeVisible({ timeout }),
 		]);
-		this.bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
+		bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
 
 		// Locatorations
 		await locator.waitFor({ timeout });
-		return this.bang(`assert: ${locator}`, locator, { timeout, locator });
+		return bang(`assert: ${locator}`, locator, { timeout, locator });
 	}
 
 	async click(
@@ -126,7 +126,7 @@ export abstract class Actor<T> {
 		const { strict = true, timeout = this.opts.settings.timeouts.wait } = options;
 		await this.nap();
 		const count = await locator.count();
-		this.bang("checking element count", count, { locator, count }); // banger
+		bang("checking element count", count, { locator, count }); // banger
 
 		if (strict) {
 			// Ensure the locator is visible and enabled before clicking
@@ -141,10 +141,10 @@ export abstract class Actor<T> {
 			],
 			{ first: false }
 		);
-		this.bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
+		bang(`locato: ${locator}`, !locato.errors.length || locato.fulfilled.length, locato); // banger
 
 		await this.nap();
-		return this.bang(`click: ${locator}`, locator, { options, locator });
+		return bang(`click: ${locator}`, locator, { options, locator });
 	}
 
 	async scrollabit(times = rando(3, 6)) {
@@ -166,7 +166,7 @@ export abstract class Actor<T> {
 				const y = direction * rando(clientHeight / 2, clientHeight);
 
 				// Throws when at bottom or can't scroll further
-				this.bang(
+				bang(
 					`Scroll attempt ${i + 1}/${times}: ${y} (direction: ${direction})`,
 					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight,
 					{ y, scrollTop, clientHeight, scrollHeight }
@@ -203,7 +203,7 @@ export abstract class Actor<T> {
 					case "text":
 						return this.page.getByText(selector);
 					default:
-						throw ror(`Unknown strategy: ${strategy}`);
+						throw er(`Unknown strategy: ${strategy}`);
 				}
 			})();
 
@@ -221,7 +221,7 @@ export abstract class Actor<T> {
 						}
 						if (depth > 0) return firstVisible(location.locator(".."), depth - 1);
 					}
-					throw ror(`Max depth reached while finding visible ancestor for ${selector}`);
+					throw er(`Max depth reached while finding visible ancestor for ${selector}`);
 				};
 				const locator = strategy === "testId" ? target : await firstVisible(target);
 				return { target, locator, selector, count: await locator.count() };
@@ -230,7 +230,7 @@ export abstract class Actor<T> {
 			}
 		}
 
-		throw ror(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
+		throw er(`No elements found for IDs: ${ids.join(", ")} using strategy: ${strategy}`);
 	}
 
 	async findAll(ids: string[]) {
@@ -241,7 +241,7 @@ export abstract class Actor<T> {
 			locations.push(location);
 		}
 
-		if (locations.length === 0) throw ror(`No elements found for IDs: ${ids.join(", ")}`);
+		if (locations.length === 0) throw er(`No elements found for IDs: ${ids.join(", ")}`);
 		else return locations;
 	}
 
@@ -263,7 +263,7 @@ export abstract class Actor<T> {
 			}
 		}
 
-		throw ror(`No frames found for selectors: ${selectors.join(", ")}`);
+		throw er(`No frames found for selectors: ${selectors.join(", ")}`);
 	}
 
 	// Take a screenshot of the page or a specific locator
@@ -288,41 +288,5 @@ export abstract class Actor<T> {
 		// 	).toString("base64");
 		// }
 		// return (await this.page.screenshot({ fullPage: false })).toString("base64");
-	}
-
-	bang<T>(
-		message: string,
-		expect: T,
-		source: unknown,
-		{ print = true, caller = Logger.getCallerLine() } = {}
-	) {
-		if (print) {
-			Logger.debug(
-				`bang/${this.opts.settings.start.feature}`,
-				`\x1b[38;5;208mmessage:\x1b[0m`,
-				message,
-				`\n`,
-				`expect:`,
-				expect,
-				`\n`,
-				`source:`,
-				source,
-				`\n`,
-				"caller: {\n\t",
-				caller.method,
-				`\n\t`,
-				caller.filename,
-				"\n",
-				"}"
-			);
-		}
-		if (expect) return expect;
-		throw ror(message, { source, expect });
-	}
-
-	bing<T>(message: string, expect: unknown, returnz: T, source: unknown) {
-		const caller = Logger.getCallerLine();
-		if (this.bang(message, expect, source, { caller })) return returnz;
-		throw ror(message, { source, expect });
 	}
 }
