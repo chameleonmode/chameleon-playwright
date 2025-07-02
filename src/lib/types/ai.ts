@@ -19,7 +19,12 @@ export interface AI {
 }
 
 export namespace requests {
-	export type Kind = "comment" | "post" | "reply" | "title" | "search" | "prompt" | "term" | "ranking";
+	export type Kind = "comment" | "post" | "reply" | "title" | "term" | "ranking";
+	export type RankingOrderReply = {
+		id: string;
+		rank: number;
+		reason: string;
+	}
 	export interface Output<T> {
 		type: Kind;
 		data: T;

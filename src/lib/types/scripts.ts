@@ -17,6 +17,7 @@ export interface Start {
   new: boolean;
   all: boolean;
   urls: string[];
+  search: string[];
   feature: string;
   attempts: number;
   variations: Rando;

@@ -1,7 +1,7 @@
 import { BrowserContext } from "@playwright/test";
 import { bang } from "../../../../../lib/utils.js";
 import { promptee } from "../../../../../lib/requests.js";
-import { CommentTarget, Options, RedditCommentPrompt } from "../../../configure.js";
+import { CommentTarget, Options } from "../../../configure.js";
 import Post from "../post.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
@@ -43,7 +43,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 
 		// Step 1.6 - Generate a reply
 		const postee = { id: raw.id, url: raw.url, content: raw.content, comments };
-		const result = await promptee.robot<RedditCommentPrompt, string>({
+		const result = await promptee.content({
 			model: "o4-mini",
 			decorators: reddit.opts.ai.decorators,
 			task: "generate_reddit_reply",

@@ -25,7 +25,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 
 		// Create a new post
 		await subreddit.poster(async () => {
-			const titlee = await promptee.robot<string[], string>({
+			const titlee = await promptee.content({
 				model: "o4-mini",
 				decorators: reddit.opts.ai.decorators,
 				task: `generate_post_title.`,
@@ -48,7 +48,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 			);
 			b64.push(await reddit.screenshot(reddit.page.locator("body")));
 
-			const contentlee = await promptee.robot<string[], string>({
+			const contentlee = await promptee.content({
 				model: "o4-mini",
 				decorators: reddit.opts.ai.decorators,
 				task: `create_post_content`,

@@ -1,6 +1,5 @@
 import { requests, App } from "./types/index.js";
 import { Logger } from "./logger.js";
-import { rando } from "./utils.js";
 
 export const state: App = { api: undefined };
 
@@ -78,4 +77,16 @@ export namespace promptee {
     const request = await requesito<T>("robot", ctx);
     return responsito<TT>(request);
 	}
+
+	export async function ranking<T>(ctx: requests.Prompt<T>) {
+    const request = await requesito<T>("ranking", ctx);
+    return responsito<requests.RankingOrderReply[]>(request);
+	}	
+	
+	export async function content<T>(ctx: requests.Prompt<T>) {
+    const request = await requesito<T>("content", ctx);
+    return responsito<string>(request);
+	}
+	//
 }
+// stamets

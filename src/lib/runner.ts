@@ -2,6 +2,7 @@ import { Browser } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Opts } from "./types/index.js";
+import { Logger } from "./logger.js";
 
 export async function loader(file: string) {
   // Recreate dirname for ES module
@@ -65,8 +66,9 @@ export async function run(args: { file: string; browser: Browser, opts: unknown 
     };
     await plugin(ctx, opts);
     console.log(`Try: ${args.file} success`);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error(`Catch: ${args.file} ${error instanceof Error ? error.message : String(error)}`);
+    Logger.error("Error in runner", error);
   } finally {
     console.log(`Finally: ${args.file} completed finally block`);
   }
