@@ -1,16 +1,20 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { rando, er, sleepo, tryForEach, trySequentially, bang, bing } from "../lib/utils.js";
-import { Opts } from "../lib/types/index.js";
+import { rando, er, sleepo, tryForEach, bang } from "../lib/utils.js";
+import { Opts } from "../lib/index.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
+import { promptee } from "../lib/requests.js";
+
 export abstract class Actor<T> {
 	readonly player = new Player(this);
 	constructor(
 		readonly page: Page,
 		readonly opts: Opts<T>,
 		readonly scenario: (url: string) => Promise<number | unknown>
-	) {}
+	) {
+		promptee.state.ai = opts.ai;
+	}
 	abstract onWhile(url: string): Promise<void | Error>;
 	abstract onReIteration(url: string): Promise<void | Error>;
 

@@ -1,4 +1,4 @@
-import { Funco, Parameters } from "../../../../lib/types/index.js";
+import { Funco, Parameters } from "../../../../lib/index.js";
 import { bang } from "../../../../lib/utils.js";
 import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
@@ -21,13 +21,8 @@ export class Subreddit {
 
 	// Vote on posts (upvote/downvote)
 	async voter() {
-		const scopeulator = this.reddit.scopeulate();
-
 		// Join conversation if not in community or people scope
-		if (!scopeulator.community && !scopeulator.people) {
-			const banger = await this.reddit.joinConversation();
-			bang("vote", banger, { scopeulator });
-		}
+		await this.reddit.joinConversation();
 
 		await this.reddit.scrollabit();
 
@@ -42,9 +37,9 @@ export class Subreddit {
 		const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
 		bang("Vote count", length > 0, { upCount, downCount, count, length });
 
-		// Perform voting with 95% upvote bias
+		// Perform voting with 96% upvote bias
 		for (let i = 0; i < length; i++) {
-			await this.reddit.click(Math.random() * 100 <= 95 ? ups.nth(i) : downs.nth(i));
+			await this.reddit.click(Math.random() * 100 <= 96 ? ups.nth(i) : downs.nth(i));
 		}
 
 		return {

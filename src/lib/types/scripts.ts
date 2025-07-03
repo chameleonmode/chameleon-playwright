@@ -1,5 +1,5 @@
 import { BrowserContext, Locator } from "@playwright/test";
-import { AI, Artifact, Rando } from "./index.js";
+import { AI, Artifact, Rando } from "../index.js";
 
 export interface Opts<T> {
   args: T;

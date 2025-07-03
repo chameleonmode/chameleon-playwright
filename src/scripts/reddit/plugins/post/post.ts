@@ -1,5 +1,5 @@
 import { Locator } from "@playwright/test";
-import { Parameters, Funco } from "../../../../lib/types/index.js";
+import { Parameters, Funco } from "../../../../lib/index.js";
 import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 

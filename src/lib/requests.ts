@@ -1,24 +1,55 @@
-import { requests, App } from "./types/index.js";
+import { requests, App, AI, Thread } from "./index.js";
 import { Logger } from "./logger.js";
+import { bang } from "./utils.js";
 
-export const state: App = { api: undefined };
+export namespace promptee {
+	export const state: App = { api: undefined, ai: undefined };
+	export const heading = { "Content-Type": "application/json", ai: "origato" };
 
-export async function endpoint() {
-	return (state.api ||= await (async () => {
-		try {
-			// Simple fetch check with AbortController for timeout
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 300);
+	export async function endpoint(route: string) {
+		const from = `${(state.api ||= await (async () => {
+			try {
+				// Simple fetch check with AbortController for timeout
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 300);
 
-			await fetch("http://127.0.0.1:3042", { signal: controller.signal });
-			clearTimeout(timeoutId);
+				await fetch("http://127.0.0.1:3042", { signal: controller.signal });
+				clearTimeout(timeoutId);
 
-			return "http://127.0.0.1:3042"; // Local server is available
-		} catch (error) {
-			return "https://chameleon-ws.onrender.com"; // Use fallback
-		}
-	})());
+				return "http://127.0.0.1:3042"; // Local server is available
+			} catch (error) {
+				return "https://chameleon-ws.onrender.com"; // Use fallback
+			}
+		})())}/${route}`;
+		return bang("Fetching", from);
+	}
+
+	function promptio<T>(ctx: Partial<requests.Prompt<T>>) {
+		const prompt: requests.Prompt<T> = {
+			model: "o4-mini",
+			task: "content",
+			decorators: bang("prompt request decorators", state.ai?.decorators, state),
+			generations: bang("prompt request generations", ctx.generations),
+		};
+		const headers = { ...heading, model: prompt.model };
+		return { method: "POST", headers, body: JSON.stringify(prompt) };
+	}
+
+	async function requesito<T, TT>(route: string, ctx: Partial<requests.Prompt<T>>) {
+		const request = await fetch(await endpoint(route), promptio(ctx));
+		const out = bang("request response", await request.json());
+		return out.reply as requests.Output<TT>[];
+	}
+
+	export async function ranking<T>(ctx: Partial<requests.Prompt<T>>) {
+		return await requesito<T, Thread[]>("robo/ranking", ctx);
+	}
+
+	export async function content<T>(ctx: Partial<requests.Prompt<T>>) {
+		return await requesito<T, string>("robo/content", ctx);
+	}
 }
+// stamets
 
 export async function req<T>(
 	route: string,
@@ -28,7 +59,7 @@ export async function req<T>(
 		headers?: Record<string, string>;
 	}
 ) {
-	const from = `${await endpoint()}${route}`;
+	const from = await promptee.endpoint(route);
 	const init = {
 		headers: {
 			"Content-Type": "application/json",
@@ -45,48 +76,3 @@ export async function req<T>(
 
 	return response as T;
 }
-
-export namespace promptee {
-	type Response = {
-		[string: string]: any;
-	};
-
-	async function requesito<T>(route: string, ctx: requests.Prompt<T>) {
-		ctx.decorators.tone ||= "adaptive to the task, data, user metadata and user intent";
-		const args = { headers: { ai: "origato", model: ctx.model }, body: ctx };
-		Logger.log("Requesting:", ctx.generations);
-		return await req<Response>("/robo/" + route, args);
-	}
-
-	function responsito<T>(request: Response) {
-		const out = request.reply as requests.Output<T>[];
-		return out;
-	}
-
-	export async function prompt<T>(ctx: requests.Prompt<T>) {
-		const request = await requesito("prompt", ctx);
-		return responsito(request);
-	}
-
-	export async function genorate<T>(ctx: requests.Prompt<T>) {
-		const request = await requesito("genorate", ctx);
-		return responsito(request);
-	}
-
-	export async function robot<T, TT>(ctx: requests.Prompt<T>) {
-    const request = await requesito<T>("robot", ctx);
-    return responsito<TT>(request);
-	}
-
-	export async function ranking<T>(ctx: requests.Prompt<T>) {
-    const request = await requesito<T>("ranking", ctx);
-    return responsito<requests.RankingOrderReply[]>(request);
-	}	
-	
-	export async function content<T>(ctx: requests.Prompt<T>) {
-    const request = await requesito<T>("content", ctx);
-    return responsito<string>(request);
-	}
-	//
-}
-// stamets

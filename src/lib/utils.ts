@@ -217,7 +217,7 @@ export function er(message: unknown, cause?: unknown) {
 export function bang<T>(
 	message: string,
 	expect: T,
-	source: unknown,
+	source?: unknown,
 	{ print = true, caller = Logger.getCallerLine() } = {}
 ) {
 	if (print) {

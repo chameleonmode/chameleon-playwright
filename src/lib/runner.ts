@@ -1,7 +1,7 @@
 import { Browser } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Opts } from "./types/index.js";
+import { Opts } from "./index.js";
 import { Logger } from "./logger.js";
 
 export async function loader(file: string) {

@@ -1,4 +1,4 @@
-import { Funco, Parameters } from "../../../../lib/types/index.js";
+import { Funco, Parameters } from "../../../../lib/index.js";
 import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 

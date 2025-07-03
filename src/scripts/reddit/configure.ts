@@ -1,6 +1,6 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings, Thread } from "../../lib/types/index.js";
+import { AI, Opts, Artifact, Settings, Thread } from "../../lib/index.js";
 
 export interface Args {
 	scope: Scope;
@@ -61,7 +61,7 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		search.push("spinach"); // Default search term
+		// search.push("spinach"); // Default search term
 		urls.push(BASE_URL); // Default URL
 		// urls.push("https://www.reddit.com/search/?q=popeye&type=posts"); // Default URL
 		// urls.push("https://www.reddit.com/user/spikebrennan"); // Default URL
@@ -134,10 +134,12 @@ export class Scopeulation {
 	visited: string[] = [];
 	searched: string[] = [];
 
+	base = (url: string) => new URL(url).href === new URL(BASE_URL).href;
 	user = (url: string) => /\.com\/user\/[^/]+/.test(url);
 	subreddit = (url: string) => /\/r\/[^/]+\/?$/.test(url);
 	comments = (url: string) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
 	search = (url: string) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
+
 	iterative = (url: string) =>
 		this.comments(url) || this.search(url) || this.user(url)
 			? url

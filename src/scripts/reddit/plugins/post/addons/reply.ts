@@ -9,7 +9,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 
 	// Step 1 - Init
 	const { reddit, post } = await Post({ ctx, opts }, async (_, __) => {
-		const posts = (await reddit.navigateIntoPost()) ?? (await reddit.joinConversation());
+		const posts = await reddit.navigateIntoPost().catch(async () => await reddit.joinConversation());
 		const { raw, comments } = Array.isArray(posts)
 			? await reddit.findo(
 					posts.sort(() => Math.random() - 0.5),
