@@ -1,6 +1,10 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings, Thread } from "../../lib/index.js";
+import { AI, Opts, Artifact, Settings, Thread, Anything } from "../../lib/index.js";
+
+export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
+export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
+export type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
 
 export interface Args {
 	scope: Scope;
@@ -62,17 +66,12 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 
 		// If no search terms or URLs are provided, default to BASE_URL
 		// search.push("spinach"); // Default search term
-		urls.push(BASE_URL); // Default URL
-		// urls.push("https://www.reddit.com/search/?q=popeye&type=posts"); // Default URL
-		// urls.push("https://www.reddit.com/user/spikebrennan"); // Default URL
-		// urls.push("https://www.reddit.com/user/Stompinstein/"); // Default URL
-		// urls.push("https://www.reddit.com/r/MurderDrones/comments/1br2s0y/like_why/");
-		// urls.push("https://www.reddit.com/r/cartoons/comments/1066oh1/anyone_remember_this_this_show_was_such_an/"); // Default URL
-		// urls.push("https://www.reddit.com/r/agedlikemilk/comments/1lcpl1n/aged_like_baby_spinach/");
+		// urls.push(BASE_URL); // Default URL
+		urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
 
 		settings.start.attempts = 12;
 		settings.start.new = false;
-		settings.start.rando = { min: 9, max: 9 }; //
+		settings.start.rando = { min: 17, max: 17 }; //
 		settings.start.iterations = { min: 1, max: 1 }; //
 		settings.start.variations = { min: 1, max: 1 };
 
@@ -117,12 +116,8 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 	const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
 	return { page, options };
 }
-
-export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
-export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
-export type Filter = "All" | "Year" | "Month" | "Week" | "Today" | "Hour";
 export type Target = "comment" | "post" | "unknown";
-export type RedditComment = { id: string; index: number; text: string; attributes: any; locator?: any };
+export type RedditComment = { id: string; index: number; text: string; attributes: Anything; locator: Locator };
 export type CommentTarget = { type: Target; comment?: RedditComment };
 export type RedditCommentPrompt = {
 	post: { id: string; url: string; content?: any; comments?: RedditComment[] };

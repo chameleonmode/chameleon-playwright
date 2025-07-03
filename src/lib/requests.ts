@@ -27,7 +27,7 @@ export namespace promptee {
 	function promptio<T>(ctx: Partial<requests.Prompt<T>>) {
 		const prompt: requests.Prompt<T> = {
 			model: "o4-mini",
-			task: "content",
+			task: bang("prompt request task", ctx.task),
 			decorators: bang("prompt request decorators", state.ai?.decorators, state),
 			generations: bang("prompt request generations", ctx.generations),
 		};
@@ -41,8 +41,8 @@ export namespace promptee {
 		return out.reply as requests.Output<TT>[];
 	}
 
-	export async function ranking<T>(ctx: Partial<requests.Prompt<T>>) {
-		return await requesito<T, Thread[]>("robo/ranking", ctx);
+	export async function ranking(ctx: Partial<requests.Prompt<Thread[]>>) {
+		return await requesito<Thread[], Thread[]>("robo/ranking", ctx);
 	}
 
 	export async function content<T>(ctx: Partial<requests.Prompt<T>>) {

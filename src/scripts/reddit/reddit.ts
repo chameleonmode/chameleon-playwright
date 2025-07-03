@@ -60,7 +60,7 @@ export class Reddit extends Actor<Args> {
 						const listing = locatorz[i];
 						const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
 						if(!await locator.isVisible()) continue; // Skip if not visible
-						
+
 						const { id, content, attributes } = await this.raw(locator, false).catch();
 						batches[idx].push({ id, content, listing, attributes });
 					}
@@ -70,7 +70,7 @@ export class Reddit extends Actor<Args> {
 				const rank = async (func: (locators: Locator[]) => Promise<unknown>) => {
 					for (const data of batches) {
 						const promptmise = promptee.ranking({
-							// image: { des: "thread screenshots in order", b64 },
+							task: "rank_reddit_threads",
 							generations: {
 								type: "ranking",
 								range: { min: 1, max: 1 },
@@ -395,9 +395,9 @@ export class Reddit extends Actor<Args> {
 
 	// Join a conversation by clicking the "See full discussion" link and making sure post is open
 	async joinConversation() {
-		if (this.scopeulate().direct()) return;
+		if (this.scopeulate().direct()) return false;
 		await this.click('a:has-text("See full discussion")', { timeout: 600 }).catch(() => false);
-		await this.scrollabit(3);
+		await this.scrollabit();
 
 		const archived = this.page.locator('[slot="post-archived-banner"] >> text=Archived post');
 		const closed = await archived.isVisible().catch(() => false);

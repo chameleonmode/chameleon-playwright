@@ -159,7 +159,7 @@ export abstract class Actor<T> {
 				});
 
 				// Occasionally scroll up slightly (1 in 8 chance)
-				const direction = i > 0 && Math.random() > 0.875 ? -1 : 1;
+				const direction = i > 0 && Math.random() > 0.875 || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
 				const y = direction * rando(clientHeight / 2, clientHeight);
 
 				// Throws when at bottom or can't scroll further
@@ -168,6 +168,7 @@ export abstract class Actor<T> {
 					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight,
 					{ y, scrollTop, clientHeight, scrollHeight }
 				);
+
 
 				if (rando()) await this.page.mouse.wheel(0, y);
 				else
