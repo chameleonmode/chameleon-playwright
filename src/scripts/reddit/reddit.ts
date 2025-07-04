@@ -58,10 +58,10 @@ export class Reddit extends Actor<Args> {
 						if (batches[idx].length >= 10) batches.push([]); // Create a new batch every 10 threads
 
 						const listing = locatorz[i];
-						const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
-						if(!await locator.isVisible()) continue; // Skip if not visible
+						// const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
+						if(!await listing.isVisible()) continue; // Skip if not visible
 
-						const { id, content, attributes } = await this.raw(locator, false).catch();
+						const { id, content, attributes } = await this.raw(listing, false).catch();
 						batches[idx].push({ id, content, listing, attributes });
 					}
 					return { batches };
