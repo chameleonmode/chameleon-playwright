@@ -65,8 +65,8 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		search.push("spinach"); // Default search term
-		urls.push(BASE_URL); // Default URL
+		// search.push("spinach"); // Default search term
+		// urls.push(BASE_URL); // Default URL
 		// urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
 
 		settings.start.attempts = 12;

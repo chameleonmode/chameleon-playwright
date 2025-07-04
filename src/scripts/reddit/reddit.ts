@@ -326,10 +326,10 @@ export class Reddit extends Actor<Args> {
 		Logger.log(`Status`, stats, scopeulation);
 
 		// check if we have completed all urls we need to also search on
-		if (searched && scopeulation.subreddit(url) && !scopeulation.visited.includes(url)) {
-			scopeulation.searched.length = 0;
-			return await this.onWhile(url);
-		}
+		// if (searched && scopeulation.subreddit(url) && !scopeulation.visited.includes(url)) {
+		// 	scopeulation.searched.length = 0;
+		// 	return await this.onWhile(url);
+		// }
 
 		// check if we have completed all terms
 		return search && basic

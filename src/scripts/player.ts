@@ -24,7 +24,7 @@ export class Player {
 
 					// if on next iteration
 					if (i > 0) {
-						await delay(this.actor.opts.settings.timeouts.artifacto.delay);
+						// await delay(this.actor.opts.settings.timeouts.artifacto.delay);
 						await this.actor.onReIteration(url);
 					}
 
