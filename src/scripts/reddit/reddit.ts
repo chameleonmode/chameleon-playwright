@@ -48,9 +48,9 @@ export class Reddit extends Actor<Args> {
 					const locatorz = await this.navigateIntoPost().catch(async () => {
 						const scopeulator = this.scopeulate();
 						const finder = await scopeulator.findulator();
+						await this.scrollabit(6);
 						return await finder.find.locator.all();
 					});
-					await this.scrollabit();
 					// Wait for thread elements to be available
 					const batches: Thread[][] = [[]];
 					for (let i = 0; i < locatorz.length; i++) {
@@ -59,7 +59,7 @@ export class Reddit extends Actor<Args> {
 
 						const listing = locatorz[i];
 						// const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
-						if(!await listing.isVisible()) continue; // Skip if not visible
+						if (!(await listing.isVisible())) continue; // Skip if not visible
 
 						const { id, content, attributes } = await this.raw(listing, false).catch();
 						batches[idx].push({ id, content, listing, attributes });
@@ -70,7 +70,7 @@ export class Reddit extends Actor<Args> {
 				const rank = async (func: (locators: Locator[]) => Promise<unknown>) => {
 					for (const data of batches) {
 						const promptmise = promptee.ranking({
-							task: "rank_reddit_threads",
+							task: `score these reddit threads by relevance to the users inception. make sure to include a rank number and the thread ID provided.`,
 							generations: {
 								type: "ranking",
 								range: { min: 1, max: 1 },
@@ -82,36 +82,26 @@ export class Reddit extends Actor<Args> {
 								},
 							},
 						});
-
-						const wait = async (count = 0) => {
-							try {
-								while (count++ < 10) {
-									await this.scrollabit();
-									const racer = await Promise.race([promptmise, delay(100)]);
-									if (typeof racer === "number") continue;
-									return racer[0].data
-										.sort((a) => a.rank)
-										.map((item) => {
-											const thread = data.find((t) => t.id === item.id);
-											return thread?.listing;
-										}) as Locator[];
-								}
-							} catch (error) {
-								Logger.warn("Error in ranking wait", error);
-							}
-							return data.map((t) => t.listing) as Locator[];
-						};
-						await func(await wait());
+						const reply = await this.waitabit(promptmise);
+						const threaded = reply[0].data
+							.sort((a) => a.rank)
+							.map((item) => {
+								const thread = data.find((t) => t.id === item.id);
+								return thread?.listing;
+							}) as Locator[];
+						await func(threaded);
 					}
 				};
-				return await rank(async (threads) => {
-					return await attempter(async () => {
-						return await this.findo(threads, async (thread) => {
-							await pre();
-							return await setup.funco(url, thread);
-						});
-					});
-				});
+				return await attempter(
+					async () =>
+						await rank(
+							async (threads) =>
+								await this.findo(threads, async (thread) => {
+									await pre();
+									return await setup.funco(url, thread);
+								})
+						)
+				);
 			}
 		});
 	}

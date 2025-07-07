@@ -45,11 +45,11 @@ export const settings: Settings = {
 export const ai: AI = {
 	model: "o4-mini",
 	decorators: {
-		system: "You are a Reddit-native assistant",
-		human: "reddit content creator",
-		audience: "reddit website users",
-		background: "surfing reddit",
-		tone: "adaptive",
+		system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit.`,
+		human: "Reddit-native content creator",
+		audience: "Reddit-native website users relevant to the current context in the task data",
+		background: "Browsing reddit for relevant content and interacting with the Reddit community.",
+		tone: "adaptive to the relevant task data and context",
 	},
 };
 export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
@@ -65,8 +65,8 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		args.filter = "All";
 
 		// If no search terms or URLs are provided, default to BASE_URL
-		// search.push("spinach"); // Default search term
-		// urls.push(BASE_URL); // Default URL
+		search.push("joe rogan"); // Default search term
+		urls.push(BASE_URL); // Default URL
 		// urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
 
 		settings.start.attempts = 12;

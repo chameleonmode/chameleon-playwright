@@ -1,6 +1,6 @@
 // src/scripts/pages/base.page.ts
 import { Locator, Page, expect } from "@playwright/test";
-import { rando, er, sleepo, tryForEach, bang } from "../lib/utils.js";
+import { rando, er, sleepo, tryForEach, bang, delay } from "../lib/utils.js";
 import { Opts } from "../lib/index.js";
 import { Logger } from "../lib/logger.js";
 import { Player } from "./player.js";
@@ -126,13 +126,16 @@ export abstract class Actor<T> {
 		await this.nap();
 		const things = typeof thang === "string" ? this.page.locator(thang) : thang;
 		const count = await things.count();
-		const locator = count > 1 ? await (async () => {
-			let nth = -1;
-			while (++nth < count) {
-				const locator = things.nth(nth);
-				if (await locator.isVisible({ timeout })) return locator;
-			}
-		})() : things;
+		const locator =
+			count > 1
+				? await (async () => {
+						let nth = -1;
+						while (++nth < count) {
+							const locator = things.nth(nth);
+							if (await locator.isVisible({ timeout })) return locator;
+						}
+				  })()
+				: things;
 		const locatoree = bang("checking element count", locator, { locator, count }); // banger
 
 		// Ensure the locator is visible and enabled before clicking
@@ -142,6 +145,17 @@ export abstract class Actor<T> {
 		await locatoree.click({ timeout, force: true });
 		await this.nap();
 		return bang(`clicked locator`, locator, { locator });
+	}
+
+	async waitabit<T>(promise: Promise<T>) {
+		await this.scrollabit();
+		let racer = await Promise.race([promise, delay(100)]);
+		if (typeof racer === "number") await this.scrollabit(6);
+		racer = await Promise.race([promise, delay(100)]);
+		if (typeof racer === "number") await this.scrollabit(3);
+		racer = await Promise.race([promise, delay(100)]);
+		if (typeof racer === "number") await this.scrollabit();
+		return await promise;
 	}
 
 	async scrollabit(times = rando(3, 6)) {
@@ -159,7 +173,8 @@ export abstract class Actor<T> {
 				});
 
 				// Occasionally scroll up slightly (1 in 8 chance)
-				const direction = i > 0 && Math.random() > 0.875 || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
+				const direction =
+					(i > 0 && Math.random() > 0.875) || scrollTop + clientHeight >= scrollHeight ? -1 : 1;
 				const y = direction * rando(clientHeight / 2, clientHeight);
 
 				// Throws when at bottom or can't scroll further
@@ -168,7 +183,6 @@ export abstract class Actor<T> {
 					y + clientHeight <= scrollHeight || scrollTop + clientHeight <= scrollHeight,
 					{ y, scrollTop, clientHeight, scrollHeight }
 				);
-
 
 				if (rando()) await this.page.mouse.wheel(0, y);
 				else

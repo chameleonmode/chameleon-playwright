@@ -26,7 +26,8 @@ export namespace promptee {
 
 	function promptio<T>(ctx: Partial<requests.Prompt<T>>) {
 		const prompt: requests.Prompt<T> = {
-			model: "o4-mini",
+			...ctx,
+			model: ctx.model || "o4-mini",
 			task: bang("prompt request task", ctx.task),
 			decorators: bang("prompt request decorators", state.ai?.decorators, state),
 			generations: bang("prompt request generations", ctx.generations),

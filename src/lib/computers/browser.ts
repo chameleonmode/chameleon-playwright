@@ -4,327 +4,333 @@ import { req } from "../requests.js";
 import { Logger } from "../logger.js";
 
 export type Funkaroo = {
-  funk: string;
-  args: any;
+	funk: string;
+	args: any;
 };
 
 // Optional: key mapping if your model uses "CUA" style keys
 export const CUA_KEY_TO_PLAYWRIGHT_KEY: Record<string, string> = {
-  "/": "Divide",
-  "\\": "Backslash",
-  alt: "Alt",
-  arrowdown: "ArrowDown",
-  arrowleft: "ArrowLeft",
-  arrowright: "ArrowRight",
-  arrowup: "ArrowUp",
-  backspace: "Backspace",
-  capslock: "CapsLock",
-  cmd: "Meta",
-  ctrl: "Control",
-  delete: "Delete",
-  end: "End",
-  enter: "Enter",
-  esc: "Escape",
-  home: "Home",
-  insert: "Insert",
-  option: "Alt",
-  pagedown: "PageDown",
-  pageup: "PageUp",
-  shift: "Shift",
-  space: " ",
-  super: "Meta",
-  tab: "Tab",
-  win: "Meta",
+	"/": "Divide",
+	"\\": "Backslash",
+	alt: "Alt",
+	arrowdown: "ArrowDown",
+	arrowleft: "ArrowLeft",
+	arrowright: "ArrowRight",
+	arrowup: "ArrowUp",
+	backspace: "Backspace",
+	capslock: "CapsLock",
+	cmd: "Meta",
+	ctrl: "Control",
+	delete: "Delete",
+	end: "End",
+	enter: "Enter",
+	esc: "Escape",
+	home: "Home",
+	insert: "Insert",
+	option: "Alt",
+	pagedown: "PageDown",
+	pageup: "PageUp",
+	shift: "Shift",
+	space: " ",
+	super: "Meta",
+	tab: "Tab",
+	win: "Meta",
 };
 
 export async function cua<T>(input: any[], display: { width: number; height: number }) {
-  const body = { input, display };
-  const headers = { ai: "cua", type: "roo" };
-  return await req<T>("/promptee/agent", { body, headers });
+	const body = { input, display };
+	const headers = { ai: "cua", type: "roo" };
+	return await req<T>("/promptee/agent", { body, headers });
 }
 
-export class Playwrighteer {
-  [key: string]: any; // Add index signature to allow string indexing
-  browser?: Browser;
-  ctx?: BrowserContext;
-  page!: Page;
-  readonly funkers: Funkaroo[] = [];
-  constructor() {}
+export class Browzer {
+	[key: string]: any; // Add index signature to allow string indexing
+	browser?: Browser;
+	ctx?: BrowserContext;
+	constructor() {}
 
-  async setup(port: number): Promise<{ port: number; browser: Browser }> {
-    const connect = async () => {
-      // Try to connect to an already running Chrome instance
-      const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
-      return { port, browser };
-    };
-    try {
-      return await connect();
-    } catch (error) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      return await this.setup(port);
-    }
-  }
+	async setup(port: number): Promise<{ port: number; browser: Browser }> {
+		const connect = async () => {
+			// Try to connect to an already running Chrome instance
+			const browser = await chromium.connectOverCDP(`http://localhost:${port}`);
+			return { port, browser };
+		};
+		try {
+			return await connect();
+		} catch (error) {
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+			return await this.setup(port);
+		}
+	}
 
-  async runner(args: { file: string; port?: string; opts?: string | unknown }) {
-    const { file, port, opts } = args;
+	async runner(args: { file: string; port?: string; opts?: string | unknown }) {
+		const { file, port, opts } = args;
 
-    await run({
-      file,
-      opts,
-      browser: (await this.setup(port ? parseInt(port, 10) : 9613)).browser,
-    });
-  }
+		await run({
+			file,
+			opts,
+			browser: (await this.setup(port ? parseInt(port, 10) : 9613)).browser,
+		});
+	}
+}
 
-  async cua(args: string) {
-    const {
-      port = 9613,
-      inputs = [
-        { role: "user", content: "go to https://loadmill-center-12baa23ad9e4.herokuapp.com/" },
-        { role: "user", content: "Start a new chat" },
-        { role: "user", content: "Write a hello world message in the chat and Send it" },
-        { role: "user", content: "Go back to the previous page" },
-        { role: "user", content: "Go to the agent login" },
-        { role: "user", content: "Enter user login info a@b.com and the pass 123456 and login" },
-        { role: "user", content: "reply 'ok' to the first message" },
-        //
-      ],
-    } = JSON.parse(args) as {
-      port: number;
-      inputs: { role: string; content: string }[];
-    };
-    const { browser } = await this.setup(port);
-    this.browser = browser;
-    this.ctx = this.browser.contexts()[0] || (await this.browser.newContext());
-    this.page = await this.ctx.newPage();
+export class Playwrighteer extends Browzer {
+	page!: Page;
+	readonly funkers: Funkaroo[] = [];
+	constructor() {
+		super();
+	}
 
-    const items = [
-      {
-        role: "system",
-        content: "You running on nodeJS + playwright + " + process.platform,
-      },
-      {
-        role: "developer",
-        content: "Use the back() or goto() functions to navigate the browser",
-      },
-    ];
-    const shifted = [];
-    while (inputs.length) {
-      const input = inputs.shift();
-      if (!input) break;
-      try {
-        shifted.push(input);
-        const response = await this.runFullTurn([...items, input]);
-        items.push(...response);
-      } catch (e) {
-        Logger.warn("", e);
-        inputs.unshift(shifted.pop() || input);
-      }
-    }
-  }
+	async cua(args: string) {
+		const {
+			port = 9613,
+			inputs = [
+				{ role: "user", content: "go to https://loadmill-center-12baa23ad9e4.herokuapp.com/" },
+				{ role: "user", content: "Start a new chat" },
+				{ role: "user", content: "Write a hello world message in the chat and Send it" },
+				{ role: "user", content: "Go back to the previous page" },
+				{ role: "user", content: "Go to the agent login" },
+				{ role: "user", content: "Enter user login info a@b.com and the pass 123456 and login" },
+				{ role: "user", content: "reply 'ok' to the first message" },
+				//
+			],
+		} = JSON.parse(args) as {
+			port: number;
+			inputs: { role: string; content: string }[];
+		};
+		const { browser } = await this.setup(port);
+		this.browser = browser;
+		this.ctx = this.browser.contexts()[0] || (await this.browser.newContext());
+		this.page = await this.ctx.newPage();
 
-  async handleItem(item: {
-    type: string;
-    name: string;
-    arguments: string;
-    call_id: string;
-    content: any[];
-    summary: any[];
-    action: { [x: string]: any; type: any };
-    pending_safety_checks: any[];
-  }) {
-    Logger.debug("handleItem", { ...item });
-    /** Handle each item; may cause a computer action + screenshot. **/
-    if (item.type === "message") {
-      Logger.debug(item.content[0]);
-    }
-    if (item.type === "reasoning") {
-      Logger.debug(item.summary[0]);
-    } else if (item.type === "function_call") {
-      const funk = item.name;
-      const args = JSON.parse(item.arguments);
-      const functioneer = {
-        type: "function_call_output",
-        call_id: item.call_id,
-        output: await this.funkytime({ funk, args }), // hard-coded output for demo
-      };
+		const items = [
+			{
+				role: "system",
+				content: "You running on nodeJS + playwright + " + process.platform,
+			},
+			{
+				role: "developer",
+				content: "Use the back() or goto() functions to navigate the browser",
+			},
+		];
+		const shifted = [];
+		while (inputs.length) {
+			const input = inputs.shift();
+			if (!input) break;
+			try {
+				shifted.push(input);
+				const response = await this.runFullTurn([...items, input]);
+				items.push(...response);
+			} catch (e) {
+				Logger.warn("", e);
+				inputs.unshift(shifted.pop() || input);
+			}
+		}
+	}
 
-      return [functioneer];
-    } else if (item.type === "computer_call") {
-      const { type: funk, ...args } = item.action;
+	async handleItem(item: {
+		type: string;
+		name: string;
+		arguments: string;
+		call_id: string;
+		content: any[];
+		summary: any[];
+		action: { [x: string]: any; type: any };
+		pending_safety_checks: any[];
+	}) {
+		Logger.debug("handleItem", { ...item });
+		/** Handle each item; may cause a computer action + screenshot. **/
+		if (item.type === "message") {
+			Logger.debug(item.content[0]);
+		}
+		if (item.type === "reasoning") {
+			Logger.debug(item.summary[0]);
+		} else if (item.type === "function_call") {
+			const funk = item.name;
+			const args = JSON.parse(item.arguments);
+			const functioneer = {
+				type: "function_call_output",
+				call_id: item.call_id,
+				output: await this.funkytime({ funk, args }), // hard-coded output for demo
+			};
 
-      // perform the action on the computer
-      await this.funkytime({ funk, args });
+			return [functioneer];
+		} else if (item.type === "computer_call") {
+			const { type: funk, ...args } = item.action;
 
-      // handle safety checks
-      const pendingChecks = item.pending_safety_checks || [];
-      for (const check of pendingChecks) {
-        const message = check.message;
-        this.acknowledgeSafetyCheckCallback(message);
-      }
-      const callOutput = {
-        type: "computer_call_output",
-        call_id: item.call_id,
-        acknowledged_safety_checks: pendingChecks,
-        output: {
-          type: "input_image",
-          image_url: `data:image/png;base64,${await this.screenshot()}`,
-        },
-      };
-      return [callOutput];
-    }
+			// perform the action on the computer
+			await this.funkytime({ funk, args });
 
-    return [];
-  }
+			// handle safety checks
+			const pendingChecks = item.pending_safety_checks || [];
+			for (const check of pendingChecks) {
+				const message = check.message;
+				this.acknowledgeSafetyCheckCallback(message);
+			}
+			const callOutput = {
+				type: "computer_call_output",
+				call_id: item.call_id,
+				acknowledged_safety_checks: pendingChecks,
+				output: {
+					type: "input_image",
+					image_url: `data:image/png;base64,${await this.screenshot()}`,
+				},
+			};
+			return [callOutput];
+		}
 
-  async runFullTurn(inputItems: any[]) {
-    const newItems = [];
+		return [];
+	}
 
-    // keep looping until we get a final assistant response
-    while (newItems.length === 0 || newItems[newItems.length - 1].role !== "assistant") {
-      const response: { output: any } = await cua<{ output: any[] }>(
-        inputItems.concat(newItems),
-        await this.getDimensions()
-      );
-      // previous: { response: { id: newItems[0]?.id } },
+	async runFullTurn(inputItems: any[]) {
+		const newItems = [];
 
-      if (!response.output) {
-        Logger.error("", response);
-        throw new Error("No output from model");
-      }
+		// keep looping until we get a final assistant response
+		while (newItems.length === 0 || newItems[newItems.length - 1].role !== "assistant") {
+			const response: { output: any } = await cua<{ output: any[] }>(
+				inputItems.concat(newItems),
+				await this.getDimensions()
+			);
+			// previous: { response: { id: newItems[0]?.id } },
 
-      newItems.push(...response.output);
+			if (!response.output) {
+				Logger.error("", response);
+				throw new Error("No output from model");
+			}
 
-      for (const item of response.output) {
-        // handle each item
-        const handled = await this.handleItem(item);
-        newItems.push(...handled);
-      }
-    }
+			newItems.push(...response.output);
 
-    return newItems;
-  }
+			for (const item of response.output) {
+				// handle each item
+				const handled = await this.handleItem(item);
+				newItems.push(...handled);
+			}
+		}
 
-  async teardown() {
-    await this.page?.close();
-  }
+		return newItems;
+	}
 
-  // --- Computer methods ---
-  async funkytime(funka: Funkaroo) {
-    Logger.log("Funky time:", funka);
+	async teardown() {
+		await this.page?.close();
+	}
 
-    // delay to let each item process
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+	// --- Computer methods ---
+	async funkytime(funka: Funkaroo) {
+		Logger.log("Funky time:", funka);
 
-    // Perform the action based on the name and args
-    const { funk, args } = funka;
+		// delay to let each item process
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Focus the page before performing any action
-    await this.page.focus("body");
-    if (funk !== "screenshot") {
-      const frunker = this.funkers.length ? this.funkers[this.funkers.length - 1] : undefined;
-      Logger.debug("frunker !== funker", frunker !== funka, frunker, funka);
-      if (!frunker || frunker !== funka) await this[funk](args);
-      this.funkers.push(funka);
-    }
-    return await new Promise((resolve) => setTimeout(() => resolve("success"), 3000));
-  }
+		// Perform the action based on the name and args
+		const { funk, args } = funka;
 
-  async getDimensions() {
-    const viewport =
-      this.page.viewportSize() ||
-      (await this.page.evaluate(() => {
-        return {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        };
-      }));
-    return viewport ?? { width: 1024, height: 768 };
-  }
+		// Focus the page before performing any action
+		await this.page.focus("body");
+		if (funk !== "screenshot") {
+			const frunker = this.funkers.length ? this.funkers[this.funkers.length - 1] : undefined;
+			Logger.debug("frunker !== funker", frunker !== funka, frunker, funka);
+			if (!frunker || frunker !== funka) await this[funk](args);
+			this.funkers.push(funka);
+		}
+		return await new Promise((resolve) => setTimeout(() => resolve("success"), 3000));
+	}
 
-  // --- Common "Computer" actions ---
-  async screenshot() {
-    /**
-     * Capture only the viewport (not full_page).
-     */
-    const pngBuffer = await this.page.screenshot({ fullPage: false });
-    return pngBuffer.toString("base64");
-  }
+	async getDimensions() {
+		const viewport =
+			this.page.viewportSize() ||
+			(await this.page.evaluate(() => {
+				return {
+					width: window.innerWidth,
+					height: window.innerHeight,
+				};
+			}));
+		return viewport ?? { width: 1024, height: 768 };
+	}
 
-  async click(args: { x: any; y: any; button?: "left" | undefined }) {
-    const { x, y, button = "left" } = args;
-    await this.page.mouse.click(x, y, { button: button || "left" });
-  }
+	// --- Common "Computer" actions ---
+	async screenshot() {
+		/**
+		 * Capture only the viewport (not full_page).
+		 */
+		const pngBuffer = await this.page.screenshot({ fullPage: false });
+		return pngBuffer.toString("base64");
+	}
 
-  async doubleClick(args: { x: any; y: any }) {
-    const { x, y } = args;
-    await this.page.mouse.dblclick(x, y);
-  }
+	async click(args: { x: any; y: any; button?: "left" | undefined }) {
+		const { x, y, button = "left" } = args;
+		await this.page.mouse.click(x, y, { button: button || "left" });
+	}
 
-  async scroll(args: { x: any; y: any; scroll_x: any; scroll_y: any }) {
-    const { x, y, scroll_x, scroll_y } = args;
-    await this.page.mouse.move(x, y);
-    await this.page.evaluate(`window.scrollBy(${scroll_x}, ${scroll_y})`);
-  }
+	async doubleClick(args: { x: any; y: any }) {
+		const { x, y } = args;
+		await this.page.mouse.dblclick(x, y);
+	}
 
-  async type(args: { text: any }) {
-    const { text } = args;
-    await this.page.keyboard.type(text);
-  }
+	async scroll(args: { x: any; y: any; scroll_x: any; scroll_y: any }) {
+		const { x, y, scroll_x, scroll_y } = args;
+		await this.page.mouse.move(x, y);
+		await this.page.evaluate(`window.scrollBy(${scroll_x}, ${scroll_y})`);
+	}
 
-  async wait(args: { ms?: number } = {}) {
-    const { ms = 1000 } = args;
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  }
+	async type(args: { text: any }) {
+		const { text } = args;
+		await this.page.keyboard.type(text);
+	}
 
-  async move(args: { x: any; y: any }) {
-    const { x, y } = args;
-    await this.page.mouse.move(x, y);
-  }
+	async wait(args: { ms?: number } = {}) {
+		const { ms = 1000 } = args;
+		await new Promise((resolve) => setTimeout(resolve, ms));
+	}
 
-  async keypress(args: { keys: any }) {
-    const { keys } = args;
-    const mappedKeys = keys.map((key: string) => CUA_KEY_TO_PLAYWRIGHT_KEY[key.toLowerCase()] || key);
+	async move(args: { x: any; y: any }) {
+		const { x, y } = args;
+		await this.page.mouse.move(x, y);
+	}
 
-    // Press all keys down
-    for (const key of mappedKeys) {
-      await this.page.keyboard.down(key);
-    }
+	async keypress(args: { keys: any }) {
+		const { keys } = args;
+		const mappedKeys = keys.map((key: string) => CUA_KEY_TO_PLAYWRIGHT_KEY[key.toLowerCase()] || key);
 
-    // Release all keys in reverse order
-    for (const key of mappedKeys.reverse()) {
-      await this.page.keyboard.up(key);
-    }
-  }
+		// Press all keys down
+		for (const key of mappedKeys) {
+			await this.page.keyboard.down(key);
+		}
 
-  async drag(args: { path: any }) {
-    const { path } = args;
-    if (!path || path.length === 0) return;
+		// Release all keys in reverse order
+		for (const key of mappedKeys.reverse()) {
+			await this.page.keyboard.up(key);
+		}
+	}
 
-    await this.page.mouse.move(path[0].x, path[0].y);
-    await this.page.mouse.down();
+	async drag(args: { path: any }) {
+		const { path } = args;
+		if (!path || path.length === 0) return;
 
-    for (const point of path.slice(1)) {
-      await this.page.mouse.move(point.x, point.y);
-    }
+		await this.page.mouse.move(path[0].x, path[0].y);
+		await this.page.mouse.down();
 
-    await this.page.mouse.up();
-  }
+		for (const point of path.slice(1)) {
+			await this.page.mouse.move(point.x, point.y);
+		}
 
-  // --- Extra browser-oriented actions ---
-  async goto(args: { url: any }) {
-    const { url } = args;
-    try {
-      return await this.page.goto(url);
-    } catch (e) {
-      Logger.error(`Error navigating to ${url}: ${e}`);
-    }
-  }
+		await this.page.mouse.up();
+	}
 
-  async back() {
-    return await this.page.goBack();
-  }
+	// --- Extra browser-oriented actions ---
+	async goto(args: { url: any }) {
+		const { url } = args;
+		try {
+			return await this.page.goto(url);
+		} catch (e) {
+			Logger.error(`Error navigating to ${url}: ${e}`);
+		}
+	}
 
-  async forward() {
-    return await this.page.goForward();
-  }
+	async back() {
+		return await this.page.goBack();
+	}
+
+	async forward() {
+		return await this.page.goForward();
+	}
 }
