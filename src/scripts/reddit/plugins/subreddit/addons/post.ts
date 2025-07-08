@@ -1,8 +1,8 @@
 import { BrowserContext } from "@playwright/test";
-import { Options, RedditCommentPrompt } from "../../../configure.js";
-import Subreddit from "../subreddit.js";
 import { promptee } from "../../../../../lib/requests.js";
 import { bang } from "../../../../../lib/utils.js";
+import { Options } from "../../../configure.js";
+import Subreddit from "../subreddit.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {
 	const { reddit, subreddit } = await Subreddit({ ctx, opts }, async (_, __) => {

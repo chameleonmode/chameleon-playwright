@@ -59,24 +59,24 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		...(opts?.settings?.start?.urls || []),
 		...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
 	].filter(Boolean);
-	if (!search.length && !urls.length) {
-		args.scope = "Posts"; // Default scope
-		args.sort = "Relevance"; // Default sort
-		args.filter = "All";
+	// if (!search.length && !urls.length) {
+	// 	args.scope = "Posts"; // Default scope
+	// 	args.sort = "Relevance"; // Default sort
+	// 	args.filter = "All";
 
-		// If no search terms or URLs are provided, default to BASE_URL
-		search.push("joe rogan"); // Default search term
-		urls.push(BASE_URL); // Default URL
-		// urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
+	// 	// If no search terms or URLs are provided, default to BASE_URL
+	// 	search.push("joe rogan"); // Default search term
+	// 	urls.push(BASE_URL); // Default URL
+	// 	// urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
 
-		settings.start.attempts = 12;
-		settings.start.new = false;
-		settings.start.rando = { min: 17, max: 17 }; //
-		settings.start.iterations = { min: 1, max: 1 }; //
-		settings.start.variations = { min: 1, max: 1 };
+	// 	settings.start.attempts = 12;
+	// 	settings.start.new = false;
+	// 	settings.start.rando = { min: 17, max: 17 }; //
+	// 	settings.start.iterations = { min: 1, max: 1 }; //
+	// 	settings.start.variations = { min: 1, max: 1 };
 
-		Logger.warn("No search terms or URLs provided, using default values.");
-	}
+	// 	Logger.warn("No search terms or URLs provided, using default values.");
+	// }
 	const options: Options = {
 		run: opts?.run ?? {},
 		args: { ...args, ...opts?.args },

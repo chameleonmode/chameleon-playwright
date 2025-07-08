@@ -70,15 +70,15 @@ export class Reddit extends Actor<Args> {
 				const rank = async (func: (locators: Locator[]) => Promise<unknown>) => {
 					for (const data of batches) {
 						const promptmise = promptee.ranking({
-							task: `score these reddit threads by relevance to the users inception. make sure to include a rank number and the thread ID provided.`,
+							task: `score these reddit threads by relevance to the users inception. make sure to include a rank number along with the thread ID provided.`,
 							generations: {
 								type: "ranking",
 								range: { min: 1, max: 1 },
 								input: {
 									data: data,
-									user_intent: `Rank all of these threads ${
+									user_intent: `Rank all of these threads for ${
 										this.opts.settings.start.feature
-									} on from ${this.page.url()}`,
+									} @${this.page.url()}`,
 								},
 							},
 						});

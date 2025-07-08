@@ -4,48 +4,48 @@ import { Options } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 
 export class Post {
-	constructor(readonly actor: Reddit) {}
+	constructor(readonly reddit: Reddit) {}
 
 	// Get post title text
 	async title() {
-		return this.actor.txtContent('h1[id^="post-title-"][slot="title"]');
+		return this.reddit.txtContent('h1[id^="post-title-"][slot="title"]');
 	}
 
 	// Add comment to main thread
 	async addComment(comment: () => Promise<string>) {
 		// Type comment in textbox
-		await this.actor.pressSequentially(
-			this.actor.page.locator("#subgrid-container").getByRole("textbox"),
+		await this.reddit.pressSequentially(
+			this.reddit.page.locator("#subgrid-container").getByRole("textbox"),
 			await comment()
 		);
 
 		// Submit comment
-		await this.actor.click(this.actor.page.locator('button.button-primary[slot="submit-button"]'));
+		await this.reddit.click(this.reddit.page.locator('button.button-primary[slot="submit-button"]'));
 	}
 
 	// Reply to specific comment
 	async replyToComment(locator: Locator, reply: () => Promise<string>) {
 		await locator.scrollIntoViewIfNeeded();
-		await this.actor.nap();
+		await this.reddit.nap();
 
 		// Click reply button
 		const comment = locator.locator('button:has-text("Reply")');
-		await this.actor.click(comment);
+		await this.reddit.click(comment);
 
 		// Wait for reply box and type response
 		const replyBox = locator.locator(
 			"shreddit-comment-action-row shreddit-async-loader comment-composer-host faceplate-form shreddit-composer"
 		);
 		await replyBox.waitFor();
-		await this.actor.type(await reply());
+		await this.reddit.type(await reply());
 
 		// Submit reply
-		await this.actor.click(replyBox.locator("button[slot='submit-button']"));
+		await this.reddit.click(replyBox.locator("button[slot='submit-button']"));
 	}
 }
 
-export default async function (params: Parameters<Options>, action: Funco) {
-	const { reddit } = await Reddito(params, action);
+export default async function (opts: Parameters<Options>, action: Funco) {
+	const { reddit } = await Reddito(opts, action);
 	const post = new Post(reddit);
 	return { reddit, post };
 }

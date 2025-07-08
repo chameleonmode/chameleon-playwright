@@ -68,7 +68,7 @@ export abstract class Actor<T> {
 				await location.scrollIntoViewIfNeeded();
 			}
 			const text = await location.evaluate((ele) => ele?.textContent?.replace(/\s+/g, " ").trim());
-			if (text) return bang("txtContent: " + selector, text, { location, text }, { print: false });
+			if (text) return bang("txtContent " + selector, text, { location, text }, { print: false });
 		}
 		throw er(`No visible elements found for ${selector}`, locator);
 	}
@@ -81,7 +81,7 @@ export abstract class Actor<T> {
 			}
 			return attrs;
 		});
-		return bang("attributes: " + locator, attributes, { locator, attributes }, { print: false });
+		return bang("attributes " + locator, attributes, { locator, attributes }, { print: false });
 	}
 
 	async selectAll(locator?: Locator, clear = false) {
@@ -114,11 +114,11 @@ export abstract class Actor<T> {
 			expect(locator).toBeEnabled({ timeout }),
 			expect(locator).toBeVisible({ timeout }),
 		]);
-		bang(`expecto: ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
+		bang(`expecto ${locator}`, !expecto.errors.length || expecto.fulfilled.length, expecto); // banger
 
 		// Locatorations
 		await locator.waitFor({ timeout });
-		return bang(`assert: ${locator}`, locator, { timeout, locator });
+		return bang(`assert ${locator}`, locator, { timeout, locator });
 	}
 
 	async click(thang: string | Locator, options: { timeout?: number } = {}): Promise<Locator> {

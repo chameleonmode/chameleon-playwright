@@ -1,6 +1,5 @@
-import { Locator } from "@playwright/test";
 import { Funco, Logger, Parameters, promptee } from "../../../../lib/index.js";
-import { bang, delay } from "../../../../lib/utils.js";
+import { bang } from "../../../../lib/utils.js";
 import { Options, RedditComment } from "../../configure.js";
 import Reddito, { Reddit } from "../../reddit.js";
 
@@ -41,14 +40,7 @@ export class Subreddit {
 							},
 						},
 					});
-					await this.reddit.scrollabit(9);
-					let racer = await Promise.race([promptmise, delay(100)]);
-					if (typeof racer === "number") await this.reddit.scrollabit(6);
-					racer = await Promise.race([promptmise, delay(100)]);
-					if (typeof racer === "number") await this.reddit.scrollabit(3);
-					racer = await Promise.race([promptmise, delay(100)]);
-					if (typeof racer === "number") await this.reddit.scrollabit();
-					const reply = await promptmise;
+					const reply = await this.reddit.waitabit(promptmise);
 					const ranked = reply[0].data
 						.sort((a) => a.rank)
 						.map((item) => these.find((c) => c.id === item.id))
@@ -62,7 +54,7 @@ export class Subreddit {
 			// Scroll to load more posts
 			await this.reddit.scrollabit();
 		}
-		
+
 		// Get upvote and downvote buttons
 		const ups = comments.length
 			? comments.map((c) => c.locator.getByRole("button", { name: "Upvote" }))
@@ -129,8 +121,8 @@ export class Subreddit {
 	}
 }
 
-export default async function (params: Parameters<Options>, action: Funco) {
-	const { reddit } = await Reddito(params, action);
+export default async function (opts: Parameters<Options>, action: Funco) {
+	const { reddit } = await Reddito(opts, action);
 	const subreddit = new Subreddit(reddit);
 	return { reddit, subreddit };
 }
