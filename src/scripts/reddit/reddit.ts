@@ -1,17 +1,48 @@
 import { Locator, Page } from "@playwright/test";
-import { Parameters, Thread, Funco, er, bang, bing, delay, Logger, promptee } from "../../lib/index.js";
-import {
-	configure,
-	Options,
-	Scope,
-	Sort,
-	BASE_URL,
-	Filter,
-	scopeulation,
-	Args,
-	RedditComment,
-} from "./configure.js";
+import { Parameters, Thread, Funco, er, bang, bing, Logger, promptee, state } from "../../lib/index.js";
+import { configure, Options, Scope, Sort, BASE_URL, Filter, Args, RedditComment } from "./configure.js";
 import { Actor } from "../actor.js";
+
+export class Scopeulation {
+	threaded: Thread[] = [];
+	visited: string[] = [];
+	searched: string[] = [];
+
+	base = (url: string) => new URL(url).href === new URL(BASE_URL).href;
+	user = (url: string) => /\.com\/user\/[^/]+/.test(url);
+	subreddit = (url: string) => /\/r\/[^/]+\/?$/.test(url);
+	comments = (url: string) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
+	search = (url: string) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
+
+	iterative = (url: string) =>
+		this.comments(url) || this.search(url) || this.user(url)
+			? url
+			: url.replace(/\/?(search)?$/, "/search");
+
+	existing(thread: Thread) {
+		if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
+			scopeulation.threaded.push(thread);
+			return thread;
+		}
+	}
+
+	scoped(current: Scope) {
+		const url = this.visited[this.visited.length - 1];
+		const scope =
+			["People", "Communities"].includes(current) &&
+			(this.subreddit(url) || this.comments(url) || this.search(url))
+				? "Posts"
+				: current;
+		const Url = new URL(url);
+		const type = Url.searchParams.get("type");
+		const sort = Url.searchParams.get("sort");
+		const t = Url.searchParams.get("t");
+		const community = scope === "Communities" || type === "communities";
+		const people = scope === "People" || type === "people" || this.user(url);
+		return { url, scope, type, sort, t, community, people };
+	}
+}
+export const scopeulation = new Scopeulation();
 
 export class Reddit extends Actor<Args> {
 	constructor(setup: { page: Page; options: Options; funco: Funco }) {
@@ -44,64 +75,62 @@ export class Reddit extends Actor<Args> {
 					return await setup.funco(url);
 				});
 			} else {
-				const { batches } = await (async () => {
+				const rank = async (func: (locators: Locator[]) => Promise<unknown>) => {
 					const locatorz = await this.navigateIntoPost().catch(async () => {
 						const scopeulator = this.scopeulate();
 						const finder = await scopeulator.findulator();
 						await this.scrollabit(6);
 						return await finder.find.locator.all();
 					});
-					// Wait for thread elements to be available
-					const batches: Thread[][] = [[]];
-					for (let i = 0; i < locatorz.length; i++) {
-						const idx = batches.length - 1;
-						if (batches[idx].length >= 10) batches.push([]); // Create a new batch every 10 threads
+					try {
+						const batches: Thread[][] = [[]];
+						for (const listing of locatorz) {
+							const idx = batches.length - 1;
+							if (batches[idx].length >= 10) batches.push([]); // Create a new batch every 10 threads
+							if (!(await listing.isVisible())) continue; // Skip if not visible
 
-						const listing = locatorz[i];
-						// const locator = listing.locator('xpath=ancestor::article[1]') ?? listing;
-						if (!(await listing.isVisible())) continue; // Skip if not visible
-
-						const { id, content, attributes } = await this.raw(listing, false).catch();
-						batches[idx].push({ id, content, listing, attributes });
-					}
-					return { batches };
-				})();
-
-				const rank = async (func: (locators: Locator[]) => Promise<unknown>) => {
-					for (const data of batches) {
-						const promptmise = promptee.ranking({
-							task: `score these reddit threads by relevance to the users inception. make sure to include a rank number along with the thread ID provided.`,
-							generations: {
-								type: "ranking",
-								range: { min: 1, max: 1 },
-								input: {
-									data: data,
-									user_intent: `Rank all of these threads for ${
-										this.opts.settings.start.feature
-									} @${this.page.url()}`,
+							const { id, content, attributes } = await this.raw(listing, false).catch();
+							batches[idx].push({ id, content, listing, attributes });
+						}
+						for (const data of batches) {
+							const promptmise = promptee.ranking({
+								task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}. Include a rank number along with the thread ID provided.`,
+								generations: {
+									type: "ranking",
+									range: { min: 1, max: 1 },
+									input: {
+										data: data,
+										user_intent: `This batch of threads is @${this.page.url()}`,
+									},
 								},
-							},
-						});
-						const reply = await this.waitabit(promptmise);
-						const threaded = reply[0].data
-							.sort((a) => a.rank)
-							.map((item) => {
-								const thread = data.find((t) => t.id === item.id);
-								return thread?.listing;
-							}) as Locator[];
-						await func(threaded);
+							});
+							const reply = await this.waitabit(promptmise);
+							await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing) as Locator[]);
+						}
+					} catch (error) {
+						await func(locatorz);
 					}
 				};
-				return await attempter(
-					async () =>
-						await rank(
-							async (threads) =>
-								await this.findo(threads, async (thread) => {
-									await pre();
-									return await setup.funco(url, thread);
-								})
-						)
-				);
+				if (state.testing) {
+					return await attempter(async () => {
+						const scopeulator = this.scopeulate();
+						const finder = await scopeulator.findulator();
+						await this.scrollabit(1);
+						return await this.findo(await finder.find.locator.all(), async (thread) => {
+							await pre();
+							return await setup.funco(url, thread);
+						});
+					});
+				} else {
+					return await attempter(async () => {
+						return await rank(async (threads) => {
+							return await this.findo(threads, async (thread) => {
+								await pre();
+								return await setup.funco(url, thread);
+							});
+						});
+					});
+				}
 			}
 		});
 	}
@@ -464,3 +493,5 @@ export default async function (params: Parameters<Options>, funco: Funco) {
 
 	return { reddit };
 }
+
+export * from "./configure.js";

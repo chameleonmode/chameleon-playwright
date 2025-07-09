@@ -74,6 +74,7 @@ export function rando<T>(thing?: T[] | number, thinger?: number): T | boolean | 
 		? Math.floor(Math.random() * thing)
 		: Math.random() < 0.5;
 }
+export const randy = () => Math.random() - 0.5;
 
 export async function tryForEach<T>(promises: Promise<T>[]) {
 	const fulfilled: T[] = [];

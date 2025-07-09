@@ -1,6 +1,5 @@
 import { Funco, Parameters } from "../../../../lib/index.js";
-import { Options } from "../../configure.js";
-import Reddito, { Reddit } from "../../reddit.js";
+import Reddito, { Reddit, Options } from "../../reddit.js";
 
 export class User {
 	constructor(readonly reddit: Reddit) {}

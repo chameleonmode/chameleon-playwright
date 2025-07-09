@@ -1,9 +1,8 @@
-import { requests, App, AI, Thread } from "./index.js";
+import { requests, App, AI, Thread, state } from "./index.js";
 import { Logger } from "./logger.js";
 import { bang } from "./utils.js";
 
 export namespace promptee {
-	export const state: App = { api: undefined, ai: undefined };
 	export const heading = { "Content-Type": "application/json", ai: "origato" };
 
 	export async function endpoint(route: string) {

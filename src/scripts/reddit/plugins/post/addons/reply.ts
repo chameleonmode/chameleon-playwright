@@ -1,7 +1,7 @@
 import { BrowserContext } from "@playwright/test";
 import { bang } from "../../../../../lib/utils.js";
 import { promptee } from "../../../../../lib/requests.js";
-import { CommentTarget, Options } from "../../../configure.js";
+import { CommentTarget, Options } from "../../../reddit.js";
 import Post from "../post.js";
 
 export default async function (ctx: BrowserContext, opts: Options) {

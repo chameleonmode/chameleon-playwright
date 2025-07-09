@@ -1,6 +1,6 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings, Thread, Anything } from "../../lib/index.js";
+import { AI, Opts, Artifact, Settings, Anything, state } from "../../lib/index.js";
 
 export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
@@ -45,10 +45,10 @@ export const settings: Settings = {
 export const ai: AI = {
 	model: "o4-mini",
 	decorators: {
-		system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit.`,
+		system: `You are a Reddit-native assistant trained to generate relevant, tone-matching, socially appropriate information for Reddit`,
 		human: "Reddit-native content creator",
 		audience: "Reddit-native website users relevant to the current context in the task data",
-		background: "Browsing reddit for relevant content and interacting with the Reddit community.",
+		background: "Browsing reddit for relevant content and interacting with the Reddit community",
 		tone: "adaptive to the relevant task data and context",
 	},
 };
@@ -59,24 +59,24 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		...(opts?.settings?.start?.urls || []),
 		...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
 	].filter(Boolean);
-	// if (!search.length && !urls.length) {
-	// 	args.scope = "Posts"; // Default scope
-	// 	args.sort = "Relevance"; // Default sort
-	// 	args.filter = "All";
+	if (state.testing) {
+		Logger.debug("Testing mode enabled, using provided URLs and search terms.");
+		args.scope = "Posts"; // Default scope
+		args.sort = "Relevance"; // Default sort
+		args.filter = "All";
 
-	// 	// If no search terms or URLs are provided, default to BASE_URL
-	// 	search.push("joe rogan"); // Default search term
-	// 	urls.push(BASE_URL); // Default URL
-	// 	// urls.push("https://www.reddit.com/r/spaceporn/comments/1lqda9p/an_interstellar_object_has_been_detected_hurtling/"); 
+		// If no search terms or URLs are provided, default to BASE_URL
+		search.push("joe rogan");
+		urls.push(BASE_URL); 
 
-	// 	settings.start.attempts = 12;
-	// 	settings.start.new = false;
-	// 	settings.start.rando = { min: 17, max: 17 }; //
-	// 	settings.start.iterations = { min: 1, max: 1 }; //
-	// 	settings.start.variations = { min: 1, max: 1 };
+		settings.start.attempts = 1;
+		settings.start.new = false;
+		settings.start.rando = { min: 19, max: 3 }; //
+		settings.start.iterations = { min: 1, max: 1 }; //
+		settings.start.variations = { min: 1, max: 1 };
 
-	// 	Logger.warn("No search terms or URLs provided, using default values.");
-	// }
+		Logger.warn("No search terms or URLs provided, using default values.");
+	}
 	const options: Options = {
 		run: opts?.run ?? {},
 		args: { ...args, ...opts?.args },
@@ -123,44 +123,3 @@ export type RedditCommentPrompt = {
 	post: { id: string; url: string; content?: any; comments?: RedditComment[] };
 	target?: CommentTarget;
 };
-
-export class Scopeulation {
-	threaded: Thread[] = [];
-	visited: string[] = [];
-	searched: string[] = [];
-
-	base = (url: string) => new URL(url).href === new URL(BASE_URL).href;
-	user = (url: string) => /\.com\/user\/[^/]+/.test(url);
-	subreddit = (url: string) => /\/r\/[^/]+\/?$/.test(url);
-	comments = (url: string) => /\/r\/[^/]+\/comments(?:\/.*)?$/.test(url);
-	search = (url: string) => /\/r\/[^/]+\/search(?:\/.*)?$/.test(url);
-
-	iterative = (url: string) =>
-		this.comments(url) || this.search(url) || this.user(url)
-			? url
-			: url.replace(/\/?(search)?$/, "/search");
-
-	existing(thread: Thread) {
-		if (!this.threaded.some((v) => JSON.stringify(v.listing) === JSON.stringify(thread.listing))) {
-			scopeulation.threaded.push(thread);
-			return thread;
-		}
-	}
-
-	scoped(current: Scope) {
-		const url = this.visited[this.visited.length - 1];
-		const scope =
-			["People", "Communities"].includes(current) &&
-			(this.subreddit(url) || this.comments(url) || this.search(url))
-				? "Posts"
-				: current;
-		const Url = new URL(url);
-		const type = Url.searchParams.get("type");
-		const sort = Url.searchParams.get("sort");
-		const t = Url.searchParams.get("t");
-		const community = scope === "Communities" || type === "communities";
-		const people = scope === "People" || type === "people" || this.user(url);
-		return { url, scope, type, sort, t, community, people };
-	}
-}
-export const scopeulation = new Scopeulation();

@@ -1,57 +1,40 @@
 import { Browser } from "@playwright/test";
+import { fileURLToPath, pathToFileURL } from "url";
 import path from "path";
-import { fileURLToPath } from "url";
 import { Opts } from "./index.js";
 import { Logger } from "./logger.js";
 
 export async function loader(file: string) {
-  // Recreate dirname for ES module
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-
-  // Attempting to load script from the specified file
-  const script = file.endsWith(".js") ? file : path.join(__dirname, `${file}.js`);
-
-  // Use URL object directly instead of pathToFileURL
-  const url = new URL(`file://${path.resolve(script)}`);
+  
+  // Handle different file extensions
+  const extensions = ['.js', '.mjs', '.ts'];
+  let script = file;
+  
+  if (!extensions.some(ext => file.endsWith(ext))) {
+    script = path.join(__dirname, `${file}.js`);
+  }
+  
+  // Normalize path for cross-platform compatibility
+  const resolvedPath = path.resolve(script);
+  const normalizedPath = path.normalize(resolvedPath);
+  
+  // Use pathToFileURL for proper URL conversion
+  const url = pathToFileURL(normalizedPath);
+  
   const module = await import(url.href);
-  const feature = url.href.split("/").pop()?.split(".")[0];
+  const feature = path.parse(normalizedPath).name;
+  
   return { plugin: module.default || module, feature };
 }
 
 export async function run(args: { file: string; browser: Browser, opts: unknown }) {
   try {
-    console.log(`Try: ${args.file}`);
+    Logger.log(`try ${args.file}`);
     const { plugin, feature } = await loader(args.file);
 
     const ctx = args.browser.contexts()[0];
-    // Add stealth features to avoid detection
-    // Add standard Playwright stealth features to avoid detection
-    await ctx.addInitScript(() => {
-      // Hide webdriver property
-      Object.defineProperty(navigator, "webdriver", { get: () => false });
-
-      // Hide automation-related properties
-      Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
-      Object.defineProperty(navigator, "deviceMemory", { get: () => 8 });
-
-            // Add more stealth features as needed
-      const query = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters) => {
-        if (parameters.name === "notifications") {
-          const result: PermissionStatus = {
-            name: "notifications",
-            state: Notification.permission as PermissionState,
-            onchange: null,
-            addEventListener: function() {},
-            removeEventListener: function() {},
-            dispatchEvent: function() { return false; }
-          };
-          return Promise.resolve(result);
-        }
-        return query(parameters);
-      };
-    });
     const op = args.opts as Partial<Opts<unknown>>;
     const opts = {
       ...op,

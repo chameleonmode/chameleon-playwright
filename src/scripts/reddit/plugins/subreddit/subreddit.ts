@@ -1,7 +1,6 @@
-import { Funco, Logger, Parameters, promptee } from "../../../../lib/index.js";
-import { bang } from "../../../../lib/utils.js";
-import { Options, RedditComment } from "../../configure.js";
-import Reddito, { Reddit } from "../../reddit.js";
+import { Locator } from "@playwright/test";
+import { Funco, Logger, Parameters, bang, promptee, randy } from "../../../../lib/index.js";
+import Reddito, { Reddit, Options, RedditComment } from "../../reddit.js";
 
 export class Subreddit {
 	constructor(readonly reddit: Reddit) {}
@@ -21,65 +20,54 @@ export class Subreddit {
 
 	// Vote on posts (upvote/downvote)
 	async voter() {
-		const comments: RedditComment[] = [];
+		const ups: Locator[] = [];
 		// Join conversation if not in community or people scope
 		if (await this.reddit.joinConversation()) {
 			const these = await this.reddit.getComments();
 			const min = Math.min(these.length, this.reddit.opts.settings.start.rando.min);
+			bang("Vote count", min > 0);
 			try {
-				while (comments.length < min) {
+					// Ensure we only use comments under the minimum amount defined in settings
+					const data = these.sort(() => randy()).slice(0, min);
 					const promptmise = promptee.ranking({
-						task: `rank these reddit comments for up-voting make sure to mix and match the best comments that relate to the users incception metadata.
-				do not only rank the top comments, but also include some of the lower ranked comments that are relevant to the users metadata.`,
+						task: `rank these reddit comments for voting positively ${min} times on. your reply data needs to be a ordered array of the provided comment id and your ranking number.`,
 						generations: {
 							type: "ranking",
 							range: { min: 1, max: 1 },
 							input: {
-								data: these.filter((comment) => !comments.some((c) => c.id === comment.id)),
-								user_intent: `Rank all of these comments to up-vote on @${this.reddit.page.url()}`,
+								data: data.sort(() => randy()),
+								user_intent: `This batch comments are @${this.reddit.page.url()}`,
 							},
 						},
 					});
 					const reply = await this.reddit.waitabit(promptmise);
 					const ranked = reply[0].data
-						.sort((a) => a.rank)
 						.map((item) => these.find((c) => c.id === item.id))
 						.filter((comment): comment is RedditComment => comment !== undefined);
-					comments.push(...ranked);
-				}
+					ups.push(...ranked.map((c) => c.locator.getByRole("button", { name: "Upvote" })));
 			} catch (error) {
 				Logger.warn("Error in ranking wait", error);
 			}
-		} else {
-			// Scroll to load more posts
-			await this.reddit.scrollabit();
+		} else await this.reddit.scrollabit();
+		// If no comments found, use the main page's upvote button
+		if (ups.length === 0) {
+			const locator = await this.reddit.page.getByRole("button", { name: "Upvote" }).all();
+			ups.push(...locator);
 		}
-
-		// Get upvote and downvote buttons
-		const ups = comments.length
-			? comments.map((c) => c.locator.getByRole("button", { name: "Upvote" }))
-			: this.reddit.page.getByRole("button", { name: "Upvote" });
-		const downs = comments.length
-			? comments.map((c) => c.locator.getByRole("button", { name: "Downvote" }))
-			: this.reddit.page.getByRole("button", { name: "Downvote" });
-		const upCount = Array.isArray(ups) ? ups.length : await ups.count();
-		const downCount = Array.isArray(downs) ? downs.length : await downs.count();
-
+		const downs = await this.reddit.page.getByRole("button", { name: "Downvote" }).all();
 		// Calculate voting limits to avoid errors
-		const count = Math.min(upCount, downCount) - 1;
+		const count = Math.min(ups.length, downs.length) - 1;
 		const length = Math.min(count, this.reddit.opts.settings.start.rando.min);
-		bang("Vote count", length > 0, { upCount, downCount, count, length });
+		bang("Vote count", length > 0, { upCount: ups.length, downCount: downs.length, count, length });
 
 		// Perform voting with 96% upvote bias
 		for (let i = 0; i < length; i++) {
-			const upLocator = Array.isArray(ups) ? ups[i] : ups.nth(i);
-			const downLocator = Array.isArray(downs) ? downs[i] : downs.nth(i);
-			await this.reddit.click(Math.random() * 100 <= 96 ? upLocator : downLocator);
+			await this.reddit.click(Math.random() * 69 <= 96 ? ups[i] : downs[i]);
 		}
 
 		return {
-			ups: { locator: ups, count: upCount },
-			downs: { locator: downs, count: downCount },
+			ups: { locator: ups, count: ups.length },
+			downs: { locator: downs, count: downs.length },
 		};
 	}
 
