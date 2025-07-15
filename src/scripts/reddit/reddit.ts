@@ -105,10 +105,10 @@ export class Reddit extends Actor<Args> {
 								},
 							});
 							const reply = await this.waitabit(promptmise);
-							await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing) as Locator[]);
+							return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing) as Locator[]);
 						}
 					} catch (error) {
-						await func(locatorz);
+						return await func(locatorz);
 					}
 				};
 				if (state.testing) {
@@ -250,10 +250,11 @@ export class Reddit extends Actor<Args> {
 	}
 
 	async backscratcher(url: URL, error?: unknown) {
-		bang("backscratcher checking listing attempts", !error || this.opts.settings.start.attempts-- > 0, {
+		bang("backscratcher checking listing attempts", this.opts.settings.start.attempts > 0, {
 			attempts: this.opts.settings.start.attempts,
 			error,
 		});
+		if (error) this.opts.settings.start.attempts--;
 		while (await this.page.evaluate(() => window.history.length > 1)) {
 			if (new URL(this.page.url()).pathname === url.pathname) break; // If we are at the base URL
 
@@ -351,7 +352,7 @@ export class Reddit extends Actor<Args> {
 		// }
 
 		// check if we have completed all terms
-		return search && basic
+		return search > 0 && basic
 			? await this.searcho()
 			: visit && !scopeulation.visited.includes(url)
 			? await this.navigato(url)

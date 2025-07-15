@@ -21,10 +21,7 @@ export class Player {
 					Logger.info(`Iteration #${i + 1} of ${this.actor.opts.settings.start.iterations.max}`);
 
 					// if on next iteration
-					if (i > 0) {
-						// await delay(this.actor.opts.settings.timeouts.artifacto.delay);
-						await this.actor.onReIteration(url);
-					}
+					if (i > 0) await this.actor.onReIteration(url);
 
 					// on each iteration
 					const resulto = await this.actor.scenario(url);
