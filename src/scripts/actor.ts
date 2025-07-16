@@ -149,11 +149,14 @@ export abstract class Actor<T> {
 	async waitabit<T>(promise: Promise<T>) {
 		await this.scrollabit();
 		let racer = await Promise.race([promise, delay(100)]);
-		if (typeof racer === "number") await this.scrollabit(6);
-		racer = await Promise.race([promise, delay(100)]);
-		if (typeof racer === "number") await this.scrollabit(3);
-		racer = await Promise.race([promise, delay(100)]);
-		if (typeof racer === "number") await this.scrollabit();
+		while (typeof racer === "number"){
+			await this.scrollabit(3);
+			racer = await Promise.race([promise, delay(100)]);
+		}
+		// racer = await Promise.race([promise, delay(100)]);
+		// if (typeof racer === "number") await this.scrollabit(3);
+		// racer = await Promise.race([promise, delay(100)]);
+		// if (typeof racer === "number") await this.scrollabit();
 		return await promise;
 	}
 
@@ -266,6 +269,7 @@ export abstract class Actor<T> {
 	async screenshot(locator: Locator) {
 		return (
 			await locator.screenshot({
+				// path: ".cache/screenshot.png",
 				scale: "css",
 				type: "jpeg",
 				quality: 72,

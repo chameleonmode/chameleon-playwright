@@ -1,4 +1,4 @@
-import { requests, App, AI, Thread, state } from "./index.js";
+import { requests, Thread, state } from "./index.js";
 import { Logger } from "./logger.js";
 import { bang } from "./utils.js";
 
@@ -26,7 +26,7 @@ export namespace promptee {
 	function promptio<T>(ctx: Partial<requests.Prompt<T>>) {
 		const prompt: requests.Prompt<T> = {
 			...ctx,
-			model: ctx.model || "o4-mini",
+			model: ctx.model || state.ai?.model || "o4-mini",
 			task: bang("prompt request task", ctx.task),
 			decorators: bang("prompt request decorators", state.ai?.decorators, state),
 			generations: bang("prompt request generations", ctx.generations),
@@ -36,21 +36,33 @@ export namespace promptee {
 	}
 
 	async function requesito<T, TT>(route: string, ctx: Partial<requests.Prompt<T>>) {
-		const request = await fetch(await endpoint(route), promptio(ctx));
-		const out = bang("request response", await request.json());
-		return out.reply as requests.Output<TT>[];
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 60 * 1000 * 3); // timeout
+		
+		try {
+			const request = await fetch(await endpoint(route), { 
+				signal: controller.signal, 
+				...promptio(ctx) 
+			});
+			const out = bang("request response", await request.json());
+			return out.reply as requests.Output<TT>[];
+		} finally {
+			clearTimeout(timeoutId);
+		}
 	}
 
 	export async function ranking(ctx: Partial<requests.Prompt<Thread[]>>) {
+		ctx.model = "o4-mini"; // Use a specific model for ranking
 		return await requesito<Thread[], Thread[]>("robo/ranking", ctx);
 	}
 
 	export async function content<T>(ctx: Partial<requests.Prompt<T>>) {
-		return await requesito<T, string>("robo/content", ctx);
+		ctx.model ||= state.ai?.model || "o4-mini";
+		return await requesito<T, string>("robo/" + (ctx.model == "grok-4" ? "grok" : "content"), ctx);
 	}
 }
-// stamets
 
+// stamets
 export async function req<T>(
 	route: string,
 	args: {

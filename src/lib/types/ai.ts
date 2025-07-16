@@ -1,6 +1,6 @@
 import { Ranger } from "..";
 
-export type Model = "gpt-4.1" | "o4-mini";
+export type Model = "gpt-4.1" | "o4-mini" | "grok-4";
 export type Tone = "sarcastic" | "informative" | "relatable" | "straightforward";
 
 export interface Decorations {

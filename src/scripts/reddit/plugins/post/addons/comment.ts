@@ -19,7 +19,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 		// Step 1.6 - Generate a comment
 		const postee = { id: raw.id, url: raw.url, content: raw.content, comments: await reddit.getComments() };
 		await post.addComment(async () => {
-			const result = await promptee.content({
+			const result = promptee.content({
 				task: "generate_reddit_comment",
 				image: { des: "post screenshot", b64: [raw.screenshot] },
 				generations: {
@@ -36,7 +36,8 @@ export default async function (ctx: BrowserContext, opts: Options) {
 					},
 				},
 			});
-			return result[0].data;
+			const reply = await reddit.waitabit(result);
+			return reply[0].data;
 		});
 	});
 

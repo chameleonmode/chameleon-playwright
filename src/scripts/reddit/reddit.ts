@@ -79,7 +79,7 @@ export class Reddit extends Actor<Args> {
 					const locatorz = await this.navigateIntoPost().catch(async () => {
 						const scopeulator = this.scopeulate();
 						const finder = await scopeulator.findulator();
-						await this.scrollabit(6);
+						if(!state.testing) await this.scrollabit(6);
 						return await finder.find.locator.all();
 					});
 					try {
@@ -94,7 +94,7 @@ export class Reddit extends Actor<Args> {
 						}
 						for (const data of batches) {
 							const promptmise = promptee.ranking({
-								task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}. Include a rank number along with the thread ID provided.`,
+								task: `Score these reddit threads by relevance to for ${this.opts.settings.start.feature}`,
 								generations: {
 									type: "ranking",
 									range: { min: 1, max: 1 },
@@ -105,7 +105,7 @@ export class Reddit extends Actor<Args> {
 								},
 							});
 							const reply = await this.waitabit(promptmise);
-							return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing) as Locator[]);
+							return await func(reply[0].data.map((i) => data.find((t) => t.id === i.id)?.listing) as Locator[]).catch();
 						}
 					} catch (error) {
 						return await func(locatorz);
@@ -336,6 +336,11 @@ export class Reddit extends Actor<Args> {
 
 	// on every try
 	override async onWhile(url: string): Promise<void | Error> {
+		// let scs = await this.screenshot(this.page.locator("body"));
+		// Logger.log("Screenshot taken", scs.length, { screenshot: scs });
+		// // save screenshot to file
+		// const fs = await import("node:fs/promises");
+		// await fs.writeFile("screenshot.txt", `"[${scs}]"`);
 		const basic = scopeulation.subreddit(url) || url === BASE_URL;
 		const todo = this.opts.settings.start.urls.length + this.opts.settings.start.search.length;
 		const visit = this.opts.settings.start.urls.length - scopeulation.visited.length;

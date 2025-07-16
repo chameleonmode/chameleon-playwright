@@ -43,8 +43,7 @@ export default async function (ctx: BrowserContext, opts: Options) {
 
 		// Step 1.6 - Generate a reply
 		const postee = { id: raw.id, url: raw.url, content: raw.content, comments };
-		const result = await promptee.content({
-			model: "o4-mini",
+		const response = promptee.content({
 			decorators: reddit.opts.ai.decorators,
 			task: "generate_reddit_reply",
 			image: { des: "page screenshots", b64: [raw.screenshot] },
@@ -61,15 +60,16 @@ export default async function (ctx: BrowserContext, opts: Options) {
 			},
 		});
 
+		const reply = await reddit.waitabit(response);
 		const comment = bang(
 			"finding comment",
-			comments.find((c) => c.id === (target.comment?.id ? target.comment.id : result[0].id)),
-			{ target, result }
+			comments.find((c) => c.id === (target.comment?.id ? target.comment.id : reply[0].id)),
+			{ target, result: reply }
 		);
 
 		await post.replyToComment(comment.locator, async () => {
 			await reddit.nap();
-			return result[0].data;
+			return reply[0].data;
 		});
 	});
 

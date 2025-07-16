@@ -59,24 +59,28 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 		...(opts?.settings?.start?.urls || []),
 		...(search.length && !opts?.settings?.start?.urls?.length ? [BASE_URL] : [])
 	].filter(Boolean);
+	state.testing = false; // Reset testing state
 	if (state.testing) {
 		Logger.debug("Testing mode enabled, using provided URLs and search terms.");
 		args.scope = "Posts"; // Default scope
 		args.sort = "Relevance"; // Default sort
-		args.filter = "All";
+		args.filter = "All"; // Default filter
 
-		// If no search terms or URLs are provided, default to BASE_URL
+		// Default URLs and search terms for testing
 		search.push("joe rogan");
 		urls.push(BASE_URL); 
+		// urls.push("https://www.reddit.com/r/Fauxmoi/comments/1lb38a9/the_best_joe_rogan_take_ive_heard_in_a_while_male/");
 
 		settings.start.attempts = 1;
 		settings.start.new = false;
-		settings.start.rando = { min: 19, max: 3 }; //
-		settings.start.iterations = { min: 1, max: 1 }; //
+		settings.start.rando = { min: 19, max: 3 };
+		settings.start.iterations = { min: 1, max: 1 };
 		settings.start.variations = { min: 1, max: 1 };
+		ai.model ="grok-4"; // Default model for testing
 
 		Logger.warn("No search terms or URLs provided, using default values.");
 	}
+	// state.testing = true; // Set testing state to true
 	const options: Options = {
 		run: opts?.run ?? {},
 		args: { ...args, ...opts?.args },
@@ -97,7 +101,7 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 			},
 		},
 		ai: {
-			model: ai.model, // Model is always taken from the global 'ai' object; opts.ai.model is ignored.
+			model: opts?.ai?.model || state.ai?.model || "o4-mini", // Model is always taken from the global 'ai' object; opts.ai.model is ignored.
 			decorators: {
 				...ai.decorators,
 				...opts?.ai?.decorators,
