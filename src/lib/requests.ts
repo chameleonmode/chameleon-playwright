@@ -1,4 +1,4 @@
-import { requests, Thread, state } from "./index.js";
+import { requests, App, AI, Thread, state } from "./index.js";
 import { Logger } from "./logger.js";
 import { bang } from "./utils.js";
 
@@ -36,19 +36,9 @@ export namespace promptee {
 	}
 
 	async function requesito<T, TT>(route: string, ctx: Partial<requests.Prompt<T>>) {
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 60 * 1000 * 3); // timeout
-		
-		try {
-			const request = await fetch(await endpoint(route), { 
-				signal: controller.signal, 
-				...promptio(ctx) 
-			});
-			const out = bang("request response", await request.json());
-			return out.reply as requests.Output<TT>[];
-		} finally {
-			clearTimeout(timeoutId);
-		}
+		const request = await fetch(await endpoint(route), promptio(ctx));
+		const out = bang("request response", await request.json());
+		return out.reply as requests.Output<TT>[];
 	}
 
 	export async function ranking(ctx: Partial<requests.Prompt<Thread[]>>) {
