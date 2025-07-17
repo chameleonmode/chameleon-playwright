@@ -1,6 +1,6 @@
 import { BrowserContext, Locator } from "@playwright/test";
 import { Logger } from "../../lib/logger.js";
-import { AI, Opts, Artifact, Settings, Anything, state } from "../../lib/index.js";
+import { AI, Opts, Artifact, Settings, Anything, state, delay } from "../../lib/index.js";
 
 export type Scope = "Posts" | "Communities" | "Comments" | "Media" | "People";
 export type Sort = "Relevance" | "Hot" | "Top" | "New" | "Comments" | "Posts";
@@ -117,6 +117,7 @@ export async function configure(ctx: BrowserContext, opts?: Partial<Options>) {
 	options.settings.timeouts.artifacto.delay = 1000 * options.settings.timeouts.artifacto.delay;
 
 	Logger.debug("Options", options);
+	while (ctx.pages().some((page) => /^http:\/\/127\.0\.0\.1/.test(page.url()))) await delay(1000);
 	const page = options.settings.start.new ? await ctx.newPage() : ctx.pages()[ctx.pages().length - 1];
 	return { page, options };
 }
